@@ -4,11 +4,13 @@
 
 A premium, beautifully designed Next.js application for planning routes with detailed weather forecasts. Upload GPX files, analyze weather conditions along your path, and make informed decisions for your outdoor activities with a delightful user experience.
 
-## Features (Planned)
+## Features
 
 - **GPX File Parsing**: Upload and parse GPX files to extract route data including coordinates, distance, and elevation profiles.
 - **Dynamic Weather Forecasting**: Get detailed weather forecasts at custom intervals along your route.
 - **Interactive Map**: Visualize your route with weather markers on an interactive OpenLayers map.
+- **Weather Summary Dashboard**: Comprehensive statistics showing temperature, wind, precipitation, and atmospheric data ranges.
+- **Interactive Cross-Component Selection**: Click weather points in timeline, charts, or map to center and explore data.
 - **Detailed Data Visualization**: View weather patterns through interactive charts (temperature, precipitation, wind, humidity, pressure, elevation).
 - **Timeline & Alerts**: Scrollable timeline of forecast points and important weather alerts (high wind, extreme heat, freezing temperatures, heavy rain).
 - **PDF Export**: Generate comprehensive PDF reports of your route with weather data.
