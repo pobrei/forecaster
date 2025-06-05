@@ -234,22 +234,25 @@ export function WeatherCharts({
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="temperature" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="temperature" className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Temperature
+          <TabsList className="grid w-full grid-cols-4 h-auto p-1">
+            <TabsTrigger value="temperature" className="flex items-center gap-1 sm:gap-2 px-2 py-1.5 text-xs sm:text-sm">
+              <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+              <span className="hidden sm:inline">Temperature</span>
+              <span className="sm:hidden">Temp</span>
             </TabsTrigger>
-            <TabsTrigger value="precipitation" className="flex items-center gap-2">
-              <Droplets className="h-4 w-4" />
-              Precipitation
+            <TabsTrigger value="precipitation" className="flex items-center gap-1 sm:gap-2 px-2 py-1.5 text-xs sm:text-sm">
+              <Droplets className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+              <span className="hidden sm:inline">Precipitation</span>
+              <span className="sm:hidden">Rain</span>
             </TabsTrigger>
-            <TabsTrigger value="wind" className="flex items-center gap-2">
-              <Wind className="h-4 w-4" />
-              Wind
+            <TabsTrigger value="wind" className="flex items-center gap-1 sm:gap-2 px-2 py-1.5 text-xs sm:text-sm">
+              <Wind className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+              <span>Wind</span>
             </TabsTrigger>
-            <TabsTrigger value="atmospheric" className="flex items-center gap-2">
-              <Gauge className="h-4 w-4" />
-              Atmospheric
+            <TabsTrigger value="atmospheric" className="flex items-center gap-1 sm:gap-2 px-2 py-1.5 text-xs sm:text-sm">
+              <Gauge className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+              <span className="hidden sm:inline">Atmospheric</span>
+              <span className="sm:hidden">Atmo</span>
             </TabsTrigger>
           </TabsList>
 

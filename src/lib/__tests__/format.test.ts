@@ -24,17 +24,17 @@ describe('Wind Direction Functions', () => {
 
   describe('getWindDirectionArrow', () => {
     it('should return correct arrows for cardinal directions', () => {
-      expect(getWindDirectionArrow(0)).toBe('↓'); // North wind blows south
-      expect(getWindDirectionArrow(90)).toBe('←'); // East wind blows west
-      expect(getWindDirectionArrow(180)).toBe('↑'); // South wind blows north
-      expect(getWindDirectionArrow(270)).toBe('→'); // West wind blows east
+      expect(getWindDirectionArrow(0)).toBe('\u2193'); // ↓ North wind blows south
+      expect(getWindDirectionArrow(90)).toBe('\u2190'); // ← East wind blows west
+      expect(getWindDirectionArrow(180)).toBe('\u2191'); // ↑ South wind blows north
+      expect(getWindDirectionArrow(270)).toBe('\u2192'); // → West wind blows east
     });
 
     it('should return correct arrows for intermediate directions', () => {
-      expect(getWindDirectionArrow(45)).toBe('↙'); // NE wind blows SW
-      expect(getWindDirectionArrow(135)).toBe('↖'); // SE wind blows NW
-      expect(getWindDirectionArrow(225)).toBe('↗'); // SW wind blows NE
-      expect(getWindDirectionArrow(315)).toBe('↘'); // NW wind blows SE
+      expect(getWindDirectionArrow(45)).toBe('\u2199'); // ↙ NE wind blows SW
+      expect(getWindDirectionArrow(135)).toBe('\u2196'); // ↖ SE wind blows NW
+      expect(getWindDirectionArrow(225)).toBe('\u2197'); // ↗ SW wind blows NE
+      expect(getWindDirectionArrow(315)).toBe('\u2198'); // ↘ NW wind blows SE
     });
 
     it('should handle negative values', () => {
