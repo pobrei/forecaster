@@ -220,12 +220,12 @@ export function WeatherMap({
           isWindArrow: true,
         });
 
-        // Use a simple triangle character that points in wind direction
+        // Use a pointy arrow character that shows clear direction
         const rotation = getWindDirectionRotation(forecast.weather.wind_deg);
         windFeature.setStyle(new Style({
           text: new Text({
-            text: '▲', // Simple triangle that won't render as emoji
-            font: 'bold 14px sans-serif',
+            text: '^', // Simple caret character that shows clear direction
+            font: 'bold 16px sans-serif',
             fill: new Fill({
               color: '#1f2937',
             }),
@@ -442,17 +442,17 @@ export function WeatherMap({
                   <span>Weather Alert</span>
                 </div>
                 <div className="flex items-center gap-2 border-t pt-1 mt-1">
-                  <div className="inline-block w-3 h-3 relative">
-                    {/* CSS arrow pointing down */}
-                    <div className="w-0.5 h-2.5 bg-current absolute left-1/2 top-0 transform -translate-x-1/2" />
+                  <div className="inline-block w-4 h-4 relative">
+                    {/* CSS arrow pointing down - more pointy design */}
+                    <div className="w-0.5 h-2.5 bg-current absolute left-1/2 top-1 transform -translate-x-1/2" />
                     <div
-                      className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-0.5"
+                      className="absolute top-0 left-1/2 transform -translate-x-1/2"
                       style={{
                         width: 0,
                         height: 0,
-                        borderLeft: '2px solid transparent',
-                        borderRight: '2px solid transparent',
-                        borderBottom: '3px solid currentColor',
+                        borderLeft: '4px solid transparent',
+                        borderRight: '4px solid transparent',
+                        borderBottom: '6px solid currentColor',
                       }}
                     />
                   </div>
@@ -509,21 +509,21 @@ export function WeatherMap({
                     </div>
                     <div className="text-xs text-muted-foreground flex items-center gap-1">
                       <div
-                        className="inline-block w-3 h-3 relative"
+                        className="inline-block w-4 h-4 relative"
                         style={{
                           transform: `rotate(${getWindDirectionRotation(localSelectedPoint.weather.wind_deg)}deg)`,
                         }}
                       >
-                        {/* CSS arrow */}
-                        <div className="w-0.5 h-2.5 bg-current absolute left-1/2 top-0 transform -translate-x-1/2" />
+                        {/* CSS arrow - more pointy design */}
+                        <div className="w-0.5 h-2.5 bg-current absolute left-1/2 top-1 transform -translate-x-1/2" />
                         <div
-                          className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-0.5"
+                          className="absolute top-0 left-1/2 transform -translate-x-1/2"
                           style={{
                             width: 0,
                             height: 0,
-                            borderLeft: '2px solid transparent',
-                            borderRight: '2px solid transparent',
-                            borderBottom: '3px solid currentColor',
+                            borderLeft: '4px solid transparent',
+                            borderRight: '4px solid transparent',
+                            borderBottom: '6px solid currentColor',
                           }}
                         />
                       </div>
