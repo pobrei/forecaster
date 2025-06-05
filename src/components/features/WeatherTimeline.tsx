@@ -239,7 +239,7 @@ export function WeatherTimeline({
         {/* Scroll Hint */}
         {forecasts.length > 3 && (
           <div className="text-xs text-muted-foreground text-center mt-2">
-            ← Scroll horizontally to see all {forecasts.length} weather points →
+            {'\u2190'} Scroll horizontally to see all {forecasts.length} weather points {'\u2192'}
           </div>
         )}
       </CardContent>
