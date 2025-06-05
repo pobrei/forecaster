@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, FileText, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, FileText, X, CheckCircle, AlertCircle, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Route, APIResponse, UploadResponse } from '@/types';
 import { formatFileSize } from '@/lib/format';
@@ -21,37 +21,89 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [isMobile, setIsMobile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isMobileDevice = /iphone|ipad|ipod|android|blackberry|windows phone|opera mini|iemobile/i.test(userAgent);
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      setIsMobile(isMobileDevice || isTouchDevice);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const validateFile = (file: File): string | null => {
+    console.log('Validating file:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: file.lastModified,
+      isMobile
+    });
+
     // Check file size
     if (file.size > GPX_CONSTRAINTS.MAX_FILE_SIZE) {
       return `File size must be less than ${formatFileSize(GPX_CONSTRAINTS.MAX_FILE_SIZE)}`;
     }
 
-    // Check file extension
-    const extension = '.' + file.name.split('.').pop()?.toLowerCase();
-    if (!GPX_CONSTRAINTS.SUPPORTED_FORMATS.includes(extension as '.gpx')) {
-      return 'Please select a valid GPX file';
+    // More flexible file extension check for mobile
+    const fileName = file.name.toLowerCase();
+    const hasGpxExtension = fileName.endsWith('.gpx');
+    const hasValidMimeType = file.type === 'application/gpx+xml' ||
+                            file.type === 'text/xml' ||
+                            file.type === 'application/xml' ||
+                            file.type === '';
+
+    // On mobile, be more lenient with file validation
+    if (isMobile) {
+      // Accept if it has .gpx extension OR if it's an XML-like file
+      if (!hasGpxExtension && !hasValidMimeType && !fileName.includes('gpx')) {
+        return 'Please select a valid GPX file';
+      }
+    } else {
+      // Desktop validation - stricter
+      if (!hasGpxExtension) {
+        return 'Please select a valid GPX file';
+      }
     }
 
     return null;
   };
 
   const handleFiles = useCallback((files: FileList | null) => {
-    if (!files || files.length === 0) return;
+    console.log('handleFiles called with:', files);
+
+    if (!files || files.length === 0) {
+      console.log('No files provided');
+      return;
+    }
 
     const file = files[0];
+    console.log('Processing file:', file);
+
     const error = validateFile(file);
-    
+
     if (error) {
+      console.error('File validation error:', error);
       toast.error(error);
       return;
     }
 
+    console.log('File validated successfully, setting selected file');
     setSelectedFile(file);
     setUploadStatus('idle');
-  }, []);
+
+    // Show success message for mobile users
+    if (isMobile) {
+      toast.success(`File "${file.name}" selected successfully!`);
+    }
+  }, [isMobile]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -71,13 +123,30 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
   }, [handleFiles]);
 
   const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('File input change event:', e.target.files);
     handleFiles(e.target.files);
     // Reset the input value so the same file can be selected again
     e.target.value = '';
   }, [handleFiles]);
 
+  // Mobile-specific file selection handler
+  const handleMobileFileSelect = useCallback(() => {
+    console.log('Mobile file select triggered');
+    if (fileInputRef.current) {
+      // For mobile, we need to ensure the input is properly triggered
+      fileInputRef.current.click();
+    }
+  }, []);
+
   const uploadFile = async () => {
     if (!selectedFile) return;
+
+    console.log('Starting upload for file:', {
+      name: selectedFile.name,
+      size: selectedFile.size,
+      type: selectedFile.type,
+      isMobile
+    });
 
     setUploading(true);
     setUploadStatus('idle');
@@ -86,12 +155,15 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
       const formData = new FormData();
       formData.append('gpx', selectedFile);
 
+      console.log('Sending upload request...');
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
 
+      console.log('Upload response status:', response.status);
       const result: APIResponse<UploadResponse> = await response.json();
+      console.log('Upload result:', result);
 
       if (result.success && result.data) {
         setUploadStatus('success');
@@ -99,12 +171,17 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
         onRouteUploaded(result.data.route);
       } else {
         setUploadStatus('error');
-        toast.error(result.error || 'Upload failed');
+        const errorMsg = result.error || 'Upload failed';
+        console.error('Upload failed:', errorMsg);
+        toast.error(errorMsg);
       }
     } catch (error) {
       console.error('Upload error:', error);
       setUploadStatus('error');
-      toast.error('Network error. Please try again.');
+      const errorMsg = isMobile
+        ? 'Upload failed. Please check your internet connection and try again.'
+        : 'Network error. Please try again.';
+      toast.error(errorMsg);
     } finally {
       setUploading(false);
     }
@@ -170,7 +247,7 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
             <input
               ref={fileInputRef}
               type="file"
-              accept=".gpx,application/gpx+xml,text/xml,application/xml"
+              accept={isMobile ? "*/*" : ".gpx,application/gpx+xml,text/xml,application/xml"}
               onChange={handleFileInput}
               className="hidden"
               disabled={isLoading}
@@ -178,13 +255,20 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
             />
             <Button
               variant="outline"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={isMobile ? handleMobileFileSelect : () => fileInputRef.current?.click()}
               disabled={isLoading}
+              className={cn(isMobile && "touch-manipulation")}
             >
+              {isMobile && <Smartphone className="h-4 w-4 mr-2" />}
               Choose File
             </Button>
             <p className="text-xs text-muted-foreground mt-4">
               Supports GPX files up to 5 MB
+              {isMobile && (
+                <span className="block mt-1 text-blue-600 dark:text-blue-400">
+                  📱 On mobile: Select any file, we'll validate it's a GPX file
+                </span>
+              )}
             </p>
           </div>
         ) : (
