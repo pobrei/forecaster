@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { MapPin, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { Route, WeatherForecast, SelectedWeatherPoint } from '@/types';
-import { formatTemperature, formatWindSpeed, formatCoordinates, formatWindDirection, getWindDirectionArrow } from '@/lib/format';
+import { formatTemperature, formatWindSpeed, formatCoordinates, formatWindDirection, getWindDirectionArrow, formatDistance } from '@/lib/format';
 import { MAP_CONFIG } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
@@ -470,7 +470,7 @@ export function WeatherMap({
                       {localSelectedPoint.weather.weather[0]?.description}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {formatDistance(localSelectedPoint.routePoint.distance, { units })} from start
+                      {formatDistance(localSelectedPoint.routePoint.distance, units)} from start
                     </div>
                   </div>
                 </div>
