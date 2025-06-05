@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import { Route, WeatherForecast, AppSettings, ExportOptions } from '@/types';
-import { formatTemperature, formatWindSpeed, formatDistance, formatDateTime, formatPrecipitation } from './format';
+import { formatTemperature, formatWindSpeed, formatDistance, formatDateTime, formatPrecipitation, formatWindDirection, getWindDirectionArrow } from './format';
 import { EXPORT_CONFIG } from './constants';
 
 /**
@@ -280,6 +280,8 @@ export function generateCSVReport(
     'Weather Condition',
     'Wind Speed (km/h)',
     'Wind Direction (°)',
+    'Wind Direction (Cardinal)',
+    'Wind Direction (Arrow)',
     'Humidity (%)',
     'Pressure (hPa)',
     'Precipitation (mm/h)',
@@ -298,6 +300,8 @@ export function generateCSVReport(
     forecast.weather.weather[0]?.description || '',
     forecast.weather.wind_speed.toFixed(1),
     forecast.weather.wind_deg?.toString() || '',
+    forecast.weather.wind_deg ? formatWindDirection(forecast.weather.wind_deg) : '',
+    forecast.weather.wind_deg ? getWindDirectionArrow(forecast.weather.wind_deg) : '',
     forecast.weather.humidity.toString(),
     forecast.weather.pressure.toString(),
     ((forecast.weather.rain?.['1h'] || forecast.weather.snow?.['1h']) || 0).toFixed(1),
@@ -416,7 +420,8 @@ export function generateHTMLReport(
                     <th>Time</th>
                     <th>Weather</th>
                     <th>Temperature</th>
-                    <th>Wind</th>
+                    <th>Wind Speed</th>
+                    <th>Wind Direction</th>
                     <th>Humidity</th>
                     <th>Precipitation</th>
                 </tr>
@@ -432,6 +437,9 @@ export function generateHTMLReport(
                         </td>
                         <td>${formatTemperature(forecast.weather.temp, settings.units)}</td>
                         <td>${formatWindSpeed(forecast.weather.wind_speed, settings.units)}</td>
+                        <td>
+                            ${forecast.weather.wind_deg ? `${getWindDirectionArrow(forecast.weather.wind_deg)} ${formatWindDirection(forecast.weather.wind_deg)} (${forecast.weather.wind_deg}°)` : 'N/A'}
+                        </td>
                         <td>${forecast.weather.humidity}%</td>
                         <td>${formatPrecipitation((forecast.weather.rain?.['1h'] || forecast.weather.snow?.['1h']) || 0, settings.units)}/h</td>
                     </tr>
@@ -594,7 +602,7 @@ export function generateTextPDFReport(
     const weatherDetails = [
       `Temperature: ${formatTemperature(forecast.weather.temp, settings.units)} (feels like ${formatTemperature(forecast.weather.feels_like, settings.units)})`,
       `Condition: ${forecast.weather.weather[0]?.description || 'Unknown'}`,
-      `Wind: ${formatWindSpeed(forecast.weather.wind_speed, settings.units)}`,
+      `Wind: ${formatWindSpeed(forecast.weather.wind_speed, settings.units)}${forecast.weather.wind_deg ? ` ${getWindDirectionArrow(forecast.weather.wind_deg)} ${formatWindDirection(forecast.weather.wind_deg)} (${forecast.weather.wind_deg}°)` : ''}`,
       `Humidity: ${forecast.weather.humidity}%`,
       `Pressure: ${forecast.weather.pressure} hPa`,
     ];
@@ -662,7 +670,9 @@ export function generateGPXWithWeather(
             <feels_like>${forecast.weather.feels_like}</feels_like>
             <condition>${forecast.weather.weather[0]?.description || 'Unknown'}</condition>
             <wind_speed>${forecast.weather.wind_speed}</wind_speed>
-            <wind_direction>${forecast.weather.wind_deg || 0}</wind_direction>
+            <wind_direction_degrees>${forecast.weather.wind_deg || 0}</wind_direction_degrees>
+            <wind_direction_cardinal>${forecast.weather.wind_deg ? formatWindDirection(forecast.weather.wind_deg) : 'N/A'}</wind_direction_cardinal>
+            <wind_direction_arrow>${forecast.weather.wind_deg ? getWindDirectionArrow(forecast.weather.wind_deg) : ''}</wind_direction_arrow>
             <humidity>${forecast.weather.humidity}</humidity>
             <pressure>${forecast.weather.pressure}</pressure>
             <visibility>${forecast.weather.visibility}</visibility>

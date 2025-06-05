@@ -143,6 +143,64 @@
     filter: contrast(150%);
   }
 
+  /* OpenLayers attribution fix */
+  .ol-attribution {
+    background: rgba(255, 255, 255, 0.9) !important;
+    color: #333 !important;
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+    border-radius: 4px !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    max-width: calc(100% - 20px) !important;
+    bottom: 10px !important;
+    right: 10px !important;
+    z-index: 1000 !important;
+  }
+
+  .ol-attribution ul {
+    margin: 0 !important;
+    padding: 0 !important;
+    list-style: none !important;
+  }
+
+  .ol-attribution li {
+    display: inline !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .ol-attribution a {
+    color: #0066cc !important;
+    text-decoration: none !important;
+  }
+
+  .ol-attribution a:hover {
+    text-decoration: underline !important;
+  }
+
+  .ol-attribution button {
+    background: transparent !important;
+    border: none !important;
+    color: #333 !important;
+    cursor: pointer !important;
+    padding: 0 4px !important;
+    font-size: 11px !important;
+  }
+
+  /* Dark mode attribution */
+  .dark .ol-attribution {
+    background: rgba(0, 0, 0, 0.8) !important;
+    color: #e5e5e5 !important;
+  }
+
+  .dark .ol-attribution button {
+    color: #e5e5e5 !important;
+  }
+
+  .dark .ol-attribution a {
+    color: #60a5fa !important;
+  }
+
   /* Reduced motion support */
   @media (prefers-reduced-motion: reduce) {
     *,
