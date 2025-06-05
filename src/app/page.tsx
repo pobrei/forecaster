@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileUpload } from '@/components/features/ClientOnlyFileUpload';
 import { SettingsPanel } from '@/components/features/SettingsPanel';
@@ -9,7 +9,7 @@ import { WeatherCharts } from '@/components/features/WeatherCharts';
 import { WeatherTimeline } from '@/components/features/WeatherTimeline';
 import { WeatherSummary } from '@/components/features/WeatherSummary';
 import { PDFExport } from '@/components/features/PDFExport';
-import { SettingsManager } from '@/components/features/SettingsManager';
+
 import { Header } from '@/components/layout/Header';
 import { PWAInstallBanner, PWAOfflineBanner } from '@/components/features/PWAInstallBanner';
 import { Route, WeatherForecast, AppSettings, APIResponse, WeatherResponse, SelectedWeatherPoint } from '@/types';
@@ -39,7 +39,7 @@ export default function Home() {
     setSettings(newSettings);
   };
 
-  const handlePointSelection = (forecastIndex: number, source: 'timeline' | 'chart' | 'map') => {
+  const handlePointSelection = useCallback((forecastIndex: number, source: 'timeline' | 'chart' | 'map') => {
     if (forecasts[forecastIndex]) {
       setSelectedPoint({
         forecastIndex,
@@ -47,7 +47,7 @@ export default function Home() {
         source
       });
     }
-  };
+  }, [forecasts]);
 
   const handleGenerateForecast = async () => {
     if (!route) {
@@ -129,7 +129,7 @@ export default function Home() {
         </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
         {/* Upload Section */}
         <FileUpload
           onRouteUploaded={handleRouteUploaded}
@@ -145,13 +145,6 @@ export default function Home() {
           isLoading={isGeneratingForecast}
           hasRoute={!!route}
           className="lg:col-span-2"
-        />
-
-        {/* Settings Manager */}
-        <SettingsManager
-          settings={settings}
-          onSettingsChange={handleSettingsChange}
-          className="lg:col-span-1"
         />
       </div>
 

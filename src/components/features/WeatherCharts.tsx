@@ -46,8 +46,7 @@ export function WeatherCharts({
   forecasts,
   units = 'metric',
   className,
-  onPointSelect,
-  selectedPoint
+  onPointSelect
 }: WeatherChartsProps) {
   if (!forecasts || forecasts.length === 0) {
     return (
@@ -178,16 +177,17 @@ export function WeatherCharts({
       },
     },
     animation: {
-      duration: CHART_CONFIG.ANIMATION_DURATION,
+      duration: 0, // Disable animations to reduce canvas reads
     },
-    onClick: (event: any, elements: any[]) => {
+    onClick: (event: unknown, elements: unknown[]) => {
       if (elements.length > 0 && onPointSelect) {
-        const elementIndex = elements[0].index;
+        const elementIndex = (elements[0] as { index: number }).index;
         onPointSelect(elementIndex, 'chart');
       }
     },
-    onHover: (event: any, elements: any[]) => {
-      event.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+    onHover: (event: unknown, elements: unknown[]) => {
+      const nativeEvent = event as { native: { target: { style: { cursor: string } } } };
+      nativeEvent.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
     },
   };
 

@@ -6,9 +6,10 @@ import { Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { FileUpload as OriginalFileUpload } from './FileUpload';
+import { Route } from '@/types';
 
 interface FileUploadProps {
-  onRouteUploaded: (route: any) => void;
+  onRouteUploaded: (route: Route) => void;
   isLoading?: boolean;
   className?: string;
 }

@@ -44,6 +44,8 @@ export function WeatherMap({
   const mapInstanceRef = useRef<Map | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<Overlay | null>(null);
+  const routeLayerRef = useRef<VectorLayer | null>(null);
+  const weatherLayerRef = useRef<VectorLayer | null>(null);
   const [localSelectedPoint, setLocalSelectedPoint] = useState<WeatherForecast | null>(null);
 
   useEffect(() => {
@@ -108,16 +110,22 @@ export function WeatherMap({
     return () => {
       map.setTarget(undefined);
     };
-  }, []);
+  }, [onPointSelect]);
 
   useEffect(() => {
     if (!mapInstanceRef.current || !route) return;
 
     const map = mapInstanceRef.current;
     
-    // Remove existing vector layers
-    const layersToRemove = map.getLayers().getArray().filter(layer => layer instanceof VectorLayer);
-    layersToRemove.forEach(layer => map.removeLayer(layer));
+    // Remove existing route and weather layers if they exist
+    if (routeLayerRef.current) {
+      map.removeLayer(routeLayerRef.current);
+      routeLayerRef.current = null;
+    }
+    if (weatherLayerRef.current) {
+      map.removeLayer(weatherLayerRef.current);
+      weatherLayerRef.current = null;
+    }
 
     // Create route line
     const routeCoordinates = route.points.map(point => fromLonLat([point.lon, point.lat]));
@@ -143,6 +151,7 @@ export function WeatherMap({
     });
 
     map.addLayer(routeLayer);
+    routeLayerRef.current = routeLayer;
 
     // Add weather points if forecasts are available
     if (forecasts && forecasts.length > 0) {
@@ -204,6 +213,34 @@ export function WeatherMap({
       });
 
       map.addLayer(weatherLayer);
+      weatherLayerRef.current = weatherLayer;
+
+      // Add click handler for weather points
+      map.on('click', (event) => {
+        const features = map.getFeaturesAtPixel(event.pixel);
+        if (features && features.length > 0) {
+          const feature = features[0];
+          if (feature.get('forecast')) {
+            const forecast = feature.get('forecast') as WeatherForecast;
+            const index = feature.get('forecastIndex') as number;
+
+            setLocalSelectedPoint(forecast);
+            if (overlayRef.current) {
+              overlayRef.current.setPosition(event.coordinate);
+            }
+
+            if (onPointSelect) {
+              onPointSelect(index, 'map');
+            }
+          }
+        } else {
+          // Clicked on empty area, hide popup
+          setLocalSelectedPoint(null);
+          if (overlayRef.current) {
+            overlayRef.current.setPosition(undefined);
+          }
+        }
+      });
     }
 
     // Fit map to route
@@ -220,11 +257,12 @@ export function WeatherMap({
       const forecast = selectedPoint.forecast;
       const coordinate = fromLonLat([forecast.routePoint.lon, forecast.routePoint.lat]);
 
-      // Center map on selected point
+      // Center map on selected point without changing zoom too much
+      const currentZoom = mapInstanceRef.current.getView().getZoom() || 12;
       mapInstanceRef.current.getView().animate({
         center: coordinate,
         duration: 500,
-        zoom: Math.max(mapInstanceRef.current.getView().getZoom() || 12, 12)
+        zoom: Math.max(currentZoom, 10) // Don't zoom in too much
       });
 
       // Update popup
