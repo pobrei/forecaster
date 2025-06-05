@@ -440,7 +440,7 @@ export function WeatherMap({
                   <span>Weather Alert</span>
                 </div>
                 <div className="flex items-center gap-2 border-t pt-1 mt-1">
-                  <span className="font-bold">↓</span>
+                  <span className="font-bold">{'\u2193'}</span>
                   <span>Wind direction</span>
                 </div>
               </div>

@@ -38,8 +38,8 @@ describe('Wind Direction Functions', () => {
     });
 
     it('should handle negative values', () => {
-      expect(getWindDirectionArrow(-90)).toBe('→'); // Same as 270
-      expect(getWindDirectionArrow(-45)).toBe('↘'); // Same as 315
+      expect(getWindDirectionArrow(-90)).toBe('\u2192'); // → Same as 270
+      expect(getWindDirectionArrow(-45)).toBe('\u2198'); // ↘ Same as 315
     });
   });
 
@@ -47,14 +47,14 @@ describe('Wind Direction Functions', () => {
     it('should format complete wind information in metric units', () => {
       const result = formatWindInfo(10, 90, 'metric');
       expect(result).toContain('10 m/s');
-      expect(result).toContain('←');
+      expect(result).toContain('\u2190'); // ←
       expect(result).toContain('E');
     });
 
     it('should format complete wind information in imperial units', () => {
       const result = formatWindInfo(10, 180, 'imperial');
       expect(result).toContain('mph');
-      expect(result).toContain('↑');
+      expect(result).toContain('\u2191'); // ↑
       expect(result).toContain('S');
     });
   });
