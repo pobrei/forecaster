@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { MapPin, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { Route, WeatherForecast, SelectedWeatherPoint } from '@/types';
-import { formatTemperature, formatWindSpeed, formatCoordinates } from '@/lib/format';
+import { formatTemperature, formatWindSpeed, formatCoordinates, formatWindDirection, getWindDirectionArrow } from '@/lib/format';
 import { MAP_CONFIG } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
@@ -155,9 +155,13 @@ export function WeatherMap({
 
     // Add weather points if forecasts are available
     if (forecasts && forecasts.length > 0) {
-      const weatherFeatures = forecasts.map((forecast, index) => {
+      const weatherFeatures: Feature[] = [];
+
+      forecasts.forEach((forecast, index) => {
         const point = new Point(fromLonLat([forecast.routePoint.lon, forecast.routePoint.lat]));
-        const feature = new Feature({
+
+        // Main weather point feature
+        const weatherFeature = new Feature({
           geometry: point,
           forecast: forecast,
           forecastIndex: index,
@@ -176,7 +180,7 @@ export function WeatherMap({
         const strokeColor = hasAlerts ? '#ef4444' : color;
         const strokeWidth = hasAlerts ? 3 : 2;
 
-        feature.setStyle(new Style({
+        weatherFeature.setStyle(new Style({
           image: new Circle({
             radius: 8,
             fill: new Fill({
@@ -201,7 +205,32 @@ export function WeatherMap({
           }),
         }));
 
-        return feature;
+        // Wind direction arrow feature
+        const windArrow = getWindDirectionArrow(forecast.weather.wind_deg);
+        const windFeature = new Feature({
+          geometry: point,
+          forecast: forecast,
+          forecastIndex: index,
+          isWindArrow: true,
+        });
+
+        windFeature.setStyle(new Style({
+          text: new Text({
+            text: windArrow,
+            font: 'bold 16px sans-serif',
+            fill: new Fill({
+              color: '#1f2937',
+            }),
+            stroke: new Stroke({
+              color: '#ffffff',
+              width: 2,
+            }),
+            offsetX: 15,
+            offsetY: 5,
+          }),
+        }));
+
+        weatherFeatures.push(weatherFeature, windFeature);
       });
 
       const weatherSource = new VectorSource({
@@ -219,10 +248,11 @@ export function WeatherMap({
       map.on('click', (event) => {
         const features = map.getFeaturesAtPixel(event.pixel);
         if (features && features.length > 0) {
-          const feature = features[0];
-          if (feature.get('forecast')) {
-            const forecast = feature.get('forecast') as WeatherForecast;
-            const index = feature.get('forecastIndex') as number;
+          // Find the first weather feature (prioritize main weather points over wind arrows)
+          const weatherFeature = features.find(f => f.get('forecast') && !f.get('isWindArrow')) || features[0];
+          if (weatherFeature && weatherFeature.get('forecast')) {
+            const forecast = weatherFeature.get('forecast') as WeatherForecast;
+            const index = weatherFeature.get('forecastIndex') as number;
 
             setLocalSelectedPoint(forecast);
             if (overlayRef.current) {
@@ -402,6 +432,10 @@ export function WeatherMap({
                   <div className="w-3 h-3 rounded-full border-2 border-red-500 bg-transparent"></div>
                   <span>Weather Alert</span>
                 </div>
+                <div className="flex items-center gap-2 border-t pt-1 mt-1">
+                  <span className="font-bold">↓</span>
+                  <span>Wind direction</span>
+                </div>
               </div>
             </div>
           )}
@@ -433,7 +467,7 @@ export function WeatherMap({
                     <span className="text-muted-foreground">Wind:</span>
                     <br />
                     <span className="font-medium">
-                      {formatWindSpeed(localSelectedPoint.weather.wind_speed, units)}
+                      {formatWindSpeed(localSelectedPoint.weather.wind_speed, units)} {getWindDirectionArrow(localSelectedPoint.weather.wind_deg)} {formatWindDirection(localSelectedPoint.weather.wind_deg)}
                     </span>
                   </div>
                   <div>

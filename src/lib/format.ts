@@ -183,6 +183,30 @@ export function formatWindDirection(degrees: number): string {
 }
 
 /**
+ * Get wind direction arrow symbol based on degrees
+ * Returns an arrow pointing in the direction the wind is blowing towards
+ */
+export function getWindDirectionArrow(degrees: number): string {
+  // Normalize degrees to 0-360 range
+  const normalizedDegrees = ((degrees % 360) + 360) % 360;
+
+  // Convert to 8 main directions for arrow symbols
+  const index = Math.round(normalizedDegrees / 45) % 8;
+  const arrows = ['↓', '↙', '←', '↖', '↑', '↗', '→', '↘'];
+  return arrows[index];
+}
+
+/**
+ * Format wind information with speed and direction
+ */
+export function formatWindInfo(speed: number, degrees: number, unit: 'metric' | 'imperial' = 'metric'): string {
+  const speedStr = formatWindSpeed(speed, unit);
+  const direction = formatWindDirection(degrees);
+  const arrow = getWindDirectionArrow(degrees);
+  return `${speedStr} ${arrow} ${direction}`;
+}
+
+/**
  * Format weather condition for display
  */
 export function formatWeatherCondition(condition: string): string {
