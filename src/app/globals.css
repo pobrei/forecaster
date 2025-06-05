@@ -143,35 +143,51 @@
     filter: contrast(150%);
   }
 
-  /* OpenLayers attribution fix */
+  /* OpenLayers attribution fix - make it subtle and properly positioned */
   .ol-attribution {
-    background: rgba(255, 255, 255, 0.9) !important;
-    color: #333 !important;
-    font-size: 11px !important;
-    padding: 4px 8px !important;
-    border-radius: 4px !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-    max-width: calc(100% - 20px) !important;
-    bottom: 10px !important;
-    right: 10px !important;
-    z-index: 1000 !important;
+    position: absolute !important;
+    bottom: 8px !important;
+    right: 8px !important;
+    background: rgba(255, 255, 255, 0.85) !important;
+    color: #666 !important;
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+    border-radius: 3px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+    max-width: 200px !important;
+    z-index: 100 !important;
+    transition: all 0.2s ease !important;
+    opacity: 0.7 !important;
+  }
+
+  .ol-attribution:hover {
+    opacity: 1 !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+  }
+
+  .ol-attribution.ol-collapsed {
+    min-width: auto !important;
+    width: auto !important;
   }
 
   .ol-attribution ul {
     margin: 0 !important;
     padding: 0 !important;
     list-style: none !important;
+    font-size: 10px !important;
   }
 
   .ol-attribution li {
     display: inline !important;
     margin: 0 !important;
     padding: 0 !important;
+    font-size: 10px !important;
   }
 
   .ol-attribution a {
     color: #0066cc !important;
     text-decoration: none !important;
+    font-size: 10px !important;
   }
 
   .ol-attribution a:hover {
@@ -181,24 +197,70 @@
   .ol-attribution button {
     background: transparent !important;
     border: none !important;
-    color: #333 !important;
+    color: #666 !important;
     cursor: pointer !important;
-    padding: 0 4px !important;
-    font-size: 11px !important;
+    padding: 0 2px !important;
+    font-size: 10px !important;
+    font-weight: bold !important;
+    width: 14px !important;
+    height: 14px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .ol-attribution button:hover {
+    color: #333 !important;
+  }
+
+  /* Collapsed state - show only the "i" button */
+  .ol-attribution.ol-collapsed ul {
+    display: none !important;
+  }
+
+  .ol-attribution.ol-collapsed {
+    padding: 1px !important;
+    background: rgba(255, 255, 255, 0.7) !important;
+  }
+
+  .ol-attribution.ol-collapsed button {
+    width: 16px !important;
+    height: 16px !important;
+    border-radius: 50% !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
   }
 
   /* Dark mode attribution */
   .dark .ol-attribution {
-    background: rgba(0, 0, 0, 0.8) !important;
-    color: #e5e5e5 !important;
+    background: rgba(0, 0, 0, 0.7) !important;
+    color: #ccc !important;
+  }
+
+  .dark .ol-attribution:hover {
+    background: rgba(0, 0, 0, 0.85) !important;
   }
 
   .dark .ol-attribution button {
-    color: #e5e5e5 !important;
+    color: #ccc !important;
+  }
+
+  .dark .ol-attribution button:hover {
+    color: #fff !important;
   }
 
   .dark .ol-attribution a {
     color: #60a5fa !important;
+  }
+
+  .dark .ol-attribution.ol-collapsed {
+    background: rgba(0, 0, 0, 0.6) !important;
+  }
+
+  .dark .ol-attribution.ol-collapsed button {
+    background: rgba(0, 0, 0, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: #ccc !important;
   }
 
   /* OpenLayers overlay container styling */
@@ -353,6 +415,7 @@
 
   /* Glass effect */
   .glass {
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);

@@ -63,7 +63,14 @@ export function WeatherMap({
         center: fromLonLat(MAP_CONFIG.DEFAULT_CENTER),
         zoom: MAP_CONFIG.DEFAULT_ZOOM,
       }),
-      controls: defaultControls({ zoom: false, attribution: true }),
+      controls: defaultControls({
+        zoom: false,
+        attribution: true,
+        attributionOptions: {
+          collapsed: true,
+          collapsible: true,
+        }
+      }),
     });
 
     // Create popup overlay
