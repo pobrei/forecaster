@@ -444,51 +444,79 @@ export function WeatherMap({
           <div
             ref={popupRef}
             className={cn(
-              "absolute bg-background border rounded-lg shadow-lg p-3 text-sm pointer-events-none z-10",
-              localSelectedPoint ? "block" : "hidden"
+              "absolute bg-background/95 backdrop-blur-sm border border-border/50 rounded-lg shadow-xl p-4 text-sm pointer-events-none z-50 transition-all duration-200",
+              "before:content-[''] before:absolute before:top-full before:left-1/2 before:-translate-x-1/2",
+              "before:border-l-[8px] before:border-r-[8px] before:border-t-[8px]",
+              "before:border-l-transparent before:border-r-transparent before:border-t-background/95",
+              "before:filter before:drop-shadow-sm",
+              localSelectedPoint ? "block opacity-100 scale-100" : "hidden opacity-0 scale-95"
             )}
-            style={{ transform: 'translate(-50%, -100%)', marginTop: '-10px' }}
+            style={{ transform: 'translate(-50%, -100%)', marginTop: '-12px' }}
           >
             {localSelectedPoint && (
-              <div className="space-y-2 min-w-48">
-                <div className="flex items-center gap-2 font-semibold">
-                  <span className="text-lg">{getWeatherIcon(localSelectedPoint.weather)}</span>
-                  <span>{localSelectedPoint.weather.weather[0]?.description}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="space-y-3 min-w-52">
+                {/* Header with weather icon and condition */}
+                <div className="flex items-center gap-3 pb-2 border-b border-border/30">
+                  <span className="text-2xl">{getWeatherIcon(localSelectedPoint.weather)}</span>
                   <div>
-                    <span className="text-muted-foreground">Temperature:</span>
-                    <br />
-                    <span className="font-medium">
+                    <div className="font-semibold text-foreground capitalize">
+                      {localSelectedPoint.weather.weather[0]?.description}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {formatDistance(localSelectedPoint.routePoint.distance, { units })} from start
+                    </div>
+                  </div>
+                </div>
+
+                {/* Weather data grid */}
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="space-y-1">
+                    <div className="text-muted-foreground font-medium">Temperature</div>
+                    <div className="text-sm font-semibold text-foreground">
                       {formatTemperature(localSelectedPoint.weather.temp, units)}
-                    </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Feels {formatTemperature(localSelectedPoint.weather.feels_like, units)}
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-muted-foreground">Wind:</span>
-                    <br />
-                    <span className="font-medium">
-                      {formatWindSpeed(localSelectedPoint.weather.wind_speed, units)} {getWindDirectionArrow(localSelectedPoint.weather.wind_deg)} {formatWindDirection(localSelectedPoint.weather.wind_deg)}
-                    </span>
+
+                  <div className="space-y-1">
+                    <div className="text-muted-foreground font-medium">Wind</div>
+                    <div className="text-sm font-semibold text-foreground">
+                      {formatWindSpeed(localSelectedPoint.weather.wind_speed, units)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {getWindDirectionArrow(localSelectedPoint.weather.wind_deg)} {formatWindDirection(localSelectedPoint.weather.wind_deg)}
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-muted-foreground">Humidity:</span>
-                    <br />
-                    <span className="font-medium">{localSelectedPoint.weather.humidity}%</span>
+
+                  <div className="space-y-1">
+                    <div className="text-muted-foreground font-medium">Humidity</div>
+                    <div className="text-sm font-semibold text-foreground">
+                      {localSelectedPoint.weather.humidity}%
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-muted-foreground">Distance:</span>
-                    <br />
-                    <span className="font-medium">{localSelectedPoint.routePoint.distance.toFixed(1)}km</span>
+
+                  <div className="space-y-1">
+                    <div className="text-muted-foreground font-medium">Pressure</div>
+                    <div className="text-sm font-semibold text-foreground">
+                      {localSelectedPoint.weather.pressure} hPa
+                    </div>
                   </div>
                 </div>
+
+                {/* Weather alerts */}
                 {localSelectedPoint.alerts && localSelectedPoint.alerts.length > 0 && (
-                  <div className="border-t pt-2">
-                    <div className="text-red-600 font-medium text-xs">
-                      ⚠️ {localSelectedPoint.alerts.length} Weather Alert(s)
+                  <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md p-2">
+                    <div className="text-red-700 dark:text-red-400 font-medium text-xs flex items-center gap-1">
+                      <span>⚠️</span>
+                      <span>{localSelectedPoint.alerts.length} Weather Alert{localSelectedPoint.alerts.length > 1 ? 's' : ''}</span>
                     </div>
                   </div>
                 )}
-                <div className="text-xs text-muted-foreground border-t pt-1">
+
+                {/* Coordinates footer */}
+                <div className="text-xs text-muted-foreground pt-2 border-t border-border/30 font-mono">
                   {formatCoordinates(localSelectedPoint.routePoint.lat, localSelectedPoint.routePoint.lon)}
                 </div>
               </div>

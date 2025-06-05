@@ -201,6 +201,82 @@
     color: #60a5fa !important;
   }
 
+  /* OpenLayers overlay container styling */
+  .ol-overlay-container {
+    pointer-events: none !important;
+    z-index: 1000 !important;
+  }
+
+  .ol-overlay-container > div {
+    pointer-events: auto !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    backdrop-filter: blur(8px) !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease-in-out !important;
+  }
+
+  /* Dark mode overlay styling */
+  .dark .ol-overlay-container > div {
+    background: rgba(0, 0, 0, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  /* Popup arrow styling */
+  .ol-overlay-container > div::after {
+    content: '' !important;
+    position: absolute !important;
+    top: 100% !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 0 !important;
+    height: 0 !important;
+    border-left: 8px solid transparent !important;
+    border-right: 8px solid transparent !important;
+    border-top: 8px solid rgba(255, 255, 255, 0.95) !important;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1)) !important;
+  }
+
+  .dark .ol-overlay-container > div::after {
+    border-top-color: rgba(0, 0, 0, 0.9) !important;
+  }
+
+  /* Smooth animations for popup */
+  .ol-overlay-container[style*="display: block"] > div {
+    animation: popupFadeIn 0.2s ease-out !important;
+  }
+
+  @keyframes popupFadeIn {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -100%) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -100%) scale(1);
+    }
+  }
+
+  /* Ensure popup content is properly styled */
+  .ol-overlay-container .space-y-2 > * + * {
+    margin-top: 0.5rem !important;
+  }
+
+  .ol-overlay-container .grid {
+    display: grid !important;
+  }
+
+  .ol-overlay-container .grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .ol-overlay-container .gap-2 {
+    gap: 0.5rem !important;
+  }
+
   /* Reduced motion support */
   @media (prefers-reduced-motion: reduce) {
     *,
