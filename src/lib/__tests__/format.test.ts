@@ -24,22 +24,22 @@ describe('Wind Direction Functions', () => {
 
   describe('getWindDirectionArrow', () => {
     it('should return correct arrows for cardinal directions', () => {
-      expect(getWindDirectionArrow(0)).toBe('\u2193'); // ↓ North wind blows south
-      expect(getWindDirectionArrow(90)).toBe('\u2190'); // ← East wind blows west
-      expect(getWindDirectionArrow(180)).toBe('\u2191'); // ↑ South wind blows north
-      expect(getWindDirectionArrow(270)).toBe('\u2192'); // → West wind blows east
+      expect(getWindDirectionArrow(0)).toBe('S'); // North wind blows south
+      expect(getWindDirectionArrow(90)).toBe('W'); // East wind blows west
+      expect(getWindDirectionArrow(180)).toBe('N'); // South wind blows north
+      expect(getWindDirectionArrow(270)).toBe('E'); // West wind blows east
     });
 
     it('should return correct arrows for intermediate directions', () => {
-      expect(getWindDirectionArrow(45)).toBe('\u2199'); // ↙ NE wind blows SW
-      expect(getWindDirectionArrow(135)).toBe('\u2196'); // ↖ SE wind blows NW
-      expect(getWindDirectionArrow(225)).toBe('\u2197'); // ↗ SW wind blows NE
-      expect(getWindDirectionArrow(315)).toBe('\u2198'); // ↘ NW wind blows SE
+      expect(getWindDirectionArrow(45)).toBe('SW'); // NE wind blows SW
+      expect(getWindDirectionArrow(135)).toBe('NW'); // SE wind blows NW
+      expect(getWindDirectionArrow(225)).toBe('NE'); // SW wind blows NE
+      expect(getWindDirectionArrow(315)).toBe('SE'); // NW wind blows SE
     });
 
     it('should handle negative values', () => {
-      expect(getWindDirectionArrow(-90)).toBe('\u2192'); // → Same as 270
-      expect(getWindDirectionArrow(-45)).toBe('\u2198'); // ↘ Same as 315
+      expect(getWindDirectionArrow(-90)).toBe('E'); // Same as 270
+      expect(getWindDirectionArrow(-45)).toBe('SE'); // Same as 315
     });
   });
 
@@ -47,14 +47,14 @@ describe('Wind Direction Functions', () => {
     it('should format complete wind information in metric units', () => {
       const result = formatWindInfo(10, 90, 'metric');
       expect(result).toContain('10 m/s');
-      expect(result).toContain('\u2190'); // ←
+      expect(result).toContain('W'); // East wind blows west
       expect(result).toContain('E');
     });
 
     it('should format complete wind information in imperial units', () => {
       const result = formatWindInfo(10, 180, 'imperial');
       expect(result).toContain('mph');
-      expect(result).toContain('\u2191'); // ↑
+      expect(result).toContain('N'); // South wind blows north
       expect(result).toContain('S');
     });
   });

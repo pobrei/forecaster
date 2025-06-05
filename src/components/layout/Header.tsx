@@ -5,10 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/features/ThemeToggle";
 import {
   Cloud,
-  Menu,
-  X,
-  Github,
-  ExternalLink
+  Github
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +14,6 @@ interface HeaderProps {
 }
 
 export function Header({ className }: HeaderProps) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
@@ -67,10 +63,10 @@ export function Header({ className }: HeaderProps) {
               variant="ghost"
               size="icon"
               asChild
-              className="hidden sm:flex hover:scale-105 transition-transform duration-200"
+              className="hover:scale-105 transition-transform duration-200"
             >
               <a
-                href="https://github.com/forecaster-app"
+                href="https://github.com/pobrei/forecaster"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="View on GitHub"
@@ -80,52 +76,10 @@ export function Header({ className }: HeaderProps) {
             </Button>
 
             <ThemeToggle />
-
-            {/* Mobile Menu Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              aria-label="Toggle menu"
-            >
-              {isMenuOpen ? (
-                <X className="h-4 w-4 transition-transform duration-200 rotate-90" />
-              ) : (
-                <Menu className="h-4 w-4 transition-transform duration-200" />
-              )}
-            </Button>
           </div>
         </div>
 
-        {/* Mobile Navigation */}
-        <div
-          className={cn(
-            "md:hidden overflow-hidden transition-all duration-300 ease-in-out",
-            isMenuOpen ? "max-h-64 opacity-100" : "max-h-0 opacity-0"
-          )}
-        >
-          <nav className="py-4 space-y-2 border-t">
-            <div className="px-4 py-2">
-              <Button
-                variant="outline"
-                size="sm"
-                asChild
-                className="w-full justify-start"
-              >
-                <a
-                  href="https://github.com/forecaster-app"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Github className="h-4 w-4 mr-2" />
-                  View on GitHub
-                  <ExternalLink className="h-3 w-3 ml-auto" />
-                </a>
-              </Button>
-            </div>
-          </nav>
-        </div>
+
       </div>
     </header>
   );

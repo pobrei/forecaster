@@ -185,7 +185,7 @@ export function formatWindDirection(degrees: number): string {
 /**
  * Get wind direction arrow symbol based on degrees
  * Returns an arrow pointing in the direction the wind is blowing towards
- * Uses Unicode arrows that work consistently across all browsers and devices
+ * Uses simple ASCII characters to avoid emoji rendering on mobile browsers
  */
 export function getWindDirectionArrow(degrees: number): string {
   // Normalize degrees to 0-360 range
@@ -194,16 +194,16 @@ export function getWindDirectionArrow(degrees: number): string {
   // Convert to 8 main directions for arrow symbols
   const index = Math.round(normalizedDegrees / 45) % 8;
 
-  // Use Unicode arrows that are more compatible across browsers and mobile devices
+  // Use simple text-based arrows that won't render as emojis on mobile
   const arrows = [
-    '\u2193', // ↓ (U+2193) - Downwards Arrow
-    '\u2199', // ↙ (U+2199) - South West Arrow
-    '\u2190', // ← (U+2190) - Leftwards Arrow
-    '\u2196', // ↖ (U+2196) - North West Arrow
-    '\u2191', // ↑ (U+2191) - Upwards Arrow
-    '\u2197', // ↗ (U+2197) - North East Arrow
-    '\u2192', // → (U+2192) - Rightwards Arrow
-    '\u2198'  // ↘ (U+2198) - South East Arrow
+    'S', // Down (S)
+    'SW', // Down-Left (SW)
+    'W', // Left (W)
+    'NW', // Up-Left (NW)
+    'N', // Up (N)
+    'NE', // Up-Right (NE)
+    'E', // Right (E)
+    'SE'  // Down-Right (SE)
   ];
 
   return arrows[index];
