@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { MapPin, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { Route, WeatherForecast, SelectedWeatherPoint } from '@/types';
-import { formatTemperature, formatWindSpeed, formatCoordinates, formatWindDirection, getWindDirectionArrow, formatDistance } from '@/lib/format';
+import { formatTemperature, formatWindSpeed, formatCoordinates, formatWindDirection, getWindDirectionRotation, formatDistance } from '@/lib/format';
 import { MAP_CONFIG } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
@@ -212,8 +212,7 @@ export function WeatherMap({
           }),
         }));
 
-        // Wind direction arrow feature
-        const windArrow = getWindDirectionArrow(forecast.weather.wind_deg);
+        // Wind direction arrow feature - using simple character that won't render as emoji
         const windFeature = new Feature({
           geometry: point,
           forecast: forecast,
@@ -221,10 +220,12 @@ export function WeatherMap({
           isWindArrow: true,
         });
 
+        // Use a simple triangle character that points in wind direction
+        const rotation = getWindDirectionRotation(forecast.weather.wind_deg);
         windFeature.setStyle(new Style({
           text: new Text({
-            text: windArrow,
-            font: 'bold 16px sans-serif',
+            text: '▲', // Simple triangle that won't render as emoji
+            font: 'bold 14px sans-serif',
             fill: new Fill({
               color: '#1f2937',
             }),
@@ -234,6 +235,7 @@ export function WeatherMap({
             }),
             offsetX: 15,
             offsetY: 5,
+            rotation: (rotation * Math.PI) / 180, // Convert degrees to radians
           }),
         }));
 
@@ -440,7 +442,20 @@ export function WeatherMap({
                   <span>Weather Alert</span>
                 </div>
                 <div className="flex items-center gap-2 border-t pt-1 mt-1">
-                  <span className="font-bold">{'\u2193'}</span>
+                  <div className="inline-block w-3 h-3 relative">
+                    {/* CSS arrow pointing down */}
+                    <div className="w-0.5 h-2.5 bg-current absolute left-1/2 top-0 transform -translate-x-1/2" />
+                    <div
+                      className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-0.5"
+                      style={{
+                        width: 0,
+                        height: 0,
+                        borderLeft: '2px solid transparent',
+                        borderRight: '2px solid transparent',
+                        borderBottom: '3px solid currentColor',
+                      }}
+                    />
+                  </div>
                   <span>Wind direction</span>
                 </div>
               </div>
@@ -492,8 +507,27 @@ export function WeatherMap({
                     <div className="text-sm font-semibold text-foreground">
                       {formatWindSpeed(localSelectedPoint.weather.wind_speed, units)}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {getWindDirectionArrow(localSelectedPoint.weather.wind_deg)} {formatWindDirection(localSelectedPoint.weather.wind_deg)}
+                    <div className="text-xs text-muted-foreground flex items-center gap-1">
+                      <div
+                        className="inline-block w-3 h-3 relative"
+                        style={{
+                          transform: `rotate(${getWindDirectionRotation(localSelectedPoint.weather.wind_deg)}deg)`,
+                        }}
+                      >
+                        {/* CSS arrow */}
+                        <div className="w-0.5 h-2.5 bg-current absolute left-1/2 top-0 transform -translate-x-1/2" />
+                        <div
+                          className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-0.5"
+                          style={{
+                            width: 0,
+                            height: 0,
+                            borderLeft: '2px solid transparent',
+                            borderRight: '2px solid transparent',
+                            borderBottom: '3px solid currentColor',
+                          }}
+                        />
+                      </div>
+                      <span>{formatWindDirection(localSelectedPoint.weather.wind_deg)}</span>
                     </div>
                   </div>
 

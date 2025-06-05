@@ -183,30 +183,27 @@ export function formatWindDirection(degrees: number): string {
 }
 
 /**
- * Get wind direction arrow symbol based on degrees
- * Returns an arrow pointing in the direction the wind is blowing towards
- * Uses simple ASCII characters to avoid emoji rendering on mobile browsers
+ * Get wind direction arrow rotation based on degrees
+ * Returns the CSS rotation angle for a CSS-based arrow pointing in the direction the wind is blowing towards
  */
-export function getWindDirectionArrow(degrees: number): string {
+export function getWindDirectionRotation(degrees: number): number {
   // Normalize degrees to 0-360 range
   const normalizedDegrees = ((degrees % 360) + 360) % 360;
 
-  // Convert to 8 main directions for arrow symbols
-  const index = Math.round(normalizedDegrees / 45) % 8;
+  // Return the rotation angle for CSS transform
+  // Wind direction is where wind is coming FROM, but we want to show where it's blowing TO
+  // So we add 180 degrees to flip the direction
+  return (normalizedDegrees + 180) % 360;
+}
 
-  // Use simple text-based arrows that won't render as emojis on mobile
-  const arrows = [
-    'S', // Down (S)
-    'SW', // Down-Left (SW)
-    'W', // Left (W)
-    'NW', // Up-Left (NW)
-    'N', // Up (N)
-    'NE', // Up-Right (NE)
-    'E', // Right (E)
-    'SE'  // Down-Right (SE)
-  ];
-
-  return arrows[index];
+/**
+ * Get wind direction arrow symbol based on degrees
+ * Returns a CSS class name for styling the arrow
+ */
+export function getWindDirectionArrow(degrees: number): string {
+  // For backward compatibility, return a simple arrow character
+  // This will be replaced by CSS-based arrows in the UI components
+  return '→';
 }
 
 /**

@@ -1,4 +1,4 @@
-import { formatWindDirection, getWindDirectionArrow, formatWindInfo } from '../format';
+import { formatWindDirection, getWindDirectionArrow, getWindDirectionRotation, formatWindInfo } from '../format';
 
 describe('Wind Direction Functions', () => {
   describe('formatWindDirection', () => {
@@ -23,23 +23,42 @@ describe('Wind Direction Functions', () => {
   });
 
   describe('getWindDirectionArrow', () => {
-    it('should return correct arrows for cardinal directions', () => {
-      expect(getWindDirectionArrow(0)).toBe('S'); // North wind blows south
-      expect(getWindDirectionArrow(90)).toBe('W'); // East wind blows west
-      expect(getWindDirectionArrow(180)).toBe('N'); // South wind blows north
-      expect(getWindDirectionArrow(270)).toBe('E'); // West wind blows east
+    it('should return a simple arrow character', () => {
+      expect(getWindDirectionArrow(0)).toBe('→'); // Returns simple arrow
+      expect(getWindDirectionArrow(90)).toBe('→'); // Returns simple arrow
+      expect(getWindDirectionArrow(180)).toBe('→'); // Returns simple arrow
+      expect(getWindDirectionArrow(270)).toBe('→'); // Returns simple arrow
     });
 
-    it('should return correct arrows for intermediate directions', () => {
-      expect(getWindDirectionArrow(45)).toBe('SW'); // NE wind blows SW
-      expect(getWindDirectionArrow(135)).toBe('NW'); // SE wind blows NW
-      expect(getWindDirectionArrow(225)).toBe('NE'); // SW wind blows NE
-      expect(getWindDirectionArrow(315)).toBe('SE'); // NW wind blows SE
+    it('should handle any degree value', () => {
+      expect(getWindDirectionArrow(45)).toBe('→'); // Returns simple arrow
+      expect(getWindDirectionArrow(135)).toBe('→'); // Returns simple arrow
+      expect(getWindDirectionArrow(225)).toBe('→'); // Returns simple arrow
+      expect(getWindDirectionArrow(315)).toBe('→'); // Returns simple arrow
     });
 
     it('should handle negative values', () => {
-      expect(getWindDirectionArrow(-90)).toBe('E'); // Same as 270
-      expect(getWindDirectionArrow(-45)).toBe('SE'); // Same as 315
+      expect(getWindDirectionArrow(-90)).toBe('→'); // Returns simple arrow
+      expect(getWindDirectionArrow(-45)).toBe('→'); // Returns simple arrow
+    });
+  });
+
+  describe('getWindDirectionRotation', () => {
+    it('should return correct rotation angles for cardinal directions', () => {
+      expect(getWindDirectionRotation(0)).toBe(180); // North wind blows south
+      expect(getWindDirectionRotation(90)).toBe(270); // East wind blows west
+      expect(getWindDirectionRotation(180)).toBe(0); // South wind blows north
+      expect(getWindDirectionRotation(270)).toBe(90); // West wind blows east
+    });
+
+    it('should handle values over 360 degrees', () => {
+      expect(getWindDirectionRotation(450)).toBe(270); // Same as 90 degrees
+      expect(getWindDirectionRotation(720)).toBe(180); // Same as 0 degrees
+    });
+
+    it('should handle negative values', () => {
+      expect(getWindDirectionRotation(-90)).toBe(90); // Same as 270 degrees
+      expect(getWindDirectionRotation(-180)).toBe(0); // Same as 180 degrees
     });
   });
 
@@ -47,14 +66,14 @@ describe('Wind Direction Functions', () => {
     it('should format complete wind information in metric units', () => {
       const result = formatWindInfo(10, 90, 'metric');
       expect(result).toContain('10 m/s');
-      expect(result).toContain('W'); // East wind blows west
+      expect(result).toContain('→'); // Simple arrow
       expect(result).toContain('E');
     });
 
     it('should format complete wind information in imperial units', () => {
       const result = formatWindInfo(10, 180, 'imperial');
       expect(result).toContain('mph');
-      expect(result).toContain('N'); // South wind blows north
+      expect(result).toContain('→'); // Simple arrow
       expect(result).toContain('S');
     });
   });
