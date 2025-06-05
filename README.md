@@ -1,8 +1,8 @@
 # Forecaster
 
-> A premium weather planning application for outdoor activities
+> A weather planning application for outdoor activities
 
-A premium, beautifully designed Next.js application for planning routes with detailed weather forecasts. Upload GPX files, analyze weather conditions along your path, and make informed decisions for your outdoor activities with a delightful user experience.
+A beautifully designed Next.js application for planning routes with detailed weather forecasts. Upload GPX files, analyze weather conditions along your path, and make informed decisions for your outdoor activities with a delightful user experience.
 
 ## Features
 

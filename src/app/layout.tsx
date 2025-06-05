@@ -11,7 +11,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Forecaster - Weather Planning for Outdoor Activities",
-  description: "A premium weather planning application for outdoor activities. Upload GPX files, analyze weather conditions along your path, and make informed decisions for your outdoor adventures.",
+  description: "A weather planning application for outdoor activities. Upload GPX files, analyze weather conditions along your path, and make informed decisions for your outdoor adventures.",
   keywords: ["weather", "GPX", "outdoor", "planning", "forecast", "hiking", "cycling"],
   authors: [{ name: "Forecaster Team" }],
   manifest: "/manifest.json",
@@ -27,12 +27,12 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "Forecaster",
     title: "Forecaster - Weather Planning for Outdoor Activities",
-    description: "A premium weather planning application for outdoor activities. Upload GPX files, analyze weather conditions along your path, and make informed decisions for your outdoor adventures.",
+    description: "A weather planning application for outdoor activities. Upload GPX files, analyze weather conditions along your path, and make informed decisions for your outdoor adventures.",
   },
   twitter: {
     card: "summary_large_image",
     title: "Forecaster - Weather Planning for Outdoor Activities",
-    description: "A premium weather planning application for outdoor activities. Upload GPX files, analyze weather conditions along your path, and make informed decisions for your outdoor adventures.",
+    description: "A weather planning application for outdoor activities. Upload GPX files, analyze weather conditions along your path, and make informed decisions for your outdoor adventures.",
   },
 };
 

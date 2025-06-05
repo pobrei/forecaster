@@ -208,6 +208,82 @@ export async function generatePDFReport(
       });
     }
 
+    // Include Map if requested
+    if (options.includeMap) {
+      checkPageBreak(80);
+
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Route Map', margin, currentY);
+      currentY += 10;
+
+      try {
+        const mapImage = await captureElementAsImage('weather-map', {
+          width: 800,
+          height: 400,
+          scale: 1
+        });
+
+        if (mapImage) {
+          const imgWidth = pageWidth - (2 * margin);
+          const imgHeight = (imgWidth * 400) / 800; // Maintain aspect ratio
+
+          checkPageBreak(imgHeight + 10);
+          pdf.addImage(mapImage, 'PNG', margin, currentY, imgWidth, imgHeight);
+          currentY += imgHeight + 15;
+        } else {
+          pdf.setFontSize(12);
+          pdf.setFont('helvetica', 'italic');
+          pdf.text('Map visualization could not be captured', margin, currentY);
+          currentY += 10;
+        }
+      } catch (error) {
+        console.error('Error capturing map:', error);
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'italic');
+        pdf.text('Map visualization could not be captured', margin, currentY);
+        currentY += 10;
+      }
+    }
+
+    // Include Charts if requested
+    if (options.includeCharts) {
+      checkPageBreak(80);
+
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Weather Charts', margin, currentY);
+      currentY += 10;
+
+      try {
+        const chartImage = await captureElementAsImage('weather-charts', {
+          width: 800,
+          height: 600,
+          scale: 1
+        });
+
+        if (chartImage) {
+          const imgWidth = pageWidth - (2 * margin);
+          const imgHeight = (imgWidth * 600) / 800; // Maintain aspect ratio
+
+          checkPageBreak(imgHeight + 10);
+          pdf.addImage(chartImage, 'PNG', margin, currentY, imgWidth, imgHeight);
+          currentY += imgHeight + 15;
+        } else {
+          pdf.setFontSize(12);
+          pdf.setFont('helvetica', 'italic');
+          pdf.text('Chart visualization could not be captured', margin, currentY);
+          currentY += 10;
+        }
+      } catch (error) {
+        console.error('Error capturing charts:', error);
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'italic');
+        pdf.text('Chart visualization could not be captured', margin, currentY);
+        currentY += 10;
+      }
+    }
+
     // Footer
     const totalPages = pdf.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
@@ -254,6 +330,42 @@ export async function captureElementAsImage(
       backgroundColor: '#ffffff',
       width: options.width,
       height: options.height,
+      ignoreElements: (element) => {
+        // Skip elements that might cause OKLCH color issues
+        const computedStyle = window.getComputedStyle(element);
+        const bgColor = computedStyle.backgroundColor;
+        const color = computedStyle.color;
+
+        // Skip elements with OKLCH colors
+        if (bgColor.includes('oklch') || color.includes('oklch')) {
+          return true;
+        }
+
+        return false;
+      },
+      onclone: (clonedDoc) => {
+        // Convert OKLCH colors to RGB in the cloned document
+        const allElements = clonedDoc.querySelectorAll('*');
+        allElements.forEach((el) => {
+          const element = el as HTMLElement;
+          const computedStyle = window.getComputedStyle(element);
+
+          // Convert background colors
+          if (computedStyle.backgroundColor.includes('oklch')) {
+            element.style.backgroundColor = '#ffffff';
+          }
+
+          // Convert text colors
+          if (computedStyle.color.includes('oklch')) {
+            element.style.color = '#000000';
+          }
+
+          // Convert border colors
+          if (computedStyle.borderColor.includes('oklch')) {
+            element.style.borderColor = '#e5e5e5';
+          }
+        });
+      }
     });
 
     return canvas.toDataURL('image/png', EXPORT_CONFIG.IMAGE.QUALITY);

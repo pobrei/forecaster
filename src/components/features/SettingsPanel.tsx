@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Settings, Clock, Gauge, MapPin } from 'lucide-react';
 import { AppSettings } from '@/types';
 import { ROUTE_CONFIG } from '@/lib/constants';
@@ -29,9 +30,12 @@ export function SettingsPanel({
   className
 }: SettingsPanelProps) {
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
+  const [useManualSpeed, setUseManualSpeed] = useState(false);
+  const [manualSpeed, setManualSpeed] = useState(settings.averageSpeed.toString());
 
   useEffect(() => {
     setLocalSettings(settings);
+    setManualSpeed(settings.averageSpeed.toString());
   }, [settings]);
 
   const handleSettingChange = (key: keyof AppSettings, value: string | number | Date) => {
@@ -44,6 +48,24 @@ export function SettingsPanel({
     const date = new Date(value);
     if (!isNaN(date.getTime())) {
       handleSettingChange('startTime', date);
+    }
+  };
+
+  const handleManualSpeedChange = (value: string) => {
+    setManualSpeed(value);
+    const speed = parseFloat(value);
+    if (!isNaN(speed) && speed > 0 && speed <= 100) {
+      handleSettingChange('averageSpeed', speed);
+    }
+  };
+
+  const handleSpeedModeToggle = (manual: boolean) => {
+    setUseManualSpeed(manual);
+    if (!manual) {
+      // Reset to a preset value when switching back to preset mode
+      const defaultSpeed = speedOptions.find(option => option.value === localSettings.averageSpeed)?.value || speedOptions[2].value;
+      handleSettingChange('averageSpeed', defaultSpeed);
+      setManualSpeed(defaultSpeed.toString());
     }
   };
 
@@ -111,30 +133,66 @@ export function SettingsPanel({
         </div>
 
         {/* Average Speed */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label className="flex items-center gap-2">
             <Gauge className="h-4 w-4" />
             Average Speed
           </Label>
-          <Select
-            value={localSettings.averageSpeed.toString()}
-            onValueChange={(value) => handleSettingChange('averageSpeed', parseInt(value))}
-            disabled={isLoading}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select speed" />
-            </SelectTrigger>
-            <SelectContent>
-              {speedOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value.toString()}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">
-            Your expected average speed for the activity
-          </p>
+
+          {/* Speed Mode Toggle */}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="manual-speed-toggle" className="text-sm font-normal">
+              Manual Speed Input
+            </Label>
+            <Switch
+              id="manual-speed-toggle"
+              checked={useManualSpeed}
+              onCheckedChange={handleSpeedModeToggle}
+              disabled={isLoading}
+            />
+          </div>
+
+          {/* Speed Input */}
+          {useManualSpeed ? (
+            <div className="space-y-2">
+              <Input
+                type="number"
+                value={manualSpeed}
+                onChange={(e) => handleManualSpeedChange(e.target.value)}
+                placeholder="Enter speed"
+                min="0.1"
+                max="100"
+                step="0.1"
+                disabled={isLoading}
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter your custom average speed (0.1 - 100 km/h)
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Select
+                value={localSettings.averageSpeed.toString()}
+                onValueChange={(value) => handleSettingChange('averageSpeed', parseInt(value))}
+                disabled={isLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select speed" />
+                </SelectTrigger>
+                <SelectContent>
+                  {speedOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value.toString()}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Choose from preset activity speeds
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Forecast Interval */}

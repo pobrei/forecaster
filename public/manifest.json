@@ -1,7 +1,7 @@
 {
   "name": "Forecaster - Weather Planning",
   "short_name": "Forecaster",
-  "description": "A premium weather planning application for outdoor activities. Upload GPX files, analyze weather conditions along your path, and make informed decisions for your adventures.",
+  "description": "A weather planning application for outdoor activities. Upload GPX files, analyze weather conditions along your path, and make informed decisions for your adventures.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

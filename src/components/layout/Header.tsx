@@ -3,15 +3,12 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/features/ThemeToggle";
-import { 
-  Cloud, 
-  Menu, 
-  X, 
-  Github, 
-  ExternalLink,
-  Zap,
-  Shield,
-  Smartphone
+import {
+  Cloud,
+  Menu,
+  X,
+  Github,
+  ExternalLink
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,11 +29,7 @@ export function Header({ className }: HeaderProps) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const navigation = [
-    { name: "Features", href: "#features", icon: Zap },
-    { name: "About", href: "#about", icon: Shield },
-    { name: "Mobile", href: "#mobile", icon: Smartphone },
-  ];
+  // Navigation removed as requested - keeping only GitHub link and theme toggle
 
   return (
     <header
@@ -66,19 +59,7 @@ export function Header({ className }: HeaderProps) {
             </div>
           </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
-            {navigation.map((item) => (
-              <a
-                key={item.name}
-                href={item.href}
-                className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200 hover:scale-105"
-              >
-                <item.icon className="h-4 w-4" />
-                {item.name}
-              </a>
-            ))}
-          </nav>
+          {/* Desktop Navigation - Removed as requested */}
 
           {/* Actions */}
           <div className="flex items-center gap-2">
@@ -125,17 +106,6 @@ export function Header({ className }: HeaderProps) {
           )}
         >
           <nav className="py-4 space-y-2 border-t">
-            {navigation.map((item) => (
-              <a
-                key={item.name}
-                href={item.href}
-                className="flex items-center gap-3 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-all duration-200"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.name}
-              </a>
-            ))}
             <div className="px-4 py-2">
               <Button
                 variant="outline"

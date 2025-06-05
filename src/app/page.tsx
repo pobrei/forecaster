@@ -109,7 +109,7 @@ export default function Home() {
             </span>
           </h1>
           <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            A premium weather planning application for outdoor activities. Upload GPX files,
+            A weather planning application for outdoor activities. Upload GPX files,
             analyze weather conditions along your path, and make informed decisions for your adventures.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">

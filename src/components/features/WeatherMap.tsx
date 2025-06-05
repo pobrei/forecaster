@@ -351,14 +351,14 @@ export function WeatherMap({
   };
 
   return (
-    <Card className={className}>
+    <Card className={className} id="weather-map">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <MapPin className="h-5 w-5" />
           Interactive Map
         </CardTitle>
         <CardDescription>
-          {route 
+          {route
             ? `Route visualization with ${forecasts?.length || 0} weather points`
             : 'Upload a GPX file to see your route on the map'
           }
