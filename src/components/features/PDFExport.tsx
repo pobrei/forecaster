@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { FileText, Download, Settings, CheckCircle, AlertCircle, FileSpreadsheet, Globe, FileCode } from 'lucide-react';
 import { Route, WeatherForecast, AppSettings, ExportOptions } from '@/types';
-import { generatePDFReport, downloadBlob, generateExportFilename, generateCSVReport, generateHTMLReport, generateTextPDFReport, generateGPXWithWeather } from '@/lib/pdf-generator';
+import { downloadBlob, generateExportFilename, generateCSVReport, generateHTMLReport, generateTextPDFReport, generateGPXWithWeather } from '@/lib/pdf-generator';
 import { toast } from 'sonner';
 
 interface PDFExportProps {
@@ -36,52 +36,7 @@ export function PDFExport({ route, forecasts, settings, className }: PDFExportPr
     }));
   };
 
-  const handleExportPDF = async () => {
-    if (!route || !forecasts.length) {
-      toast.error('No data available for export');
-      return;
-    }
-
-    setIsExporting(true);
-    setExportProgress(0);
-
-    try {
-      // Simulate progress updates
-      const progressInterval = setInterval(() => {
-        setExportProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return prev;
-          }
-          return prev + 10;
-        });
-      }, 200);
-
-      // Generate PDF
-      const pdfBlob = await generatePDFReport(route, forecasts, settings, exportOptions);
-      
-      clearInterval(progressInterval);
-      setExportProgress(100);
-
-      // Download the PDF
-      const filename = generateExportFilename(route, 'pdf');
-      downloadBlob(pdfBlob, filename);
-
-      toast.success('PDF report generated successfully!');
-      
-      // Reset progress after a short delay
-      setTimeout(() => {
-        setExportProgress(0);
-      }, 2000);
-
-    } catch (error) {
-      console.error('PDF export error:', error);
-      toast.error('Failed to generate PDF report. Please try again.');
-      setExportProgress(0);
-    } finally {
-      setIsExporting(false);
-    }
-  };
+  // Removed problematic PDF with image capture - use text PDF instead
 
   const handleExportJSON = async () => {
     if (!route || !forecasts.length) {
@@ -331,83 +286,119 @@ export function PDFExport({ route, forecasts, settings, className }: PDFExportPr
 
         {/* Export Buttons */}
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <Button
-              onClick={handleExportHTML}
-              disabled={isExporting}
-              className="flex items-center gap-2"
-              variant="default"
-            >
-              <Globe className="h-4 w-4" />
-              Export as HTML Report
-            </Button>
+          {/* Primary Recommendations */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-green-600 dark:text-green-400">
+              <CheckCircle className="h-4 w-4" />
+              Recommended Options
+            </div>
 
-            <Button
-              onClick={handleExportTextPDF}
-              disabled={isExporting}
-              className="flex items-center gap-2"
-              variant="default"
-            >
-              <FileText className="h-4 w-4" />
-              {isExporting ? 'Generating PDF...' : 'Export as Text PDF'}
-            </Button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Button
+                onClick={handleExportHTML}
+                disabled={isExporting}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+              >
+                <Globe className="h-4 w-4" />
+                Export as HTML Report
+              </Button>
+
+              <Button
+                onClick={handleExportTextPDF}
+                disabled={isExporting}
+                className="flex items-center gap-2"
+                variant="default"
+              >
+                <FileText className="h-4 w-4" />
+                {isExporting ? 'Generating PDF...' : 'Export as PDF'}
+              </Button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Button
-              variant="outline"
-              onClick={handleExportCSV}
-              disabled={isExporting}
-              className="flex items-center gap-2"
-            >
-              <FileSpreadsheet className="h-4 w-4" />
-              Export as CSV
-            </Button>
+          {/* Additional Options */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <Settings className="h-4 w-4" />
+              Additional Formats
+            </div>
 
-            <Button
-              variant="outline"
-              onClick={handleExportJSON}
-              disabled={isExporting}
-              className="flex items-center gap-2"
-            >
-              <FileCode className="h-4 w-4" />
-              Export as JSON
-            </Button>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <Button
+                variant="outline"
+                onClick={handleExportCSV}
+                disabled={isExporting}
+                className="flex items-center gap-2"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                Export as CSV
+              </Button>
 
-            <Button
-              variant="outline"
-              onClick={handleExportGPX}
-              disabled={isExporting}
-              className="flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              Export as GPX
-            </Button>
-          </div>
+              <Button
+                variant="outline"
+                onClick={handleExportJSON}
+                disabled={isExporting}
+                className="flex items-center gap-2"
+              >
+                <FileCode className="h-4 w-4" />
+                Export as JSON
+              </Button>
 
-          <div className="pt-2 border-t">
-            <Button
-              onClick={handleExportPDF}
-              disabled={isExporting}
-              className="flex items-center gap-2 w-full"
-              variant="secondary"
-            >
-              <FileText className="h-4 w-4" />
-              {isExporting ? 'Generating PDF...' : 'Export as PDF (with images - may fail)'}
-            </Button>
-            <p className="text-xs text-muted-foreground mt-1 text-center">
-              ⚠️ This option may fail due to browser compatibility issues
-            </p>
+              <Button
+                variant="outline"
+                onClick={handleExportGPX}
+                disabled={isExporting}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Export as GPX
+              </Button>
+            </div>
           </div>
         </div>
 
         {/* Export Tips */}
-        <div className="text-xs text-muted-foreground space-y-1">
-          <p><strong>HTML Report:</strong> 📄 Best option! Opens in browser, can be printed to PDF (Ctrl+P)</p>
-          <p><strong>Text PDF:</strong> 📋 Reliable PDF without images, includes all weather data</p>
-          <p><strong>CSV:</strong> 📊 Spreadsheet format for data analysis in Excel/Google Sheets</p>
-          <p><strong>JSON:</strong> 💾 Raw data for importing into other applications</p>
-          <p><strong>GPX:</strong> 🗺️ GPS file with embedded weather data for GPS devices</p>
+        <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div className="text-sm space-y-2">
+            <div className="font-medium text-blue-900 dark:text-blue-100 mb-3">📋 Export Guide:</div>
+
+            <div className="space-y-2 text-blue-800 dark:text-blue-200">
+              <div className="flex items-start gap-2">
+                <span className="text-green-600 font-bold">✅</span>
+                <div>
+                  <strong>HTML Report:</strong> Best option! Opens in browser with beautiful formatting.
+                  Use browser's print function (Ctrl+P / Cmd+P) to save as PDF.
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <span className="text-blue-600 font-bold">📄</span>
+                <div>
+                  <strong>PDF:</strong> Direct PDF download with all weather data and route information.
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <span className="text-purple-600 font-bold">📊</span>
+                <div>
+                  <strong>CSV:</strong> Spreadsheet format for analysis in Excel/Google Sheets.
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <span className="text-orange-600 font-bold">💾</span>
+                <div>
+                  <strong>JSON:</strong> Raw data for developers and importing into other apps.
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <span className="text-red-600 font-bold">🗺️</span>
+                <div>
+                  <strong>GPX:</strong> GPS file with weather data for GPS devices and mapping software.
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

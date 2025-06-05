@@ -1,5 +1,4 @@
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { Route, WeatherForecast, AppSettings, ExportOptions } from '@/types';
 import { formatTemperature, formatWindSpeed, formatDistance, formatDateTime, formatPrecipitation } from './format';
 import { EXPORT_CONFIG } from './constants';
@@ -208,80 +207,21 @@ export async function generatePDFReport(
       });
     }
 
-    // Include Map if requested
-    if (options.includeMap) {
-      checkPageBreak(80);
+    // Note about visual elements
+    if (options.includeMap || options.includeCharts) {
+      checkPageBreak(30);
 
-      pdf.setFontSize(16);
+      pdf.setFontSize(14);
       pdf.setFont('helvetica', 'bold');
-      pdf.text('Route Map', margin, currentY);
-      currentY += 10;
+      pdf.text('Visual Elements Note', margin, currentY);
+      currentY += 8;
 
-      try {
-        const mapImage = await captureElementAsImage('weather-map', {
-          width: 800,
-          height: 400,
-          scale: 1
-        });
-
-        if (mapImage) {
-          const imgWidth = pageWidth - (2 * margin);
-          const imgHeight = (imgWidth * 400) / 800; // Maintain aspect ratio
-
-          checkPageBreak(imgHeight + 10);
-          pdf.addImage(mapImage, 'PNG', margin, currentY, imgWidth, imgHeight);
-          currentY += imgHeight + 15;
-        } else {
-          pdf.setFontSize(12);
-          pdf.setFont('helvetica', 'italic');
-          pdf.text('Map visualization could not be captured', margin, currentY);
-          currentY += 10;
-        }
-      } catch (error) {
-        console.error('Error capturing map:', error);
-        pdf.setFontSize(12);
-        pdf.setFont('helvetica', 'italic');
-        pdf.text('Map visualization could not be captured', margin, currentY);
-        currentY += 10;
-      }
-    }
-
-    // Include Charts if requested
-    if (options.includeCharts) {
-      checkPageBreak(80);
-
-      pdf.setFontSize(16);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Weather Charts', margin, currentY);
-      currentY += 10;
-
-      try {
-        const chartImage = await captureElementAsImage('weather-charts', {
-          width: 800,
-          height: 600,
-          scale: 1
-        });
-
-        if (chartImage) {
-          const imgWidth = pageWidth - (2 * margin);
-          const imgHeight = (imgWidth * 600) / 800; // Maintain aspect ratio
-
-          checkPageBreak(imgHeight + 10);
-          pdf.addImage(chartImage, 'PNG', margin, currentY, imgWidth, imgHeight);
-          currentY += imgHeight + 15;
-        } else {
-          pdf.setFontSize(12);
-          pdf.setFont('helvetica', 'italic');
-          pdf.text('Chart visualization could not be captured', margin, currentY);
-          currentY += 10;
-        }
-      } catch (error) {
-        console.error('Error capturing charts:', error);
-        pdf.setFontSize(12);
-        pdf.setFont('helvetica', 'italic');
-        pdf.text('Chart visualization could not be captured', margin, currentY);
-        currentY += 10;
-      }
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'italic');
+      pdf.text('For maps and charts, please use the HTML export option which can be printed to PDF.', margin, currentY);
+      currentY += 6;
+      pdf.text('This text-based PDF focuses on weather data and route information.', margin, currentY);
+      currentY += 15;
     }
 
     // Footer
@@ -305,75 +245,8 @@ export async function generatePDFReport(
   }
 }
 
-/**
- * Capture element as image for PDF inclusion
- */
-export async function captureElementAsImage(
-  elementId: string,
-  options: {
-    width?: number;
-    height?: number;
-    scale?: number;
-  } = {}
-): Promise<string | null> {
-  try {
-    const element = document.getElementById(elementId);
-    if (!element) {
-      console.warn(`Element with ID "${elementId}" not found`);
-      return null;
-    }
-
-    const canvas = await html2canvas(element, {
-      scale: options.scale || EXPORT_CONFIG.IMAGE.SCALE,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: '#ffffff',
-      width: options.width,
-      height: options.height,
-      ignoreElements: (element) => {
-        // Skip elements that might cause OKLCH color issues
-        const computedStyle = window.getComputedStyle(element);
-        const bgColor = computedStyle.backgroundColor;
-        const color = computedStyle.color;
-
-        // Skip elements with OKLCH colors
-        if (bgColor.includes('oklch') || color.includes('oklch')) {
-          return true;
-        }
-
-        return false;
-      },
-      onclone: (clonedDoc) => {
-        // Convert OKLCH colors to RGB in the cloned document
-        const allElements = clonedDoc.querySelectorAll('*');
-        allElements.forEach((el) => {
-          const element = el as HTMLElement;
-          const computedStyle = window.getComputedStyle(element);
-
-          // Convert background colors
-          if (computedStyle.backgroundColor.includes('oklch')) {
-            element.style.backgroundColor = '#ffffff';
-          }
-
-          // Convert text colors
-          if (computedStyle.color.includes('oklch')) {
-            element.style.color = '#000000';
-          }
-
-          // Convert border colors
-          if (computedStyle.borderColor.includes('oklch')) {
-            element.style.borderColor = '#e5e5e5';
-          }
-        });
-      }
-    });
-
-    return canvas.toDataURL('image/png', EXPORT_CONFIG.IMAGE.QUALITY);
-  } catch (error) {
-    console.error('Error capturing element as image:', error);
-    return null;
-  }
-}
+// Removed problematic html2canvas image capture function
+// Use HTML export for visual elements instead
 
 /**
  * Download blob as file
