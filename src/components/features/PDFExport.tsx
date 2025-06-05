@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { FileText, Download, Settings, CheckCircle, AlertCircle } from 'lucide-react';
+import { FileText, Download, Settings, CheckCircle, AlertCircle, FileSpreadsheet, Globe, FileCode } from 'lucide-react';
 import { Route, WeatherForecast, AppSettings, ExportOptions } from '@/types';
-import { generatePDFReport, downloadBlob, generateExportFilename } from '@/lib/pdf-generator';
+import { generatePDFReport, downloadBlob, generateExportFilename, generateCSVReport, generateHTMLReport, generateTextPDFReport, generateGPXWithWeather } from '@/lib/pdf-generator';
 import { toast } from 'sonner';
 
 interface PDFExportProps {
@@ -112,6 +112,101 @@ export function PDFExport({ route, forecasts, settings, className }: PDFExportPr
     }
   };
 
+  const handleExportCSV = async () => {
+    if (!route || !forecasts.length) {
+      toast.error('No data available for export');
+      return;
+    }
+
+    try {
+      const csvBlob = generateCSVReport(route, forecasts, settings);
+      const filename = generateExportFilename(route, 'csv');
+      downloadBlob(csvBlob, filename);
+      toast.success('Data exported as CSV successfully!');
+    } catch (error) {
+      console.error('CSV export error:', error);
+      toast.error('Failed to export data as CSV. Please try again.');
+    }
+  };
+
+  const handleExportHTML = async () => {
+    if (!route || !forecasts.length) {
+      toast.error('No data available for export');
+      return;
+    }
+
+    try {
+      const htmlBlob = generateHTMLReport(route, forecasts, settings);
+      const filename = generateExportFilename(route, 'html');
+      downloadBlob(htmlBlob, filename);
+      toast.success('HTML report generated successfully! You can open it in your browser and print to PDF.');
+    } catch (error) {
+      console.error('HTML export error:', error);
+      toast.error('Failed to export HTML report. Please try again.');
+    }
+  };
+
+  const handleExportTextPDF = async () => {
+    if (!route || !forecasts.length) {
+      toast.error('No data available for export');
+      return;
+    }
+
+    setIsExporting(true);
+    setExportProgress(0);
+
+    try {
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setExportProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return prev;
+          }
+          return prev + 20;
+        });
+      }, 100);
+
+      const pdfBlob = generateTextPDFReport(route, forecasts, settings);
+
+      clearInterval(progressInterval);
+      setExportProgress(100);
+
+      const filename = generateExportFilename(route, 'pdf');
+      downloadBlob(pdfBlob, filename);
+
+      toast.success('Text-based PDF report generated successfully!');
+
+      setTimeout(() => {
+        setExportProgress(0);
+      }, 2000);
+
+    } catch (error) {
+      console.error('Text PDF export error:', error);
+      toast.error('Failed to generate text PDF report. Please try again.');
+      setExportProgress(0);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportGPX = async () => {
+    if (!route || !forecasts.length) {
+      toast.error('No data available for export');
+      return;
+    }
+
+    try {
+      const gpxBlob = generateGPXWithWeather(route, forecasts, settings);
+      const filename = generateExportFilename(route, 'gpx');
+      downloadBlob(gpxBlob, filename);
+      toast.success('GPX file with weather data exported successfully!');
+    } catch (error) {
+      console.error('GPX export error:', error);
+      toast.error('Failed to export GPX file. Please try again.');
+    }
+  };
+
   const getEstimatedFileSize = () => {
     let size = 'Small (~100KB)';
     let factors = 0;
@@ -134,11 +229,11 @@ export function PDFExport({ route, forecasts, settings, className }: PDFExportPr
     <Card className={className}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          Export Report
+          <Download className="h-5 w-5" />
+          Export Weather Report
         </CardTitle>
         <CardDescription>
-          Generate and download comprehensive weather reports for your route
+          Choose from multiple export formats: HTML (recommended), PDF, CSV, JSON, or GPX
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -235,32 +330,84 @@ export function PDFExport({ route, forecasts, settings, className }: PDFExportPr
         )}
 
         {/* Export Buttons */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Button
-            onClick={handleExportPDF}
-            disabled={isExporting}
-            className="flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            {isExporting ? 'Generating PDF...' : 'Export as PDF'}
-          </Button>
-          
-          <Button
-            variant="outline"
-            onClick={handleExportJSON}
-            disabled={isExporting}
-            className="flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Export as JSON
-          </Button>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Button
+              onClick={handleExportHTML}
+              disabled={isExporting}
+              className="flex items-center gap-2"
+              variant="default"
+            >
+              <Globe className="h-4 w-4" />
+              Export as HTML Report
+            </Button>
+
+            <Button
+              onClick={handleExportTextPDF}
+              disabled={isExporting}
+              className="flex items-center gap-2"
+              variant="default"
+            >
+              <FileText className="h-4 w-4" />
+              {isExporting ? 'Generating PDF...' : 'Export as Text PDF'}
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <Button
+              variant="outline"
+              onClick={handleExportCSV}
+              disabled={isExporting}
+              className="flex items-center gap-2"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              Export as CSV
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={handleExportJSON}
+              disabled={isExporting}
+              className="flex items-center gap-2"
+            >
+              <FileCode className="h-4 w-4" />
+              Export as JSON
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={handleExportGPX}
+              disabled={isExporting}
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export as GPX
+            </Button>
+          </div>
+
+          <div className="pt-2 border-t">
+            <Button
+              onClick={handleExportPDF}
+              disabled={isExporting}
+              className="flex items-center gap-2 w-full"
+              variant="secondary"
+            >
+              <FileText className="h-4 w-4" />
+              {isExporting ? 'Generating PDF...' : 'Export as PDF (with images - may fail)'}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-1 text-center">
+              ⚠️ This option may fail due to browser compatibility issues
+            </p>
+          </div>
         </div>
 
         {/* Export Tips */}
         <div className="text-xs text-muted-foreground space-y-1">
-          <p><strong>PDF:</strong> Comprehensive report with charts and maps (if enabled)</p>
-          <p><strong>JSON:</strong> Raw data for importing into other applications</p>
-          <p><strong>Tip:</strong> Disable map and charts for faster generation and smaller file size</p>
+          <p><strong>HTML Report:</strong> 📄 Best option! Opens in browser, can be printed to PDF (Ctrl+P)</p>
+          <p><strong>Text PDF:</strong> 📋 Reliable PDF without images, includes all weather data</p>
+          <p><strong>CSV:</strong> 📊 Spreadsheet format for data analysis in Excel/Google Sheets</p>
+          <p><strong>JSON:</strong> 💾 Raw data for importing into other applications</p>
+          <p><strong>GPX:</strong> 🗺️ GPS file with embedded weather data for GPS devices</p>
         </div>
       </CardContent>
     </Card>
