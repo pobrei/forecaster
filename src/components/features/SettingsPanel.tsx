@@ -32,11 +32,19 @@ export function SettingsPanel({
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
   const [useManualSpeed, setUseManualSpeed] = useState(false);
   const [manualSpeed, setManualSpeed] = useState(settings.averageSpeed.toString());
+  const [isMounted, setIsMounted] = useState(false);
+  const [minDateTime, setMinDateTime] = useState('');
 
   useEffect(() => {
     setLocalSettings(settings);
     setManualSpeed(settings.averageSpeed.toString());
   }, [settings]);
+
+  // Set up client-side only values to prevent hydration mismatch
+  useEffect(() => {
+    setIsMounted(true);
+    setMinDateTime(formatDateTimeLocal(new Date()));
+  }, []);
 
   const handleSettingChange = (key: keyof AppSettings, value: string | number | Date) => {
     const newSettings = { ...localSettings, [key]: value };
@@ -124,7 +132,7 @@ export function SettingsPanel({
             type="datetime-local"
             value={formatDateTimeLocal(localSettings.startTime)}
             onChange={(e) => handleStartTimeChange(e.target.value)}
-            min={formatDateTimeLocal(new Date())}
+            min={isMounted ? minDateTime : undefined}
             disabled={isLoading}
           />
           <p className="text-xs text-muted-foreground">

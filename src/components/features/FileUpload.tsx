@@ -40,6 +40,8 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
     checkMobile();
   }, []);
 
+
+
   const validateFile = (file: File): string | null => {
     try {
       console.log('Validating file:', {
@@ -126,7 +128,6 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
 
   const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     try {
-      console.log('File input change event:', e.target.files);
       handleFiles(e.target.files);
       // Reset the input value so the same file can be selected again
       e.target.value = '';
@@ -136,12 +137,13 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
     }
   }, [handleFiles]);
 
-  // Simplified file selection handler
+  // File selection handler
   const handleFileSelect = useCallback(() => {
     try {
-      console.log('File select triggered');
       if (fileInputRef.current) {
         fileInputRef.current.click();
+      } else {
+        toast.error('File input not available. Please refresh the page.');
       }
     } catch (error) {
       console.error('File select error:', error);
@@ -263,12 +265,15 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
               className="hidden"
               disabled={isLoading}
               aria-label="Choose GPX file to upload"
+              tabIndex={-1}
+              multiple={false}
             />
             <Button
               variant="outline"
               onClick={handleFileSelect}
               disabled={isLoading}
-              className="touch-manipulation"
+              className="touch-manipulation hover:bg-primary/10 active:scale-95 transition-all duration-200"
+              aria-label="Choose GPX file to upload"
             >
               {isMobile && <Smartphone className="h-4 w-4 mr-2" />}
               Choose File
