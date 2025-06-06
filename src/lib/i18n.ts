@@ -1,5 +1,6 @@
 import { useRouter } from 'next/router';
 import { createContext, useContext, ReactNode } from 'react';
+import React from 'react';
 
 // Translation type definitions
 export type TranslationKey = string;
@@ -88,7 +89,7 @@ export const I18nProvider = ({ children, translations }: I18nProviderProps) => {
     formatCurrency,
   };
 
-  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
+  return React.createElement(I18nContext.Provider, { value }, children);
 };
 
 // Utility function to load translations
