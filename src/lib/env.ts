@@ -14,8 +14,8 @@ const envSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:3000'),
   NEXT_PUBLIC_APP_NAME: z.string().default('Forecaster'),
   
-  // Security
-  NEXTAUTH_SECRET: z.string().min(1, 'NextAuth secret is required'),
+  // Security (Optional - only needed if using NextAuth)
+  NEXTAUTH_SECRET: z.string().optional(),
   NEXTAUTH_URL: z.string().url().default('http://localhost:3000'),
   CONTENT_SECURITY_POLICY_ENABLED: z.string().transform(val => val === 'true').default('false'),
   
