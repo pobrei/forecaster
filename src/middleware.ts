@@ -106,6 +106,7 @@ export async function middleware(request: NextRequest) {
     "img-src 'self' data: https:",
     "font-src 'self' data:",
     "connect-src 'self' https://api.openweathermap.org https://vercel.live", // Allow Vercel feedback connections
+    "frame-src https://vercel.live", // Allow Vercel feedback frames
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'"

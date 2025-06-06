@@ -50,7 +50,9 @@ export function useProgressiveWeather(options: UseProgressiveWeatherOptions = {}
       
       if (estimatedPoints <= 100) {
         console.log('Using regular weather endpoint for small route');
-        const response = await fetch('/api/weather', {
+        const apiUrl = '/api/weather';
+        console.log('Making request to:', apiUrl, 'from origin:', window.location.origin);
+        const response = await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ route, settings })
@@ -85,7 +87,9 @@ export function useProgressiveWeather(options: UseProgressiveWeatherOptions = {}
       // For now, fall back to regular endpoint since progressive is not implemented
       console.log('Progressive endpoint not fully implemented, falling back to regular endpoint');
 
-      const response = await fetch('/api/weather', {
+      const apiUrl = '/api/weather';
+      console.log('Making fallback request to:', apiUrl, 'from origin:', window.location.origin);
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ route, settings })
