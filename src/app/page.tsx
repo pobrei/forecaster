@@ -12,14 +12,13 @@ import { PDFExport } from '@/components/features/PDFExport';
 
 import { Header } from '@/components/layout/Header';
 import { PWAInstallBanner, PWAOfflineBanner } from '@/components/features/PWAInstallBanner';
-import { Route, WeatherForecast, AppSettings, APIResponse, WeatherResponse, SelectedWeatherPoint } from '@/types';
+import { Route, AppSettings, SelectedWeatherPoint } from '@/types';
 import { ROUTE_CONFIG } from '@/lib/constants';
+import { useProgressiveWeather } from '@/hooks/useProgressiveWeather';
 import { toast } from 'sonner';
 
 export default function Home() {
   const [route, setRoute] = useState<Route | null>(null);
-  const [forecasts, setForecasts] = useState<WeatherForecast[]>([]);
-  const [isGeneratingForecast, setIsGeneratingForecast] = useState(false);
   const [settings, setSettings] = useState<AppSettings>({
     startTime: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
     averageSpeed: ROUTE_CONFIG.DEFAULT_SPEED,
@@ -29,9 +28,39 @@ export default function Home() {
   });
   const [selectedPoint, setSelectedPoint] = useState<SelectedWeatherPoint | null>(null);
 
+  // Use progressive weather loading hook
+  const {
+    forecasts,
+    isLoading: isGeneratingForecast,
+    progress,
+    error: weatherError,
+    isComplete,
+    loadWeatherData,
+    reset: resetWeatherData
+  } = useProgressiveWeather({
+    onProgress: (progress) => {
+      if (progress.total > 1) {
+        toast.loading(`Loading weather data... ${progress.percentage}% (${progress.current}/${progress.total} chunks)`, {
+          id: 'weather-progress'
+        });
+      }
+    },
+    onComplete: (forecasts) => {
+      toast.dismiss('weather-progress');
+      const totalAlerts = forecasts.reduce((sum, forecast) => sum + (forecast.alerts?.length || 0), 0);
+      if (totalAlerts > 0) {
+        toast.warning(`Generated ${totalAlerts} weather alert(s) for your route`);
+      }
+    },
+    onError: (error) => {
+      toast.dismiss('weather-progress');
+      console.error('Weather loading error:', error);
+    }
+  });
+
   const handleRouteUploaded = (newRoute: Route) => {
     setRoute(newRoute);
-    setForecasts([]); // Clear previous forecasts
+    resetWeatherData(); // Clear previous forecasts
     toast.success(`Route "${newRoute.name}" loaded successfully!`);
   };
 
@@ -55,41 +84,11 @@ export default function Home() {
       return;
     }
 
-    setIsGeneratingForecast(true);
     try {
-      const response = await fetch('/api/weather', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          route,
-          settings,
-        }),
-      });
-
-      const result: APIResponse<WeatherResponse> = await response.json();
-
-      if (result.success && result.data) {
-        setForecasts(result.data.forecasts);
-        toast.success(result.data.message);
-
-        // Show alert summary if there are alerts
-        const totalAlerts = result.data.forecasts.reduce(
-          (sum, forecast) => sum + (forecast.alerts?.length || 0),
-          0
-        );
-        if (totalAlerts > 0) {
-          toast.warning(`Generated ${totalAlerts} weather alert(s) for your route`);
-        }
-      } else {
-        toast.error(result.error || 'Failed to generate weather forecast');
-      }
+      await loadWeatherData(route, settings);
     } catch (error) {
+      // Error handling is done in the hook
       console.error('Forecast generation error:', error);
-      toast.error('Network error. Please try again.');
-    } finally {
-      setIsGeneratingForecast(false);
     }
   };
 
@@ -146,6 +145,31 @@ export default function Home() {
           hasRoute={!!route}
           className="lg:col-span-2"
         />
+
+        {/* Progress Indicator for Large Routes */}
+        {isGeneratingForecast && progress.total > 1 && (
+          <div className="lg:col-span-3">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span>Loading weather data...</span>
+                    <span>{progress.percentage}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${progress.percentage}%` }}
+                    />
+                  </div>
+                  <div className="text-xs text-muted-foreground text-center">
+                    Processing chunk {progress.current} of {progress.total}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
 
       {/* Weather Data Visualization */}

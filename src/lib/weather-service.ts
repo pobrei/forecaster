@@ -244,26 +244,62 @@ export function generateWeatherAlerts(weather: WeatherData): WeatherAlert[] {
 }
 
 /**
- * Get weather forecasts for multiple route points
+ * Get weather forecasts for multiple route points with batching and parallel processing
  */
 export async function getWeatherForecasts(routePoints: RoutePoint[]): Promise<WeatherForecast[]> {
   const forecasts: WeatherForecast[] = [];
   const errors: string[] = [];
 
-  for (const point of routePoints) {
-    try {
-      const weather = await fetchWeatherData(point.lat, point.lon);
-      if (weather) {
-        const alerts = generateWeatherAlerts(weather);
-        forecasts.push({
-          routePoint: point,
-          weather,
-          alerts: alerts.length > 0 ? alerts : undefined
-        });
+  // Batch size for parallel processing (adjust based on rate limits)
+  const BATCH_SIZE = 10;
+  const MAX_CONCURRENT = 5;
+
+  console.log(`Processing ${routePoints.length} points in batches of ${BATCH_SIZE}`);
+
+  // Process points in batches
+  for (let i = 0; i < routePoints.length; i += BATCH_SIZE) {
+    const batch = routePoints.slice(i, i + BATCH_SIZE);
+    console.log(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(routePoints.length / BATCH_SIZE)}`);
+
+    // Process batch with limited concurrency
+    const batchPromises = batch.map(async (point, index) => {
+      // Add delay to respect rate limits
+      const delay = Math.floor(index / MAX_CONCURRENT) * 100; // 100ms delay per group
+      if (delay > 0) {
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
-    } catch (error) {
-      console.error(`Failed to fetch weather for point ${point.lat}, ${point.lon}:`, error);
-      errors.push(`Failed to fetch weather for coordinates ${point.lat.toFixed(4)}, ${point.lon.toFixed(4)}`);
+
+      try {
+        const weather = await fetchWeatherData(point.lat, point.lon);
+        if (weather) {
+          const alerts = generateWeatherAlerts(weather);
+          return {
+            routePoint: point,
+            weather,
+            alerts: alerts.length > 0 ? alerts : undefined
+          };
+        }
+        return null;
+      } catch (error) {
+        console.error(`Failed to fetch weather for point ${point.lat}, ${point.lon}:`, error);
+        errors.push(`Failed to fetch weather for coordinates ${point.lat.toFixed(4)}, ${point.lon.toFixed(4)}`);
+        return null;
+      }
+    });
+
+    // Wait for batch to complete
+    const batchResults = await Promise.allSettled(batchPromises);
+
+    // Collect successful results
+    batchResults.forEach((result) => {
+      if (result.status === 'fulfilled' && result.value) {
+        forecasts.push(result.value);
+      }
+    });
+
+    // Add small delay between batches to avoid overwhelming the API
+    if (i + BATCH_SIZE < routePoints.length) {
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
   }
 

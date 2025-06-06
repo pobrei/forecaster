@@ -69,6 +69,12 @@ async function weatherHandler(
 
   console.log(`Sampled ${sampledPoints.length} points from ${route.points.length} total points`);
 
+  // Check if route is too large for single request (Vercel timeout protection)
+  const isLargeRoute = sampledPoints.length > 100;
+  if (isLargeRoute) {
+    console.log(`Large route detected (${sampledPoints.length} points). Consider using /api/weather/progressive endpoint.`);
+  }
+
   // Add estimated times to route points
   const pointsWithTime: RoutePoint[] = sampledPoints.map(point => ({
     ...point,
@@ -79,6 +85,12 @@ async function weatherHandler(
   }));
 
   // Get weather forecasts with comprehensive error handling
+  // Adjust timeout based on route size (Vercel has 10s hobby, 30s pro limit)
+  const timeoutMs = isLargeRoute ? 25000 : Math.min(pointsWithTime.length * 300, 25000);
+  const maxRetries = isLargeRoute ? 1 : 3; // Fewer retries for large routes to avoid timeout
+
+  console.log(`Using timeout: ${timeoutMs}ms, retries: ${maxRetries} for ${pointsWithTime.length} points`);
+
   const forecasts = await withRetryAndTimeout(
     async () => {
       try {
@@ -97,8 +109,8 @@ async function weatherHandler(
       }
     },
     {
-      maxRetries: 3,
-      timeout: 30000,
+      maxRetries,
+      timeout: timeoutMs,
       retryCondition: (error) =>
         !error.message.includes('API key') &&
         !error.message.includes('validation')
