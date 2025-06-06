@@ -8,6 +8,7 @@ import { createErrorHandler, withRetryAndTimeout } from '@/lib/api-error-handler
 import { createValidationMiddleware } from '@/lib/api-validation';
 import { weatherRequestValidationSchema } from '@/lib/validation';
 import { ValidationError, NetworkError } from '@/lib/error-tracking';
+import { weatherRateLimiter, withRateLimit } from '@/lib/rate-limiter';
 
 const validateWeatherRequest = createValidationMiddleware<any, WeatherResponse>(weatherRequestValidationSchema);
 
@@ -153,7 +154,7 @@ async function weatherHandler(
 }
 
 export const POST = createErrorHandler(
-  (request: NextRequest) => validateWeatherRequest(request, weatherHandler)
+  withRateLimit(weatherRateLimiter, (request: NextRequest) => validateWeatherRequest(request, weatherHandler))
 );
 
 export async function GET() {

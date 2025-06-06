@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { parseGPXFile, generateGPXHash, validateRoute } from '@/lib/gpx-parser';
+import { parseGPXFileSimple, generateGPXHash, validateRoute } from '@/lib/gpx-parser';
 import { getCachedRoute, setCachedRoute } from '@/lib/mongodb';
 import { APIResponse, UploadResponse } from '@/types';
 import { ERROR_MESSAGES, SUCCESS_MESSAGES, GPX_CONSTRAINTS } from '@/lib/constants';
@@ -8,6 +8,7 @@ import { createErrorHandler, withRetryAndTimeout } from '@/lib/api-error-handler
 import { createValidationMiddleware } from '@/lib/api-validation';
 import { secureFileValidationSchema, gpxContentValidationSchema } from '@/lib/validation';
 import { ValidationError } from '@/lib/error-tracking';
+import { uploadRateLimiter, withRateLimit } from '@/lib/rate-limiter';
 
 const uploadValidationSchema = z.object({
   gpx: z.instanceof(File)
@@ -87,7 +88,7 @@ async function uploadHandler(
   const route = await withRetryAndTimeout(
     async () => {
       const fileForParsing = new File([content], file.name, { type: file.type });
-      return parseGPXFile(fileForParsing);
+      return parseGPXFileSimple(fileForParsing);
     },
     { maxRetries: 2, timeout: 15000 }
   );
@@ -127,7 +128,7 @@ async function uploadHandler(
 }
 
 export const POST = createErrorHandler(
-  (request: NextRequest) => validateUpload(request, uploadHandler)
+  withRateLimit(uploadRateLimiter, (request: NextRequest) => validateUpload(request, uploadHandler))
 );
 
 export async function GET() {

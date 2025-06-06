@@ -4,6 +4,39 @@ import crypto from 'crypto';
 import { DOMParser } from '@xmldom/xmldom';
 
 /**
+ * GPX Parser Configuration
+ */
+export interface GPXParserConfig {
+  maxFileSize?: number;
+  maxWaypoints?: number;
+  enableSampling?: boolean;
+  validateCoordinates?: boolean;
+}
+
+/**
+ * GPX Parser Result
+ */
+export interface GPXParserResult {
+  route: Route;
+  metadata: {
+    originalPointCount: number;
+    sampledPointCount: number;
+    processingTime: number;
+    fileSize: number;
+    hash: string;
+  };
+}
+
+/**
+ * GPX Validation Result
+ */
+export interface GPXValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+/**
  * Calculate distance between two points using Haversine formula
  */
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -34,9 +67,13 @@ function calculateElevationGain(points: RoutePoint[]): number {
 }
 
 /**
- * Validate GPX file constraints
+ * Validate GPX file constraints with enhanced validation
  */
-function validateGPXFile(file: File): void {
+export function validateGPXFile(file: File, config: GPXParserConfig = {}): GPXValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const maxFileSize = config.maxFileSize || GPX_CONSTRAINTS.MAX_FILE_SIZE;
+
   console.log('Validating GPX file:', {
     name: file.name,
     size: file.size,
@@ -45,8 +82,12 @@ function validateGPXFile(file: File): void {
   });
 
   // Check file size
-  if (file.size > GPX_CONSTRAINTS.MAX_FILE_SIZE) {
-    throw new Error(ERROR_MESSAGES.GPX.FILE_TOO_LARGE);
+  if (file.size > maxFileSize) {
+    errors.push(ERROR_MESSAGES.GPX.FILE_TOO_LARGE);
+  }
+
+  if (file.size === 0) {
+    errors.push('File is empty');
   }
 
   // More lenient file extension check for mobile compatibility
@@ -59,11 +100,64 @@ function validateGPXFile(file: File): void {
 
   // Accept if it has .gpx extension OR if it's an XML-like file
   if (!hasGpxExtension && !hasValidMimeType && !fileName.includes('gpx')) {
-    console.error('File validation failed:', { fileName, hasGpxExtension, hasValidMimeType, fileType: file.type });
-    throw new Error(ERROR_MESSAGES.GPX.INVALID_FILE);
+    errors.push(ERROR_MESSAGES.GPX.INVALID_FILE);
   }
 
-  console.log('File validation passed');
+  // Add warnings for potential issues
+  if (file.size > maxFileSize * 0.8) {
+    warnings.push('File size is close to the maximum limit');
+  }
+
+  if (!hasGpxExtension && hasValidMimeType) {
+    warnings.push('File does not have .gpx extension but appears to be XML');
+  }
+
+  const isValid = errors.length === 0;
+
+  if (isValid) {
+    console.log('File validation passed');
+  } else {
+    console.error('File validation failed:', { errors, warnings });
+  }
+
+  return { isValid, errors, warnings };
+}
+
+/**
+ * Validate GPX content structure
+ */
+export function validateGPXContent(content: string): GPXValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  if (!content || content.trim().length === 0) {
+    errors.push('GPX content is empty');
+    return { isValid: false, errors, warnings };
+  }
+
+  // Check if content looks like GPX (more flexible check)
+  const contentLower = content.toLowerCase();
+  const hasGpxTag = contentLower.includes('<gpx');
+  const hasTrkptTag = contentLower.includes('<trkpt');
+  const hasXmlDeclaration = contentLower.includes('<?xml');
+
+  if (!hasGpxTag && !hasTrkptTag) {
+    errors.push('Content does not appear to be a valid GPX file');
+  }
+
+  if (!hasXmlDeclaration) {
+    warnings.push('Missing XML declaration');
+  }
+
+  // Check for potential XML issues
+  const openTags = (content.match(/</g) || []).length;
+  const closeTags = (content.match(/>/g) || []).length;
+
+  if (Math.abs(openTags - closeTags) > 10) { // Allow some tolerance
+    warnings.push('Potential XML structure issues detected');
+  }
+
+  return { isValid: errors.length === 0, errors, warnings };
 }
 
 /**
@@ -163,7 +257,7 @@ function parseGPXContent(xmlContent: string): GPXData {
 /**
  * Convert GPX data to Route with distance calculations
  */
-function convertGPXToRoute(gpxData: GPXData, routeId: string): Route {
+function convertGPXToRoute(gpxData: GPXData, routeId: string, config: GPXParserConfig = {}): Route {
   if (gpxData.tracks.length === 0) {
     throw new Error(ERROR_MESSAGES.GPX.NO_TRACKS);
   }
@@ -173,9 +267,12 @@ function convertGPXToRoute(gpxData: GPXData, routeId: string): Route {
   let gpxPoints = track.points;
 
   // If there are too many points, sample them to reduce the count
-  if (gpxPoints.length > GPX_CONSTRAINTS.MAX_WAYPOINTS) {
-    console.log(`GPX file has ${gpxPoints.length} points, sampling to ${GPX_CONSTRAINTS.MAX_WAYPOINTS} points`);
-    const sampleRate = Math.ceil(gpxPoints.length / GPX_CONSTRAINTS.MAX_WAYPOINTS);
+  const maxWaypoints = config.maxWaypoints || GPX_CONSTRAINTS.MAX_WAYPOINTS;
+  const enableSampling = config.enableSampling !== false; // Default to true
+
+  if (enableSampling && gpxPoints.length > maxWaypoints) {
+    console.log(`GPX file has ${gpxPoints.length} points, sampling to ${maxWaypoints} points`);
+    const sampleRate = Math.ceil(gpxPoints.length / maxWaypoints);
     gpxPoints = gpxPoints.filter((_, index) => index % sampleRate === 0);
 
     // Always include the last point
@@ -273,14 +370,19 @@ export function sampleRoutePoints(route: Route, intervalKm: number = ROUTE_CONFI
 }
 
 /**
- * Main function to parse GPX file
+ * Enhanced GPX file parser with comprehensive validation and metadata
  */
-export async function parseGPXFile(file: File): Promise<Route> {
+export async function parseGPXFile(file: File, config: GPXParserConfig = {}): Promise<GPXParserResult> {
+  const startTime = performance.now();
+
   try {
     console.log('Starting GPX file parsing for:', file.name);
 
     // Validate file
-    validateGPXFile(file);
+    const fileValidation = validateGPXFile(file, config);
+    if (!fileValidation.isValid) {
+      throw new Error(`File validation failed: ${fileValidation.errors.join(', ')}`);
+    }
 
     // Read file content with better error handling
     let content: string;
@@ -292,36 +394,53 @@ export async function parseGPXFile(file: File): Promise<Route> {
       throw new Error('Failed to read file content. Please try again.');
     }
 
-    // Check if content looks like GPX (more flexible check)
-    const contentLower = content.toLowerCase();
-    const hasGpxTag = contentLower.includes('<gpx');
-    const hasTrkptTag = contentLower.includes('<trkpt');
-    const hasXmlDeclaration = contentLower.includes('<?xml');
-
-    console.log('Content analysis:', { hasGpxTag, hasTrkptTag, hasXmlDeclaration, contentLength: content.length });
-
-    if (!hasGpxTag && !hasTrkptTag) {
-      console.error('Content does not appear to be a GPX file');
-      throw new Error(ERROR_MESSAGES.GPX.PARSE_ERROR);
+    // Validate content structure
+    const contentValidation = validateGPXContent(content);
+    if (!contentValidation.isValid) {
+      throw new Error(`Content validation failed: ${contentValidation.errors.join(', ')}`);
     }
 
     // Parse GPX content
     const gpxData = parseGPXContent(content);
 
-    // Generate route ID
-    const routeId = generateGPXHash(content).substring(0, 16);
+    // Generate route ID and hash
+    const hash = generateGPXHash(content);
+    const routeId = hash.substring(0, 16);
+
+    // Store original point count before conversion
+    const originalPointCount = gpxData.tracks.reduce((total, track) => total + track.points.length, 0);
 
     // Convert to route
-    const route = convertGPXToRoute(gpxData, routeId);
+    const route = convertGPXToRoute(gpxData, routeId, config);
+
+    const processingTime = performance.now() - startTime;
 
     console.log(`Successfully parsed GPX file: ${route.name}`);
     console.log(`Points: ${route.points.length}, Distance: ${route.totalDistance.toFixed(2)}km`);
+    console.log(`Processing time: ${processingTime.toFixed(2)}ms`);
 
-    return route;
+    return {
+      route,
+      metadata: {
+        originalPointCount,
+        sampledPointCount: route.points.length,
+        processingTime,
+        fileSize: file.size,
+        hash
+      }
+    };
   } catch (error) {
     console.error('GPX parsing failed:', error);
     throw error;
   }
+}
+
+/**
+ * Legacy function for backward compatibility
+ */
+export async function parseGPXFileSimple(file: File): Promise<Route> {
+  const result = await parseGPXFile(file);
+  return result.route;
 }
 
 /**

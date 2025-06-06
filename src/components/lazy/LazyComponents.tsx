@@ -146,8 +146,8 @@ export const preloadPDFExport = () => {
   componentImport()
 }
 
-// Bundle splitting for chart libraries
-export const LazyChartJS = dynamic(
+// Bundle splitting for chart libraries with optimized loading
+export const LazyLineChart = dynamic(
   () => import('react-chartjs-2').then(mod => ({ default: mod.Line })),
   {
     loading: () => <div className="h-64 w-full bg-muted animate-pulse rounded" />,
@@ -155,7 +155,70 @@ export const LazyChartJS = dynamic(
   }
 )
 
-// Bundle splitting for map libraries - simplified for now
+export const LazyBarChart = dynamic(
+  () => import('react-chartjs-2').then(mod => ({ default: mod.Bar })),
+  {
+    loading: () => <div className="h-64 w-full bg-muted animate-pulse rounded" />,
+    ssr: false,
+  }
+)
+
+// Chart.js core with plugins - separate bundle
+export const LazyChartCore = dynamic(
+  () => import('chart.js').then(mod => ({
+    default: {
+      Chart: mod.Chart,
+      CategoryScale: mod.CategoryScale,
+      LinearScale: mod.LinearScale,
+      PointElement: mod.PointElement,
+      LineElement: mod.LineElement,
+      BarElement: mod.BarElement,
+      Title: mod.Title,
+      Tooltip: mod.Tooltip,
+      Legend: mod.Legend,
+      Filler: mod.Filler,
+    }
+  })),
+  {
+    loading: () => null,
+    ssr: false,
+  }
+)
+
+// OpenLayers map components with optimized loading
+export const LazyOpenLayersMap = dynamic(
+  () => import('ol/Map').then(mod => ({ default: mod.default })),
+  {
+    loading: () => <div className="h-96 w-full bg-muted animate-pulse rounded" />,
+    ssr: false,
+  }
+)
+
+export const LazyOpenLayersView = dynamic(
+  () => import('ol/View').then(mod => ({ default: mod.default })),
+  {
+    loading: () => null,
+    ssr: false,
+  }
+)
+
+export const LazyOpenLayersTileLayer = dynamic(
+  () => import('ol/layer/Tile').then(mod => ({ default: mod.default })),
+  {
+    loading: () => null,
+    ssr: false,
+  }
+)
+
+export const LazyOpenLayersOSM = dynamic(
+  () => import('ol/source/OSM').then(mod => ({ default: mod.default })),
+  {
+    loading: () => null,
+    ssr: false,
+  }
+)
+
+// Bundle splitting for map libraries - optimized
 export const LazyMapComponent = dynamic(
   () => import('@/components/features/WeatherMap').then(mod => ({ default: mod.WeatherMap })),
   {
@@ -164,8 +227,51 @@ export const LazyMapComponent = dynamic(
   }
 )
 
+// Advanced dynamic import with retry logic
+export function createLazyComponentWithRetry<T = any>(
+  importFn: () => Promise<{ default: React.ComponentType<T> }>,
+  options: {
+    maxRetries?: number;
+    retryDelay?: number;
+    fallback?: React.ComponentType<T>;
+  } = {}
+) {
+  const { maxRetries = 3, retryDelay = 1000, fallback } = options;
+
+  return dynamic(
+    async () => {
+      let lastError: Error | null = null;
+
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          return await importFn();
+        } catch (error) {
+          lastError = error as Error;
+          console.warn(`Dynamic import attempt ${attempt + 1} failed:`, error);
+
+          if (attempt < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+          }
+        }
+      }
+
+      if (fallback) {
+        console.error('All dynamic import attempts failed, using fallback:', lastError);
+        return { default: fallback };
+      }
+
+      throw lastError;
+    },
+    {
+      loading: () => <div className="animate-pulse bg-muted rounded h-32" />,
+      ssr: false,
+    }
+  );
+}
+
 // Conditional loading based on feature flags
 export function ConditionalLazyComponent({
+  feature,
   children
 }: {
   feature: string
@@ -179,6 +285,44 @@ export function ConditionalLazyComponent({
   }
 
   return <>{children}</>
+}
+
+// Intersection Observer based lazy loading
+export function LazyOnVisible({
+  children,
+  fallback,
+  rootMargin = '50px'
+}: {
+  children: React.ReactNode
+  fallback?: React.ReactNode
+  rootMargin?: string
+}) {
+  const [isVisible, setIsVisible] = React.useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, [rootMargin]);
+
+  return (
+    <div ref={ref}>
+      {isVisible ? children : (fallback || <div className="h-32 bg-muted animate-pulse rounded" />)}
+    </div>
+  );
 }
 
 // Progressive enhancement wrapper

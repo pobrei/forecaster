@@ -7,32 +7,53 @@ import { BarChart3, TrendingUp, Wind, Droplets, Gauge } from 'lucide-react';
 import { WeatherForecast, SelectedWeatherPoint } from '@/types';
 import { formatTemperature, formatWindSpeed, formatPrecipitation, formatPressure, formatPercentage } from '@/lib/format';
 import { CHART_CONFIG } from '@/lib/constants';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-} from 'chart.js';
-import { Line, Bar } from 'react-chartjs-2';
+// Dynamic imports for Chart.js to reduce initial bundle size
+import dynamic from 'next/dynamic';
 
-// Register Chart.js components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+// Lazy load Chart.js components
+const LazyLineChart = dynamic(() => import('react-chartjs-2').then(mod => ({ default: mod.Line })), {
+  loading: () => <div className="h-64 w-full bg-muted animate-pulse rounded" />,
+  ssr: false,
+});
+
+const LazyBarChart = dynamic(() => import('react-chartjs-2').then(mod => ({ default: mod.Bar })), {
+  loading: () => <div className="h-64 w-full bg-muted animate-pulse rounded" />,
+  ssr: false,
+});
+
+// Chart.js registration - only load when needed
+let chartJSRegistered = false;
+const registerChartJS = async () => {
+  if (chartJSRegistered) return;
+
+  const chartModule = await import('chart.js');
+  const {
+    Chart: ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    BarElement,
+    Title,
+    Tooltip,
+    Legend,
+    Filler,
+  } = chartModule;
+
+  ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    BarElement,
+    Title,
+    Tooltip,
+    Legend,
+    Filler
+  );
+
+  chartJSRegistered = true;
+};
 
 interface WeatherChartsProps {
   forecasts: WeatherForecast[];
@@ -48,6 +69,10 @@ export function WeatherCharts({
   className,
   onPointSelect
 }: WeatherChartsProps) {
+  // Register Chart.js when component mounts
+  React.useEffect(() => {
+    registerChartJS();
+  }, []);
   if (!forecasts || forecasts.length === 0) {
     return (
       <Card className={className}>
@@ -258,7 +283,7 @@ export function WeatherCharts({
 
           <TabsContent value="temperature" className="space-y-4">
             <div className="h-64">
-              <Line data={temperatureData} options={chartOptions} />
+              <LazyLineChart data={temperatureData} options={chartOptions} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div className="text-center">
@@ -294,7 +319,7 @@ export function WeatherCharts({
 
           <TabsContent value="precipitation" className="space-y-4">
             <div className="h-64">
-              <Bar data={precipitationData} options={chartOptions} />
+              <LazyBarChart data={precipitationData} options={chartOptions} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
               <div className="text-center">
@@ -332,7 +357,7 @@ export function WeatherCharts({
 
           <TabsContent value="wind" className="space-y-4">
             <div className="h-64">
-              <Line data={windData} options={chartOptions} />
+              <LazyLineChart data={windData} options={chartOptions} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
               <div className="text-center">
@@ -361,7 +386,7 @@ export function WeatherCharts({
 
           <TabsContent value="atmospheric" className="space-y-4">
             <div className="h-64">
-              <Line data={atmosphericData} options={atmosphericOptions} />
+              <LazyLineChart data={atmosphericData} options={atmosphericOptions} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div className="text-center">
