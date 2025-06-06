@@ -5,11 +5,6 @@ const nextConfig: NextConfig = {
   images: {
     domains: ['openweathermap.org'],
   },
-  i18n: {
-    locales: ['en', 'es', 'fr', 'de', 'ja', 'zh'],
-    defaultLocale: 'en',
-    localeDetection: true,
-  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {

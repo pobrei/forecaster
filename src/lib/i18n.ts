@@ -1,5 +1,6 @@
-import { useRouter } from 'next/router';
-import { createContext, useContext, ReactNode } from 'react';
+'use client';
+
+import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import React from 'react';
 
 // Translation type definitions
@@ -49,8 +50,19 @@ interface I18nProviderProps {
 }
 
 export const I18nProvider = ({ children, translations }: I18nProviderProps) => {
-  const router = useRouter();
-  const locale = (router.locale || 'en') as Locale;
+  const [locale, setLocale] = useState<Locale>('en');
+
+  useEffect(() => {
+    // Get locale from localStorage or browser language
+    const savedLocale = localStorage.getItem('locale') as Locale;
+    const browserLocale = navigator.language.split('-')[0] as Locale;
+    const supportedLocales: Locale[] = ['en', 'es', 'fr', 'de', 'ja', 'zh'];
+
+    const initialLocale = savedLocale ||
+      (supportedLocales.includes(browserLocale) ? browserLocale : 'en');
+
+    setLocale(initialLocale);
+  }, []);
 
   const t = (key: TranslationKey, params?: TranslationParams): string => {
     const translation = getNestedTranslation(translations[locale], key);
@@ -58,7 +70,8 @@ export const I18nProvider = ({ children, translations }: I18nProviderProps) => {
   };
 
   const changeLocale = (newLocale: Locale) => {
-    router.push(router.asPath, router.asPath, { locale: newLocale });
+    setLocale(newLocale);
+    localStorage.setItem('locale', newLocale);
   };
 
   const formatDate = (date: Date): string => {
