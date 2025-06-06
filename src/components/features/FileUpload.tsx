@@ -24,84 +24,86 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
   const [isMobile, setIsMobile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Detect mobile device
+  // Detect mobile device - simplified and cached
   useEffect(() => {
     const checkMobile = () => {
-      const userAgent = navigator.userAgent.toLowerCase();
-      const isMobileDevice = /iphone|ipad|ipod|android|blackberry|windows phone|opera mini|iemobile/i.test(userAgent);
-      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      setIsMobile(isMobileDevice || isTouchDevice);
+      try {
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const isSmallScreen = window.innerWidth <= 768;
+        setIsMobile(isTouchDevice || isSmallScreen);
+      } catch (error) {
+        console.warn('Mobile detection failed:', error);
+        setIsMobile(false);
+      }
     };
 
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   const validateFile = (file: File): string | null => {
-    console.log('Validating file:', {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      lastModified: file.lastModified,
-      isMobile
-    });
+    try {
+      console.log('Validating file:', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified,
+        isMobile
+      });
 
-    // Check file size
-    if (file.size > GPX_CONSTRAINTS.MAX_FILE_SIZE) {
-      return `File size must be less than ${formatFileSize(GPX_CONSTRAINTS.MAX_FILE_SIZE)}`;
-    }
-
-    // More flexible file extension check for mobile
-    const fileName = file.name.toLowerCase();
-    const hasGpxExtension = fileName.endsWith('.gpx');
-    const hasValidMimeType = file.type === 'application/gpx+xml' ||
-                            file.type === 'text/xml' ||
-                            file.type === 'application/xml' ||
-                            file.type === '';
-
-    // On mobile, be more lenient with file validation
-    if (isMobile) {
-      // Accept if it has .gpx extension OR if it's an XML-like file
-      if (!hasGpxExtension && !hasValidMimeType && !fileName.includes('gpx')) {
-        return 'Please select a valid GPX file';
+      // Check file size
+      if (file.size > GPX_CONSTRAINTS.MAX_FILE_SIZE) {
+        return `File size must be less than ${formatFileSize(GPX_CONSTRAINTS.MAX_FILE_SIZE)}`;
       }
-    } else {
-      // Desktop validation - stricter
+
+      // Check if file is empty
+      if (file.size === 0) {
+        return 'File appears to be empty. Please select a valid GPX file.';
+      }
+
+      // Simplified file extension check
+      const fileName = file.name.toLowerCase();
+      const hasGpxExtension = fileName.endsWith('.gpx');
+
       if (!hasGpxExtension) {
-        return 'Please select a valid GPX file';
+        return 'Please select a valid GPX file (.gpx extension required)';
       }
-    }
 
-    return null;
+      return null;
+    } catch (error) {
+      console.error('File validation error:', error);
+      return 'Failed to validate file. Please try again.';
+    }
   };
 
   const handleFiles = useCallback((files: FileList | null) => {
-    console.log('handleFiles called with:', files);
+    try {
+      console.log('handleFiles called with:', files);
 
-    if (!files || files.length === 0) {
-      console.log('No files provided');
-      return;
-    }
+      if (!files || files.length === 0) {
+        console.log('No files provided');
+        return;
+      }
 
-    const file = files[0];
-    console.log('Processing file:', file);
+      const file = files[0];
+      console.log('Processing file:', file);
 
-    const error = validateFile(file);
+      const error = validateFile(file);
 
-    if (error) {
-      console.error('File validation error:', error);
-      toast.error(error);
-      return;
-    }
+      if (error) {
+        console.error('File validation error:', error);
+        toast.error(error);
+        return;
+      }
 
-    console.log('File validated successfully, setting selected file');
-    setSelectedFile(file);
-    setUploadStatus('idle');
+      console.log('File validated successfully, setting selected file');
+      setSelectedFile(file);
+      setUploadStatus('idle');
 
-    // Show success message for mobile users
-    if (isMobile) {
+      // Show success message
       toast.success(`File "${file.name}" selected successfully!`);
+    } catch (error) {
+      console.error('Error handling files:', error);
+      toast.error('Failed to process file. Please try again.');
     }
   }, [isMobile]);
 
@@ -123,18 +125,27 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
   }, [handleFiles]);
 
   const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('File input change event:', e.target.files);
-    handleFiles(e.target.files);
-    // Reset the input value so the same file can be selected again
-    e.target.value = '';
+    try {
+      console.log('File input change event:', e.target.files);
+      handleFiles(e.target.files);
+      // Reset the input value so the same file can be selected again
+      e.target.value = '';
+    } catch (error) {
+      console.error('File input error:', error);
+      toast.error('Failed to process file selection. Please try again.');
+    }
   }, [handleFiles]);
 
-  // Mobile-specific file selection handler
-  const handleMobileFileSelect = useCallback(() => {
-    console.log('Mobile file select triggered');
-    if (fileInputRef.current) {
-      // For mobile, we need to ensure the input is properly triggered
-      fileInputRef.current.click();
+  // Simplified file selection handler
+  const handleFileSelect = useCallback(() => {
+    try {
+      console.log('File select triggered');
+      if (fileInputRef.current) {
+        fileInputRef.current.click();
+      }
+    } catch (error) {
+      console.error('File select error:', error);
+      toast.error('Failed to open file picker. Please try again.');
     }
   }, []);
 
@@ -247,7 +258,7 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
             <input
               ref={fileInputRef}
               type="file"
-              accept={isMobile ? "*/*" : ".gpx,application/gpx+xml,text/xml,application/xml"}
+              accept=".gpx,application/gpx+xml,text/xml,application/xml"
               onChange={handleFileInput}
               className="hidden"
               disabled={isLoading}
@@ -255,20 +266,18 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
             />
             <Button
               variant="outline"
-              onClick={isMobile ? handleMobileFileSelect : () => fileInputRef.current?.click()}
+              onClick={handleFileSelect}
               disabled={isLoading}
-              className={cn(isMobile && "touch-manipulation")}
+              className="touch-manipulation"
             >
               {isMobile && <Smartphone className="h-4 w-4 mr-2" />}
               Choose File
             </Button>
             <p className="text-xs text-muted-foreground mt-4">
               Supports GPX files up to 5 MB
-              {isMobile && (
-                <span className="block mt-1 text-blue-600 dark:text-blue-400">
-                  📱 On mobile: Select any file, we'll validate it's a GPX file
-                </span>
-              )}
+            </p>
+            <p className="text-xs text-gray-500 mt-2">
+              Having trouble? Try refreshing the page or using a different browser.
             </p>
           </div>
         ) : (
