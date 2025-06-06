@@ -1,0 +1,106 @@
+{
+  "common": {
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "close": "Fermer",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent"
+  },
+  "navigation": {
+    "home": "Accueil",
+    "about": "À propos",
+    "contact": "Contact",
+    "settings": "Paramètres",
+    "help": "Aide"
+  },
+  "weather": {
+    "title": "Prévisions Météorologiques",
+    "temperature": "Température",
+    "humidity": "Humidité",
+    "pressure": "Pression",
+    "windSpeed": "Vitesse du Vent",
+    "windDirection": "Direction du Vent",
+    "precipitation": "Précipitations",
+    "feelsLike": "Ressenti",
+    "visibility": "Visibilité",
+    "uvIndex": "Indice UV"
+  },
+  "gpx": {
+    "upload": "Télécharger un Fichier GPX",
+    "uploadDescription": "Sélectionnez un fichier GPX pour analyser votre itinéraire",
+    "processing": "Traitement du fichier GPX...",
+    "success": "Fichier GPX traité avec succès",
+    "error": "Erreur lors du traitement du fichier GPX",
+    "invalidFile": "Format de fichier GPX invalide",
+    "fileTooLarge": "La taille du fichier dépasse la limite maximale",
+    "noRouteFound": "Aucune donnée d'itinéraire trouvée dans le fichier GPX"
+  },
+  "map": {
+    "title": "Carte d'Itinéraire",
+    "zoomIn": "Zoomer",
+    "zoomOut": "Dézoomer",
+    "resetView": "Réinitialiser la Vue",
+    "fullscreen": "Plein Écran",
+    "layers": "Couches de Carte",
+    "satellite": "Satellite",
+    "terrain": "Terrain",
+    "street": "Carte Routière"
+  },
+  "charts": {
+    "title": "Graphiques Météorologiques",
+    "temperatureChart": "Graphique de Température",
+    "precipitationChart": "Graphique de Précipitations",
+    "windChart": "Graphique de Vent",
+    "atmosphericChart": "Conditions Atmosphériques",
+    "noData": "Aucune donnée météorologique disponible",
+    "clickToSelect": "Cliquez sur les points du graphique pour voir les détails"
+  },
+  "export": {
+    "title": "Exporter le Rapport",
+    "pdf": "Exporter en PDF",
+    "csv": "Exporter en CSV",
+    "json": "Exporter en JSON",
+    "generating": "Génération du rapport...",
+    "success": "Rapport généré avec succès",
+    "error": "Erreur lors de la génération du rapport"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "language": "Langue",
+    "units": "Unités",
+    "metric": "Métrique",
+    "imperial": "Impérial",
+    "theme": "Thème",
+    "light": "Clair",
+    "dark": "Sombre",
+    "auto": "Automatique"
+  },
+  "errors": {
+    "generic": "Une erreur inattendue s'est produite",
+    "network": "Erreur de connexion réseau",
+    "timeout": "Délai d'attente dépassé",
+    "unauthorized": "Accès non autorisé",
+    "forbidden": "Accès interdit",
+    "notFound": "Ressource non trouvée",
+    "serverError": "Erreur interne du serveur",
+    "rateLimited": "Trop de requêtes. Veuillez réessayer plus tard."
+  },
+  "validation": {
+    "required": "Ce champ est obligatoire",
+    "invalidEmail": "Adresse e-mail invalide",
+    "invalidUrl": "Format d'URL invalide",
+    "fileTooLarge": "La taille du fichier est trop importante",
+    "invalidFileType": "Type de fichier invalide"
+  },
+  "meta": {
+    "title": "Forecaster - Application de Planification Météorologique",
+    "description": "Planifiez vos itinéraires avec des prévisions météorologiques précises",
+    "keywords": "météo, prévisions, planification d'itinéraire, GPX"
+  }
+}

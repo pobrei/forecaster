@@ -1,0 +1,106 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "close": "Cerrar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "previous": "Anterior"
+  },
+  "navigation": {
+    "home": "Inicio",
+    "about": "Acerca de",
+    "contact": "Contacto",
+    "settings": "Configuración",
+    "help": "Ayuda"
+  },
+  "weather": {
+    "title": "Pronóstico del Tiempo",
+    "temperature": "Temperatura",
+    "humidity": "Humedad",
+    "pressure": "Presión",
+    "windSpeed": "Velocidad del Viento",
+    "windDirection": "Dirección del Viento",
+    "precipitation": "Precipitación",
+    "feelsLike": "Sensación Térmica",
+    "visibility": "Visibilidad",
+    "uvIndex": "Índice UV"
+  },
+  "gpx": {
+    "upload": "Subir Archivo GPX",
+    "uploadDescription": "Selecciona un archivo GPX para analizar tu ruta",
+    "processing": "Procesando archivo GPX...",
+    "success": "Archivo GPX procesado exitosamente",
+    "error": "Error al procesar archivo GPX",
+    "invalidFile": "Formato de archivo GPX inválido",
+    "fileTooLarge": "El tamaño del archivo excede el límite máximo",
+    "noRouteFound": "No se encontraron datos de ruta en el archivo GPX"
+  },
+  "map": {
+    "title": "Mapa de Ruta",
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar",
+    "resetView": "Restablecer Vista",
+    "fullscreen": "Pantalla Completa",
+    "layers": "Capas del Mapa",
+    "satellite": "Satélite",
+    "terrain": "Terreno",
+    "street": "Mapa de Calles"
+  },
+  "charts": {
+    "title": "Gráficos del Tiempo",
+    "temperatureChart": "Gráfico de Temperatura",
+    "precipitationChart": "Gráfico de Precipitación",
+    "windChart": "Gráfico de Viento",
+    "atmosphericChart": "Condiciones Atmosféricas",
+    "noData": "No hay datos meteorológicos disponibles",
+    "clickToSelect": "Haz clic en los puntos del gráfico para ver detalles"
+  },
+  "export": {
+    "title": "Exportar Reporte",
+    "pdf": "Exportar como PDF",
+    "csv": "Exportar como CSV",
+    "json": "Exportar como JSON",
+    "generating": "Generando reporte...",
+    "success": "Reporte generado exitosamente",
+    "error": "Error al generar reporte"
+  },
+  "settings": {
+    "title": "Configuración",
+    "language": "Idioma",
+    "units": "Unidades",
+    "metric": "Métrico",
+    "imperial": "Imperial",
+    "theme": "Tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "auto": "Automático"
+  },
+  "errors": {
+    "generic": "Ocurrió un error inesperado",
+    "network": "Error de conexión de red",
+    "timeout": "Tiempo de espera agotado",
+    "unauthorized": "Acceso no autorizado",
+    "forbidden": "Acceso prohibido",
+    "notFound": "Recurso no encontrado",
+    "serverError": "Error interno del servidor",
+    "rateLimited": "Demasiadas solicitudes. Inténtalo de nuevo más tarde."
+  },
+  "validation": {
+    "required": "Este campo es obligatorio",
+    "invalidEmail": "Dirección de correo electrónico inválida",
+    "invalidUrl": "Formato de URL inválido",
+    "fileTooLarge": "El tamaño del archivo es demasiado grande",
+    "invalidFileType": "Tipo de archivo inválido"
+  },
+  "meta": {
+    "title": "Forecaster - Aplicación de Planificación Meteorológica",
+    "description": "Planifica tus rutas con pronósticos meteorológicos precisos",
+    "keywords": "tiempo, pronóstico, planificación de rutas, GPX"
+  }
+}

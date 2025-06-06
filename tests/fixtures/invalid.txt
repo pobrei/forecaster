@@ -1,0 +1,3 @@
+This is not a valid GPX file.
+It contains plain text instead of XML.
+This should trigger an error when uploaded.

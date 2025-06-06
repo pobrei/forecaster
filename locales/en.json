@@ -1,0 +1,106 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous"
+  },
+  "navigation": {
+    "home": "Home",
+    "about": "About",
+    "contact": "Contact",
+    "settings": "Settings",
+    "help": "Help"
+  },
+  "weather": {
+    "title": "Weather Forecast",
+    "temperature": "Temperature",
+    "humidity": "Humidity",
+    "pressure": "Pressure",
+    "windSpeed": "Wind Speed",
+    "windDirection": "Wind Direction",
+    "precipitation": "Precipitation",
+    "feelsLike": "Feels Like",
+    "visibility": "Visibility",
+    "uvIndex": "UV Index"
+  },
+  "gpx": {
+    "upload": "Upload GPX File",
+    "uploadDescription": "Select a GPX file to analyze your route",
+    "processing": "Processing GPX file...",
+    "success": "GPX file processed successfully",
+    "error": "Error processing GPX file",
+    "invalidFile": "Invalid GPX file format",
+    "fileTooLarge": "File size exceeds maximum limit",
+    "noRouteFound": "No route data found in GPX file"
+  },
+  "map": {
+    "title": "Route Map",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "resetView": "Reset View",
+    "fullscreen": "Fullscreen",
+    "layers": "Map Layers",
+    "satellite": "Satellite",
+    "terrain": "Terrain",
+    "street": "Street Map"
+  },
+  "charts": {
+    "title": "Weather Charts",
+    "temperatureChart": "Temperature Chart",
+    "precipitationChart": "Precipitation Chart",
+    "windChart": "Wind Chart",
+    "atmosphericChart": "Atmospheric Conditions",
+    "noData": "No weather data available",
+    "clickToSelect": "Click on chart points to view details"
+  },
+  "export": {
+    "title": "Export Report",
+    "pdf": "Export as PDF",
+    "csv": "Export as CSV",
+    "json": "Export as JSON",
+    "generating": "Generating report...",
+    "success": "Report generated successfully",
+    "error": "Error generating report"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "units": "Units",
+    "metric": "Metric",
+    "imperial": "Imperial",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "auto": "Auto"
+  },
+  "errors": {
+    "generic": "An unexpected error occurred",
+    "network": "Network connection error",
+    "timeout": "Request timeout",
+    "unauthorized": "Unauthorized access",
+    "forbidden": "Access forbidden",
+    "notFound": "Resource not found",
+    "serverError": "Internal server error",
+    "rateLimited": "Too many requests. Please try again later."
+  },
+  "validation": {
+    "required": "This field is required",
+    "invalidEmail": "Invalid email address",
+    "invalidUrl": "Invalid URL format",
+    "fileTooLarge": "File size is too large",
+    "invalidFileType": "Invalid file type"
+  },
+  "meta": {
+    "title": "Forecaster - Weather Planning App",
+    "description": "Plan your routes with accurate weather forecasts",
+    "keywords": "weather, forecast, route planning, GPX"
+  }
+}

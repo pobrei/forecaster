@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Forecaster Test" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>Test Route</name>
+    <desc>A test route for E2E testing</desc>
+    <time>2024-01-01T00:00:00Z</time>
+  </metadata>
+  <trk>
+    <name>Test Route</name>
+    <desc>Test route for weather forecasting</desc>
+    <trkseg>
+      <trkpt lat="40.7128" lon="-74.0060">
+        <ele>10</ele>
+        <time>2024-01-01T00:00:00Z</time>
+      </trkpt>
+      <trkpt lat="40.7589" lon="-73.9851">
+        <ele>15</ele>
+        <time>2024-01-01T00:15:00Z</time>
+      </trkpt>
+      <trkpt lat="40.7831" lon="-73.9712">
+        <ele>20</ele>
+        <time>2024-01-01T00:30:00Z</time>
+      </trkpt>
+      <trkpt lat="40.8176" lon="-73.9482">
+        <ele>25</ele>
+        <time>2024-01-01T00:45:00Z</time>
+      </trkpt>
+      <trkpt lat="40.8648" lon="-73.9291">
+        <ele>30</ele>
+        <time>2024-01-01T01:00:00Z</time>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>

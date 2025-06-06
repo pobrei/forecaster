@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generalRateLimiter, createEnhancedKeyGenerator } from '@/lib/rate-limiter';
+import { logRequest, logResponse } from '@/lib/logger';
 
 /**
  * Next.js middleware for global rate limiting and security
  */
 export async function middleware(request: NextRequest) {
+  const start = Date.now();
   const { pathname } = request.nextUrl;
+
+  // Log incoming request for API routes
+  if (pathname.startsWith('/api/')) {
+    logRequest(request);
+  }
 
   // Skip rate limiting for static assets and internal Next.js routes
   if (
@@ -21,6 +28,9 @@ export async function middleware(request: NextRequest) {
     const rateLimitResult = await generalRateLimiter.isRateLimited(request);
     
     if (rateLimitResult.limited) {
+      const duration = Date.now() - start;
+      logResponse(request, 429, duration, { rateLimited: true });
+
       return NextResponse.json(
         {
           success: false,
@@ -48,7 +58,11 @@ export async function middleware(request: NextRequest) {
     response.headers.set('X-RateLimit-Limit', '100');
     response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
     response.headers.set('X-RateLimit-Reset', Math.ceil(rateLimitResult.resetTime / 1000).toString());
-    
+
+    // Log successful API response
+    const duration = Date.now() - start;
+    logResponse(request, 200, duration);
+
     return response;
   }
 

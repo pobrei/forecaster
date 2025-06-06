@@ -9,6 +9,8 @@ import { createValidationMiddleware } from '@/lib/api-validation';
 import { weatherRequestValidationSchema } from '@/lib/validation';
 import { ValidationError, NetworkError } from '@/lib/error-tracking';
 import { weatherRateLimiter, withRateLimit } from '@/lib/rate-limiter';
+import { logger, logWeatherAPICall } from '@/lib/logger';
+import { trackError, trackWeatherRequest, measureTransaction } from '@/lib/sentry';
 
 const validateWeatherRequest = createValidationMiddleware<any, WeatherResponse>(weatherRequestValidationSchema);
 
@@ -17,7 +19,14 @@ async function weatherHandler(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _request: NextRequest
 ): Promise<NextResponse<APIResponse<WeatherResponse>>> {
+  const start = Date.now();
   const { route, settings } = validatedData;
+
+  logger.info('Weather request started', {
+    routeName: route.name,
+    pointCount: route.points?.length || 0,
+    settings: settings || {}
+  });
 
   // Apply default settings
   const finalSettings = {
@@ -49,7 +58,17 @@ async function weatherHandler(
   }
 
   if (cachedForecasts) {
-    console.log(`Forecast cache hit for route: ${route.name}`);
+    const duration = Date.now() - start;
+    logger.info('Weather request completed (cached)', {
+      routeName: route.name,
+      duration: `${duration}ms`,
+      forecastCount: cachedForecasts.length,
+      cached: true
+    });
+
+    logWeatherAPICall(cachedForecasts.length, duration, true, false);
+    trackWeatherRequest(cachedForecasts.length, duration, true);
+
     return NextResponse.json<APIResponse<WeatherResponse>>({
       success: true,
       data: {
@@ -137,10 +156,18 @@ async function weatherHandler(
     count + (forecast.alerts?.length || 0), 0
   );
 
-  console.log(`Successfully generated ${forecasts.length} weather forecasts`);
-  if (totalAlerts > 0) {
-    console.log(`Generated ${totalAlerts} weather alerts`);
-  }
+  const duration = Date.now() - start;
+
+  logger.info('Weather request completed', {
+    routeName: route.name,
+    duration: `${duration}ms`,
+    forecastCount: forecasts.length,
+    alertCount: totalAlerts,
+    cached: false
+  });
+
+  logWeatherAPICall(forecasts.length, duration, true, false);
+  trackWeatherRequest(forecasts.length, duration, false);
 
   return NextResponse.json<APIResponse<WeatherResponse>>({
     success: true,
