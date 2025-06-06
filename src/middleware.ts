@@ -101,11 +101,11 @@ export async function middleware(request: NextRequest) {
   // CSP for enhanced security
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Note: In production, avoid unsafe-inline and unsafe-eval
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live", // Allow Vercel feedback script
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
     "font-src 'self' data:",
-    "connect-src 'self' https://api.openweathermap.org",
+    "connect-src 'self' https://api.openweathermap.org https://vercel.live", // Allow Vercel feedback connections
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'"
