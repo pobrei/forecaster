@@ -1,3 +1,4 @@
+import React from 'react'
 import dynamic from 'next/dynamic'
 import { ComponentType } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -163,60 +164,11 @@ export const LazyBarChart = dynamic(
   }
 )
 
-// Chart.js core with plugins - separate bundle
-export const LazyChartCore = dynamic(
-  () => import('chart.js').then(mod => ({
-    default: {
-      Chart: mod.Chart,
-      CategoryScale: mod.CategoryScale,
-      LinearScale: mod.LinearScale,
-      PointElement: mod.PointElement,
-      LineElement: mod.LineElement,
-      BarElement: mod.BarElement,
-      Title: mod.Title,
-      Tooltip: mod.Tooltip,
-      Legend: mod.Legend,
-      Filler: mod.Filler,
-    }
-  })),
-  {
-    loading: () => null,
-    ssr: false,
-  }
-)
+// Chart.js components are loaded directly in WeatherCharts component
+// This avoids TypeScript issues with dynamic imports of non-React components
 
-// OpenLayers map components with optimized loading
-export const LazyOpenLayersMap = dynamic(
-  () => import('ol/Map').then(mod => ({ default: mod.default })),
-  {
-    loading: () => <div className="h-96 w-full bg-muted animate-pulse rounded" />,
-    ssr: false,
-  }
-)
-
-export const LazyOpenLayersView = dynamic(
-  () => import('ol/View').then(mod => ({ default: mod.default })),
-  {
-    loading: () => null,
-    ssr: false,
-  }
-)
-
-export const LazyOpenLayersTileLayer = dynamic(
-  () => import('ol/layer/Tile').then(mod => ({ default: mod.default })),
-  {
-    loading: () => null,
-    ssr: false,
-  }
-)
-
-export const LazyOpenLayersOSM = dynamic(
-  () => import('ol/source/OSM').then(mod => ({ default: mod.default })),
-  {
-    loading: () => null,
-    ssr: false,
-  }
-)
+// OpenLayers components are loaded directly in WeatherMap component
+// This avoids TypeScript issues with dynamic imports of non-React components
 
 // Bundle splitting for map libraries - optimized
 export const LazyMapComponent = dynamic(

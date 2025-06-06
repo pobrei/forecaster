@@ -3,12 +3,13 @@ import { loadTranslations } from '@/lib/i18n';
 import ForecastPage from '../page';
 
 interface Props {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const translations = await loadTranslations(params.locale as any);
-  
+  const resolvedParams = await params;
+  const translations = await loadTranslations(resolvedParams.locale as any);
+
   return {
     title: translations.meta?.title || 'Forecaster - Weather Planning App',
     description: translations.meta?.description || 'Plan your routes with accurate weather forecasts',
@@ -16,13 +17,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: translations.meta?.title || 'Forecaster',
       description: translations.meta?.description || 'Weather planning made easy',
-      locale: params.locale,
-      alternateLocale: ['en', 'es', 'fr', 'de', 'ja', 'zh'].filter(l => l !== params.locale),
+      locale: resolvedParams.locale,
+      alternateLocale: ['en', 'es', 'fr', 'de', 'ja', 'zh'].filter(l => l !== resolvedParams.locale),
     },
   };
 }
 
 export default function LocalePage({ params }: Props) {
+  // params is not used in this component, just pass through to ForecastPage
   return <ForecastPage />;
 }
 

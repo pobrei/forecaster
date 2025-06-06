@@ -13,31 +13,36 @@ export default function LocaleLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
   const [translations, setTranslations] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
+  const [locale, setLocale] = useState<string>('en');
 
   useEffect(() => {
     const loadLocaleTranslations = async () => {
       try {
-        const localeTranslations = await loadTranslations(params.locale as any);
-        setTranslations({ [params.locale]: localeTranslations });
+        const resolvedParams = await params;
+        const currentLocale = resolvedParams.locale;
+        setLocale(currentLocale);
+
+        const localeTranslations = await loadTranslations(currentLocale as any);
+        setTranslations({ [currentLocale]: localeTranslations });
       } catch (error) {
-        console.warn(`Failed to load translations for ${params.locale}, falling back to English`);
+        console.warn(`Failed to load translations, falling back to English`);
         const fallbackTranslations = await loadTranslations('en');
-        setTranslations({ [params.locale]: fallbackTranslations });
+        setTranslations({ en: fallbackTranslations });
       } finally {
         setLoading(false);
       }
     };
 
     loadLocaleTranslations();
-  }, [params.locale]);
+  }, [params]);
 
   if (loading) {
     return (
-      <html lang={params.locale}>
+      <html lang={locale}>
         <body className={inter.className}>
           <div className="flex items-center justify-center min-h-screen">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
@@ -48,7 +53,7 @@ export default function LocaleLayout({
   }
 
   return (
-    <html lang={params.locale} dir={params.locale === 'ar' ? 'rtl' : 'ltr'}>
+    <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <body className={inter.className}>
         <I18nProvider translations={translations}>
           <header className="border-b">

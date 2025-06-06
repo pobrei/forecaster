@@ -15,9 +15,7 @@ export const initSentry = () => {
       return event;
     },
     integrations: [
-      new Sentry.BrowserTracing({
-        tracePropagationTargets: ['localhost', /^https:\/\/yourapp\.vercel\.app/],
-      }),
+      // Basic integrations only - avoid compatibility issues
     ],
   });
 };
@@ -115,19 +113,41 @@ export const measureTransaction = async <T>(
   operation: string,
   callback: () => Promise<T>
 ): Promise<T> => {
-  const transaction = Sentry.startTransaction({
-    name,
-    op: operation,
-  });
+  // Use Sentry.withScope for newer versions
+  return Sentry.withScope(async (scope) => {
+    scope.setTag('operation', operation);
+    scope.setTag('transaction', name);
 
-  try {
-    const result = await callback();
-    transaction.setStatus('ok');
-    return result;
-  } catch (error) {
-    transaction.setStatus('internal_error');
-    throw error;
-  } finally {
-    transaction.finish();
-  }
+    const start = Date.now();
+    try {
+      const result = await callback();
+      const duration = Date.now() - start;
+
+      Sentry.addBreadcrumb({
+        message: `Transaction: ${name}`,
+        level: 'info',
+        data: {
+          operation,
+          duration: `${duration}ms`,
+          status: 'ok',
+        },
+      });
+
+      return result;
+    } catch (error) {
+      const duration = Date.now() - start;
+
+      Sentry.addBreadcrumb({
+        message: `Transaction Failed: ${name}`,
+        level: 'error',
+        data: {
+          operation,
+          duration: `${duration}ms`,
+          status: 'error',
+        },
+      });
+
+      throw error;
+    }
+  });
 };

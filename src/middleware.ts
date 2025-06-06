@@ -209,12 +209,12 @@ export function getClientInfo(request: NextRequest) {
   const referer = request.headers.get('referer');
   
   return {
-    ip: forwarded ? forwarded.split(',')[0].trim() : realIP || request.ip || 'unknown',
+    ip: forwarded ? forwarded.split(',')[0].trim() : realIP || 'unknown',
     userAgent: userAgent || 'unknown',
     referer: referer || 'direct',
     isBot: isBotRequest(request),
-    country: request.geo?.country || 'unknown',
-    city: request.geo?.city || 'unknown'
+    country: 'unknown', // Geo data not available in Edge Runtime
+    city: 'unknown'
   };
 }
 

@@ -34,7 +34,7 @@ export class ForecastPage {
   }
 
   async exportPDF() {
-    const downloadPromise = this.page.waitForDownload();
+    const downloadPromise = this.page.waitForEvent('download');
     await this.exportButton.click();
     return await downloadPromise;
   }

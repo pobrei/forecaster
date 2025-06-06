@@ -76,7 +76,8 @@ class MemoryStore implements RateLimiterStore {
  */
 function defaultKeyGenerator(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');
-  const ip = forwarded ? forwarded.split(',')[0] : request.ip || 'unknown';
+  const realIp = request.headers.get('x-real-ip');
+  const ip = forwarded ? forwarded.split(',')[0] : realIp || 'unknown';
   return `rate_limit:${ip}`;
 }
 
@@ -236,7 +237,7 @@ export function getClientIP(request: NextRequest): string {
     return realIP;
   }
   
-  return request.ip || 'unknown';
+  return 'unknown';
 }
 
 /**
