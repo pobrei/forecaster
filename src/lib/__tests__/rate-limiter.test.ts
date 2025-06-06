@@ -290,9 +290,9 @@ describe('Utility Functions', () => {
 });
 
 describe('Pre-configured Rate Limiters', () => {
-  it('should export pre-configured rate limiters', () => {
-    const { uploadRateLimiter, weatherRateLimiter, generalRateLimiter } = require('../rate-limiter');
-    
+  it('should export pre-configured rate limiters', async () => {
+    const { uploadRateLimiter, weatherRateLimiter, generalRateLimiter } = await import('../rate-limiter');
+
     expect(uploadRateLimiter).toBeInstanceOf(RateLimiter);
     expect(weatherRateLimiter).toBeInstanceOf(RateLimiter);
     expect(generalRateLimiter).toBeInstanceOf(RateLimiter);

@@ -33,7 +33,7 @@ async function testGPXParser() {
     });
     
     // Import and test the parser
-    const { parseGPXFile } = require('./src/lib/gpx-parser.ts');
+    const { parseGPXFile } = await import('./src/lib/gpx-parser.ts');
     
     console.log('Testing GPX parser...');
     const route = await parseGPXFile(mockFile);
