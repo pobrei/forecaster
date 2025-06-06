@@ -1,128 +1,148 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { getWeatherForecasts } from '@/lib/weather-service';
 import { sampleRoutePoints } from '@/lib/gpx-parser';
 import { getCachedForecast, setCachedForecast } from '@/lib/forecast-cache';
 import { APIResponse, WeatherResponse, RoutePoint } from '@/types';
-import { ERROR_MESSAGES, SUCCESS_MESSAGES, ROUTE_CONFIG } from '@/lib/constants';
+import { ERROR_MESSAGES, SUCCESS_MESSAGES, ROUTE_CONFIG, GPX_CONSTRAINTS } from '@/lib/constants';
+import { createErrorHandler, withRetryAndTimeout } from '@/lib/api-error-handler';
+import { createValidationMiddleware } from '@/lib/api-validation';
+import { weatherRequestValidationSchema } from '@/lib/validation';
+import { ValidationError, NetworkError } from '@/lib/error-tracking';
 
-export async function POST(request: NextRequest) {
+const validateWeatherRequest = createValidationMiddleware<z.infer<typeof weatherRequestValidationSchema>, WeatherResponse>(weatherRequestValidationSchema);
+
+async function weatherHandler(
+  validatedData: z.infer<typeof weatherRequestValidationSchema>,
+  _request: NextRequest
+): Promise<NextResponse<APIResponse<WeatherResponse>>> {
+  const { route, settings } = validatedData;
+
+  // Apply default settings
+  const finalSettings = {
+    startTime: new Date(),
+    averageSpeed: ROUTE_CONFIG.DEFAULT_SPEED,
+    forecastInterval: ROUTE_CONFIG.DEFAULT_INTERVAL,
+    units: 'metric' as const,
+    timezone: 'UTC',
+    ...settings
+  };
+
+  // Validate route has sufficient points
+  if (!route.points || route.points.length < 2) {
+    throw new ValidationError(ERROR_MESSAGES.WEATHER.INVALID_COORDINATES);
+  }
+
+  console.log(`Processing weather request for route: ${route.name}`);
+  console.log(`Settings: interval=${finalSettings.forecastInterval}km, speed=${finalSettings.averageSpeed}km/h`);
+
+  // Check forecast cache with error handling
+  let cachedForecasts;
   try {
-    const body = await request.json();
-    const { route, settings } = body;
-
-    if (!route || !route.points || route.points.length === 0) {
-      return NextResponse.json<APIResponse<null>>({
-        success: false,
-        error: ERROR_MESSAGES.WEATHER.INVALID_COORDINATES,
-      }, { status: 400 });
-    }
-
-    // Extract settings with defaults
-    const forecastInterval = settings?.forecastInterval || ROUTE_CONFIG.DEFAULT_INTERVAL;
-    const averageSpeed = settings?.averageSpeed || ROUTE_CONFIG.DEFAULT_SPEED;
-    const startTime = settings?.startTime ? new Date(settings.startTime) : new Date();
-
-    // Validate settings
-    if (forecastInterval < ROUTE_CONFIG.MIN_INTERVAL || forecastInterval > ROUTE_CONFIG.MAX_INTERVAL) {
-      return NextResponse.json<APIResponse<null>>({
-        success: false,
-        error: `Forecast interval must be between ${ROUTE_CONFIG.MIN_INTERVAL} and ${ROUTE_CONFIG.MAX_INTERVAL} km`,
-      }, { status: 400 });
-    }
-
-    if (averageSpeed < ROUTE_CONFIG.MIN_SPEED || averageSpeed > ROUTE_CONFIG.MAX_SPEED) {
-      return NextResponse.json<APIResponse<null>>({
-        success: false,
-        error: `Average speed must be between ${ROUTE_CONFIG.MIN_SPEED} and ${ROUTE_CONFIG.MAX_SPEED} km/h`,
-      }, { status: 400 });
-    }
-
-    console.log(`Processing weather request for route: ${route.name}`);
-    console.log(`Settings: interval=${forecastInterval}km, speed=${averageSpeed}km/h`);
-
-    // Check forecast cache first
-    const cachedForecasts = await getCachedForecast(route, { startTime, averageSpeed, forecastInterval, units: settings.units || 'metric', timezone: settings.timezone || 'UTC' });
-
-    if (cachedForecasts) {
-      console.log(`Forecast cache hit for route: ${route.name}`);
-
-      return NextResponse.json<APIResponse<WeatherResponse>>({
-        success: true,
-        data: {
-          forecasts: cachedForecasts,
-          cacheHit: true,
-          message: SUCCESS_MESSAGES.WEATHER_LOADED + ' (from cache)'
-        }
-      });
-    }
-
-    // Sample route points at specified intervals
-    const sampledPoints = sampleRoutePoints(route, forecastInterval);
-    console.log(`Sampled ${sampledPoints.length} points from ${route.points.length} total points`);
-
-    // Add estimated times to route points based on distance and speed
-    const pointsWithTime: RoutePoint[] = sampledPoints.map(point => ({
-      ...point,
-      estimatedTime: new Date(startTime.getTime() + (point.distance / averageSpeed) * 60 * 60 * 1000)
-    }));
-
-    // Get weather forecasts for sampled points
-    const forecasts = await getWeatherForecasts(pointsWithTime);
-
-    if (forecasts.length === 0) {
-      return NextResponse.json<APIResponse<null>>({
-        success: false,
-        error: ERROR_MESSAGES.WEATHER.NO_DATA,
-      }, { status: 500 });
-    }
-
-    console.log(`Successfully generated ${forecasts.length} weather forecasts`);
-
-    // Count alerts
-    const totalAlerts = forecasts.reduce((count, forecast) => 
-      count + (forecast.alerts?.length || 0), 0
+    cachedForecasts = await withRetryAndTimeout(
+      () => getCachedForecast(route, finalSettings),
+      { maxRetries: 2, timeout: 5000 }
     );
+  } catch (error) {
+    console.warn('Forecast cache lookup failed:', error);
+  }
 
-    if (totalAlerts > 0) {
-      console.log(`Generated ${totalAlerts} weather alerts`);
-    }
-
-    // Cache the forecast results
-    await setCachedForecast(route, { startTime, averageSpeed, forecastInterval, units: settings.units || 'metric', timezone: settings.timezone || 'UTC' }, forecasts);
-
+  if (cachedForecasts) {
+    console.log(`Forecast cache hit for route: ${route.name}`);
     return NextResponse.json<APIResponse<WeatherResponse>>({
       success: true,
       data: {
-        forecasts,
-        cacheHit: false,
-        message: SUCCESS_MESSAGES.WEATHER_LOADED
-      }
+        forecasts: cachedForecasts,
+        cacheHit: true,
+        message: SUCCESS_MESSAGES.WEATHER_LOADED + ' (from cache)'
+      },
+      timestamp: new Date()
     });
-
-  } catch (error) {
-    console.error('Weather forecast error:', error);
-
-    let errorMessage: string = ERROR_MESSAGES.WEATHER.API_ERROR;
-    let statusCode = 500;
-
-    if (error instanceof Error) {
-      if (error.message.includes('Rate limit')) {
-        errorMessage = ERROR_MESSAGES.WEATHER.RATE_LIMIT;
-        statusCode = 429;
-      } else if (error.message.includes('Invalid API key')) {
-        errorMessage = 'Weather service configuration error';
-        statusCode = 503;
-      } else {
-        errorMessage = error.message;
-      }
-    }
-    
-    return NextResponse.json<APIResponse<null>>({
-      success: false,
-      error: errorMessage,
-    }, { status: statusCode });
   }
+
+  // Sample route points
+  const sampledPoints = sampleRoutePoints(route, finalSettings.forecastInterval);
+
+  if (sampledPoints.length === 0) {
+    throw new ValidationError('No valid points found for weather sampling');
+  }
+
+  console.log(`Sampled ${sampledPoints.length} points from ${route.points.length} total points`);
+
+  // Add estimated times to route points
+  const pointsWithTime: RoutePoint[] = sampledPoints.map(point => ({
+    ...point,
+    estimatedTime: new Date(
+      finalSettings.startTime.getTime() +
+      (point.distance / finalSettings.averageSpeed) * 60 * 60 * 1000
+    )
+  }));
+
+  // Get weather forecasts with comprehensive error handling
+  const forecasts = await withRetryAndTimeout(
+    async () => {
+      try {
+        return await getWeatherForecasts(pointsWithTime);
+      } catch (error) {
+        if (error instanceof Error) {
+          if (error.message.includes('rate limit')) {
+            throw new NetworkError('Weather API rate limit exceeded. Please try again later.');
+          } else if (error.message.includes('API key')) {
+            throw new NetworkError('Weather service configuration error.');
+          } else if (error.message.includes('network') || error.message.includes('fetch')) {
+            throw new NetworkError('Failed to connect to weather service.');
+          }
+        }
+        throw error;
+      }
+    },
+    {
+      maxRetries: 3,
+      timeout: 30000,
+      retryCondition: (error) =>
+        !error.message.includes('API key') &&
+        !error.message.includes('validation')
+    }
+  );
+
+  if (forecasts.length === 0) {
+    throw new NetworkError(ERROR_MESSAGES.WEATHER.NO_DATA);
+  }
+
+  // Cache the forecast results with error handling
+  try {
+    await withRetryAndTimeout(
+      () => setCachedForecast(route, finalSettings, forecasts),
+      { maxRetries: 2, timeout: 5000 }
+    );
+  } catch (error) {
+    console.warn('Failed to cache forecast results:', error);
+  }
+
+  // Count alerts for logging
+  const totalAlerts = forecasts.reduce((count, forecast) =>
+    count + (forecast.alerts?.length || 0), 0
+  );
+
+  console.log(`Successfully generated ${forecasts.length} weather forecasts`);
+  if (totalAlerts > 0) {
+    console.log(`Generated ${totalAlerts} weather alerts`);
+  }
+
+  return NextResponse.json<APIResponse<WeatherResponse>>({
+    success: true,
+    data: {
+      forecasts,
+      cacheHit: false,
+      message: SUCCESS_MESSAGES.WEATHER_LOADED
+    },
+    timestamp: new Date()
+  });
 }
+
+export const POST = createErrorHandler(
+  (request: NextRequest) => validateWeatherRequest(request, weatherHandler)
+);
 
 export async function GET() {
   return NextResponse.json({
@@ -131,7 +151,13 @@ export async function GET() {
     optionalFields: ['settings.forecastInterval', 'settings.averageSpeed', 'settings.startTime'],
     limits: {
       forecastInterval: `${ROUTE_CONFIG.MIN_INTERVAL}-${ROUTE_CONFIG.MAX_INTERVAL} km`,
-      averageSpeed: `${ROUTE_CONFIG.MIN_SPEED}-${ROUTE_CONFIG.MAX_SPEED} km/h`
+      averageSpeed: `${ROUTE_CONFIG.MIN_SPEED}-${ROUTE_CONFIG.MAX_SPEED} km/h`,
+      maxPoints: GPX_CONSTRAINTS.MAX_WAYPOINTS
+    },
+    validation: {
+      security: 'Input sanitization enabled',
+      rateLimit: 'API rate limiting active',
+      caching: 'Intelligent caching enabled'
     }
   });
 }
