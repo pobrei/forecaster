@@ -1,17 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generalRateLimiter, createEnhancedKeyGenerator } from '@/lib/rate-limiter';
-import { logRequest, logResponse } from '@/lib/logger';
 
 /**
  * Next.js middleware for global rate limiting and security
  */
+
+// Simple Edge Runtime compatible logging
+const log = (level: string, message: string, data?: any) => {
+  const timestamp = new Date().toISOString();
+  const dataStr = data ? ` ${JSON.stringify(data)}` : '';
+  console.log(`[${timestamp}] [${level.toUpperCase()}] ${message}${dataStr}`);
+};
+
 export async function middleware(request: NextRequest) {
   const start = Date.now();
   const { pathname } = request.nextUrl;
 
-  // Log incoming request for API routes
+  // Log incoming API requests (Edge Runtime compatible)
   if (pathname.startsWith('/api/')) {
-    logRequest(request);
+    log('info', 'API Request', {
+      method: request.method,
+      url: request.url,
+      userAgent: request.headers.get('user-agent'),
+      ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
+    });
   }
 
   // Skip rate limiting for static assets and internal Next.js routes
@@ -29,7 +41,13 @@ export async function middleware(request: NextRequest) {
     
     if (rateLimitResult.limited) {
       const duration = Date.now() - start;
-      logResponse(request, 429, duration, { rateLimited: true });
+      log('warn', 'Rate Limited Request', {
+        method: request.method,
+        url: request.url,
+        duration: `${duration}ms`,
+        remaining: rateLimitResult.remaining,
+        resetTime: rateLimitResult.resetTime,
+      });
 
       return NextResponse.json(
         {
@@ -61,7 +79,12 @@ export async function middleware(request: NextRequest) {
 
     // Log successful API response
     const duration = Date.now() - start;
-    logResponse(request, 200, duration);
+    log('info', 'API Response', {
+      method: request.method,
+      url: request.url,
+      status: 200,
+      duration: `${duration}ms`,
+    });
 
     return response;
   }
