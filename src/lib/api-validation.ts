@@ -38,7 +38,7 @@ export function createValidationMiddleware<T, R>(schema: z.ZodSchema<T>) {
           path: err.path.join('.'),
           message: err.message,
           code: err.code,
-          received: err.received
+          received: 'received' in err ? err.received : undefined
         }));
 
         // Log detailed validation errors for debugging

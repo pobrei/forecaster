@@ -5,6 +5,7 @@ import { initializeForecastCache, getForecastCacheStats } from '@/lib/forecast-c
 import { withRetryAndTimeout } from '@/lib/api-error-handler';
 import { logError } from '@/lib/error-tracking';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function healthHandler(_request: NextRequest) {
   const timestamp = new Date().toISOString();
   const services = {

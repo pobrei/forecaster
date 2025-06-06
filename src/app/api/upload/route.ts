@@ -22,6 +22,7 @@ const validateUpload = createValidationMiddleware<z.infer<typeof uploadValidatio
 
 async function uploadHandler(
   validatedData: z.infer<typeof uploadValidationSchema>,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _request: NextRequest
 ): Promise<NextResponse<APIResponse<UploadResponse>>> {
   const { gpx: file } = validatedData;

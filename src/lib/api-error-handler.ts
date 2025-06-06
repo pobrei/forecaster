@@ -162,6 +162,7 @@ export function validateRequestSize(request: NextRequest, maxSize: number = 10 *
 }
 
 // Helper to check rate limiting
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function checkRateLimit(_ip: string, _endpoint: string): boolean {
   // This is a simple in-memory rate limiter
   // In production, you'd want to use Redis or similar

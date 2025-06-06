@@ -54,6 +54,7 @@ export function generateCSP(): string {
 }
 
 // Security headers middleware
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function securityHeaders(_request: NextRequest) {
   const response = NextResponse.next()
 
