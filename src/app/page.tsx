@@ -6,9 +6,12 @@ import { FileUpload } from '@/components/features/ClientOnlyFileUpload';
 import { SettingsPanel } from '@/components/features/SettingsPanel';
 import { WeatherMap } from '@/components/features/WeatherMap';
 import { WeatherCharts } from '@/components/features/WeatherCharts';
+import { OptimizedWeatherCharts } from '@/components/charts/OptimizedWeatherCharts';
 import { WeatherTimeline } from '@/components/features/WeatherTimeline';
 import { WeatherSummary } from '@/components/features/WeatherSummary';
 import { PDFExport } from '@/components/features/PDFExport';
+import { WeatherServiceConfig } from '@/components/features/WeatherServiceConfig';
+import { PerformanceMonitor } from '@/components/features/PerformanceMonitor';
 
 import { Header } from '@/components/layout/Header';
 import { PWAInstallBanner, PWAOfflineBanner } from '@/components/features/PWAInstallBanner';
@@ -27,6 +30,8 @@ export default function Home() {
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   });
   const [selectedPoint, setSelectedPoint] = useState<SelectedWeatherPoint | null>(null);
+  const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false);
+  const [useOptimizedCharts, setUseOptimizedCharts] = useState(true);
 
   // Use progressive weather loading hook
   const {
@@ -198,12 +203,21 @@ export default function Home() {
               selectedPoint={selectedPoint}
               onPointSelect={handlePointSelection}
             />
-            <WeatherCharts
-              forecasts={forecasts}
-              units={settings.units}
-              onPointSelect={handlePointSelection}
-              selectedPoint={selectedPoint}
-            />
+            {useOptimizedCharts ? (
+              <OptimizedWeatherCharts
+                forecasts={forecasts}
+                units={settings.units}
+                onPointSelect={handlePointSelection}
+                selectedPoint={selectedPoint}
+              />
+            ) : (
+              <WeatherCharts
+                forecasts={forecasts}
+                units={settings.units}
+                onPointSelect={handlePointSelection}
+                selectedPoint={selectedPoint}
+              />
+            )}
           </div>
 
           {/* Export Section */}
@@ -212,6 +226,74 @@ export default function Home() {
             forecasts={forecasts}
             settings={settings}
           />
+
+          {/* Advanced Features Toggle */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Advanced Features</CardTitle>
+              <CardDescription>
+                Explore performance monitoring and weather service configuration
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Show Advanced Features</p>
+                  <p className="text-sm text-muted-foreground">
+                    Performance monitoring, service configuration, and optimization tools
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedFeatures(!showAdvancedFeatures)}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                >
+                  {showAdvancedFeatures ? 'Hide' : 'Show'}
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Advanced Features Section */}
+          {showAdvancedFeatures && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                <WeatherServiceConfig />
+                <PerformanceMonitor />
+              </div>
+
+              {/* Chart Optimization Toggle */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Chart Performance</CardTitle>
+                  <CardDescription>
+                    Toggle between standard and optimized chart rendering
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Use Optimized Charts</p>
+                      <p className="text-sm text-muted-foreground">
+                        Lazy loading, better performance, and enhanced mobile experience
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setUseOptimizedCharts(!useOptimizedCharts)}
+                      className={`px-4 py-2 rounded-md transition-colors ${
+                        useOptimizedCharts
+                          ? 'bg-green-600 text-white hover:bg-green-700'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      {useOptimizedCharts ? 'Enabled' : 'Disabled'}
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       )}
 

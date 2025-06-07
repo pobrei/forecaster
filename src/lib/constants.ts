@@ -2,6 +2,7 @@
 
 // Weather API Configuration
 export const WEATHER_API = {
+  // Legacy OpenWeatherMap (fallback)
   BASE_URL: 'https://api.openweathermap.org/data/2.5',
   RATE_LIMIT: {
     MAX_REQUESTS: 60,
@@ -10,12 +11,36 @@ export const WEATHER_API = {
   CACHE_DURATION: 60 * 60 * 1000, // 1 hour in milliseconds
 } as const;
 
+// Open-Meteo API Configuration (Primary)
+export const OPEN_METEO_API = {
+  BASE_URL: 'https://api.open-meteo.com/v1',
+  RATE_LIMIT: {
+    MAX_REQUESTS: 600, // Very generous
+    WINDOW_MS: 60 * 1000, // 1 minute
+  },
+  CACHE_DURATION: 60 * 60 * 1000, // 1 hour in milliseconds
+  FEATURES: {
+    NO_API_KEY_REQUIRED: true,
+    FREE_TIER: true,
+    OPEN_SOURCE: true,
+    HIGH_ACCURACY: true
+  }
+} as const;
+
 // GPX File Constraints
 export const GPX_CONSTRAINTS = {
   MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB (reduced from 10MB)
   MAX_WAYPOINTS: 2000, // Increased from 500 to 2000
   SUPPORTED_FORMATS: ['.gpx'],
-  MIME_TYPES: ['application/gpx+xml', 'text/xml', 'application/xml'],
+  // iOS Safari often doesn't provide MIME types or uses different ones
+  MIME_TYPES: [
+    'application/gpx+xml',
+    'text/xml',
+    'application/xml',
+    'application/octet-stream', // iOS Safari fallback
+    'text/plain', // Sometimes used by mobile browsers
+    '', // Empty MIME type (common on iOS Safari)
+  ],
 } as const;
 
 // Route Configuration

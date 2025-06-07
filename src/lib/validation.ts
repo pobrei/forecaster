@@ -67,18 +67,24 @@ export const appSettingsSchema = z.object({
   timezone: z.string(),
 })
 
-// Enhanced file validation with security checks
+// Enhanced file validation with security checks - iOS Safari compatible
 export const secureFileValidationSchema = z.object({
   name: z.string()
     .min(1, 'Filename is required')
     .max(255, 'Filename too long')
-    .regex(/^[a-zA-Z0-9._-]+\.gpx$/i, 'Invalid filename format')
+    .regex(/^[a-zA-Z0-9._\s-]+\.gpx$/i, 'Invalid filename format - must be a .gpx file')
     .refine((name) => !name.includes('..'), 'Filename contains invalid characters'),
   size: z.number()
     .positive('File size must be positive')
     .max(GPX_CONSTRAINTS.MAX_FILE_SIZE, `File too large (max ${GPX_CONSTRAINTS.MAX_FILE_SIZE / 1024 / 1024}MB)`),
   type: z.string()
-    .refine((type) => GPX_CONSTRAINTS.MIME_TYPES.includes(type as any), 'Invalid file type'),
+    // More lenient MIME type validation for iOS Safari compatibility
+    .refine((type) => {
+      // Allow empty MIME type (common on iOS Safari)
+      if (type === '') return true;
+      // Check against known MIME types
+      return GPX_CONSTRAINTS.MIME_TYPES.includes(type as any);
+    }, 'Invalid file type - please select a GPX file'),
   lastModified: z.number().optional()
 })
 

@@ -49,13 +49,13 @@ function validateGPXFile(file: File): void {
     throw new Error(ERROR_MESSAGES.GPX.FILE_TOO_LARGE);
   }
 
-  // More lenient file extension check for mobile compatibility
-  const fileName = file.name.toLowerCase();
+  // iOS Safari compatible file extension check
+  const fileName = file.name.toLowerCase().trim();
   const hasGpxExtension = fileName.endsWith('.gpx');
-  const hasValidMimeType = file.type === 'application/gpx+xml' ||
-                          file.type === 'text/xml' ||
-                          file.type === 'application/xml' ||
-                          file.type === ''; // Allow empty MIME type (common on mobile)
+
+  // iOS Safari compatible MIME type check - be very lenient
+  const hasValidMimeType = file.type === '' || // Empty MIME type (very common on iOS Safari)
+                          GPX_CONSTRAINTS.MIME_TYPES.includes(file.type as any);
 
   // Accept if it has .gpx extension OR if it's an XML-like file
   if (!hasGpxExtension && !hasValidMimeType && !fileName.includes('gpx')) {

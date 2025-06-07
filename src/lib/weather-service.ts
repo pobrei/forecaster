@@ -2,10 +2,219 @@ import { WeatherData, WeatherForecast, RoutePoint, WeatherAlert } from '@/types'
 import { WEATHER_API, WEATHER_THRESHOLDS } from './constants';
 import { getCachedWeatherData, setCachedWeatherData } from './mongodb';
 
-if (!process.env.OPENWEATHER_API_KEY) {
-  throw new Error('Invalid/Missing environment variable: "OPENWEATHER_API_KEY"');
+// Abstract Weather Service Interface
+export interface WeatherService {
+  fetchWeatherData(lat: number, lon: number): Promise<WeatherData | null>;
+  getName(): string;
+  getApiLimits(): { requestsPerMinute: number; requestsPerDay: number };
 }
 
+// Open-Meteo Service Implementation
+class OpenMeteoService implements WeatherService {
+  private readonly baseUrl = 'https://api.open-meteo.com/v1';
+
+  getName(): string {
+    return 'Open-Meteo';
+  }
+
+  getApiLimits() {
+    return {
+      requestsPerMinute: 600, // Very generous limits
+      requestsPerDay: 10000
+    };
+  }
+
+  async fetchWeatherData(lat: number, lon: number): Promise<WeatherData | null> {
+    try {
+      const params = new URLSearchParams({
+        latitude: lat.toString(),
+        longitude: lon.toString(),
+        current: [
+          'temperature_2m',
+          'relative_humidity_2m',
+          'apparent_temperature',
+          'precipitation',
+          'weather_code',
+          'cloud_cover',
+          'pressure_msl',
+          'wind_speed_10m',
+          'wind_direction_10m',
+          'wind_gusts_10m'
+        ].join(','),
+        wind_speed_unit: 'ms',
+        timezone: 'auto'
+      });
+
+      const response = await fetch(`${this.baseUrl}/forecast?${params}`);
+
+      if (!response.ok) {
+        throw new Error(`Open-Meteo API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      return this.transformToWeatherData(data, lat, lon);
+    } catch (error) {
+      console.error('Error fetching from Open-Meteo:', error);
+      throw error;
+    }
+  }
+
+  private transformToWeatherData(data: any, lat: number, lon: number): WeatherData {
+    const current = data.current;
+
+    return {
+      lat,
+      lon,
+      dt: Math.floor(new Date(current.time).getTime() / 1000),
+      temp: current.temperature_2m,
+      feels_like: current.apparent_temperature,
+      pressure: current.pressure_msl,
+      humidity: current.relative_humidity_2m,
+      dew_point: this.calculateDewPoint(current.temperature_2m, current.relative_humidity_2m),
+      uvi: 0, // Not available in current weather
+      clouds: current.cloud_cover,
+      visibility: 10000, // Default visibility
+      wind_speed: current.wind_speed_10m,
+      wind_deg: current.wind_direction_10m,
+      wind_gust: current.wind_gusts_10m,
+      weather: [this.mapWeatherCode(current.weather_code)],
+      pop: undefined,
+      rain: current.precipitation > 0 ? { '1h': current.precipitation } : undefined,
+      snow: undefined // Open-Meteo doesn't separate rain/snow in current weather
+    };
+  }
+
+  private calculateDewPoint(temp: number, humidity: number): number {
+    // Magnus formula approximation
+    const a = 17.27;
+    const b = 237.7;
+    const alpha = ((a * temp) / (b + temp)) + Math.log(humidity / 100);
+    return (b * alpha) / (a - alpha);
+  }
+
+  private mapWeatherCode(code: number): { id: number; main: string; description: string; icon: string } {
+    // WMO Weather interpretation codes mapping
+    const weatherMap: Record<number, { main: string; description: string; icon: string }> = {
+      0: { main: 'Clear', description: 'Clear sky', icon: '01d' },
+      1: { main: 'Clouds', description: 'Mainly clear', icon: '02d' },
+      2: { main: 'Clouds', description: 'Partly cloudy', icon: '03d' },
+      3: { main: 'Clouds', description: 'Overcast', icon: '04d' },
+      45: { main: 'Fog', description: 'Fog', icon: '50d' },
+      48: { main: 'Fog', description: 'Depositing rime fog', icon: '50d' },
+      51: { main: 'Drizzle', description: 'Light drizzle', icon: '09d' },
+      53: { main: 'Drizzle', description: 'Moderate drizzle', icon: '09d' },
+      55: { main: 'Drizzle', description: 'Dense drizzle', icon: '09d' },
+      61: { main: 'Rain', description: 'Slight rain', icon: '10d' },
+      63: { main: 'Rain', description: 'Moderate rain', icon: '10d' },
+      65: { main: 'Rain', description: 'Heavy rain', icon: '10d' },
+      71: { main: 'Snow', description: 'Slight snow fall', icon: '13d' },
+      73: { main: 'Snow', description: 'Moderate snow fall', icon: '13d' },
+      75: { main: 'Snow', description: 'Heavy snow fall', icon: '13d' },
+      95: { main: 'Thunderstorm', description: 'Thunderstorm', icon: '11d' },
+      96: { main: 'Thunderstorm', description: 'Thunderstorm with slight hail', icon: '11d' },
+      99: { main: 'Thunderstorm', description: 'Thunderstorm with heavy hail', icon: '11d' }
+    };
+
+    const weather = weatherMap[code] || { main: 'Unknown', description: 'Unknown weather', icon: '01d' };
+    return {
+      id: code,
+      ...weather
+    };
+  }
+}
+
+// OpenWeatherMap Service (Legacy)
+class OpenWeatherMapService implements WeatherService {
+  private readonly apiKey: string;
+
+  constructor(apiKey: string) {
+    this.apiKey = apiKey;
+  }
+
+  getName(): string {
+    return 'OpenWeatherMap';
+  }
+
+  getApiLimits() {
+    return {
+      requestsPerMinute: 60,
+      requestsPerDay: 1000
+    };
+  }
+
+  async fetchWeatherData(lat: number, lon: number): Promise<WeatherData | null> {
+    const url = `${WEATHER_API.BASE_URL}/weather?lat=${lat}&lon=${lon}&appid=${this.apiKey}&units=metric`;
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Invalid API key');
+      } else if (response.status === 429) {
+        throw new Error('API rate limit exceeded');
+      } else {
+        throw new Error(`Weather API error: ${response.status}`);
+      }
+    }
+
+    const data: OpenWeatherResponse = await response.json();
+
+    return {
+      lat: data.coord.lat,
+      lon: data.coord.lon,
+      dt: data.dt,
+      temp: data.main.temp,
+      feels_like: data.main.feels_like,
+      pressure: data.main.pressure,
+      humidity: data.main.humidity,
+      dew_point: data.main.temp, // Approximation
+      uvi: 0,
+      clouds: data.clouds.all,
+      visibility: data.visibility,
+      wind_speed: data.wind.speed,
+      wind_deg: data.wind.deg,
+      wind_gust: data.wind.gust,
+      weather: data.weather,
+      pop: undefined,
+      rain: data.rain ? { '1h': data.rain['1h'] } : undefined,
+      snow: data.snow ? { '1h': data.snow['1h'] } : undefined,
+    };
+  }
+}
+
+// Weather Service Factory
+class WeatherServiceFactory {
+  private static instance: WeatherService | null = null;
+
+  static getService(): WeatherService {
+    if (!this.instance) {
+      // Prefer Open-Meteo as it's free and reliable
+      this.instance = new OpenMeteoService();
+
+      // Fallback to OpenWeatherMap if API key is available
+      const openWeatherApiKey = process.env.OPENWEATHER_API_KEY;
+      if (!this.instance && openWeatherApiKey) {
+        this.instance = new OpenWeatherMapService(openWeatherApiKey);
+      }
+
+      if (!this.instance) {
+        throw new Error('No weather service available');
+      }
+    }
+
+    return this.instance;
+  }
+
+  static setService(service: WeatherService): void {
+    this.instance = service;
+  }
+}
+
+// Export the factory for external use
+export { WeatherServiceFactory };
+
+// API key is now optional since we use Open-Meteo by default
 const API_KEY = process.env.OPENWEATHER_API_KEY;
 
 // Rate limiting
@@ -78,7 +287,7 @@ interface OpenWeatherResponse {
 }
 
 /**
- * Fetch weather data from OpenWeather API with caching
+ * Fetch weather data using the configured weather service with caching
  */
 export async function fetchWeatherData(lat: number, lon: number): Promise<WeatherData | null> {
   try {
@@ -94,51 +303,22 @@ export async function fetchWeatherData(lat: number, lon: number): Promise<Weathe
       throw new Error('Rate limit exceeded. Please try again later.');
     }
 
-    // Make API request - using current weather endpoint for free tier
-    const url = `${WEATHER_API.BASE_URL}/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`;
-    
-    console.log(`Fetching weather data for: ${lat}, ${lon}`);
+    // Get weather service and fetch data
+    const weatherService = WeatherServiceFactory.getService();
+    console.log(`Fetching weather data using ${weatherService.getName()} for: ${lat}, ${lon}`);
+
     rateLimiter.recordRequest();
-    
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      if (response.status === 401) {
-        throw new Error('Invalid API key');
-      } else if (response.status === 429) {
-        throw new Error('API rate limit exceeded');
-      } else {
-        throw new Error(`Weather API error: ${response.status}`);
-      }
+
+    const weatherData = await weatherService.fetchWeatherData(lat, lon);
+
+    if (!weatherData) {
+      throw new Error('No weather data received');
     }
-
-    const data: OpenWeatherResponse = await response.json();
-
-    const weatherData: WeatherData = {
-      lat: data.coord.lat,
-      lon: data.coord.lon,
-      dt: data.dt,
-      temp: data.main.temp,
-      feels_like: data.main.feels_like,
-      pressure: data.main.pressure,
-      humidity: data.main.humidity,
-      dew_point: data.main.temp, // Approximation - not available in current weather API
-      uvi: 0, // Not available in current weather API
-      clouds: data.clouds.all,
-      visibility: data.visibility,
-      wind_speed: data.wind.speed,
-      wind_deg: data.wind.deg,
-      wind_gust: data.wind.gust,
-      weather: data.weather,
-      pop: undefined, // Not available in current weather API
-      rain: data.rain ? { '1h': data.rain['1h'] } : undefined,
-      snow: data.snow ? { '1h': data.snow['1h'] } : undefined,
-    };
 
     // Cache the result
     await setCachedWeatherData({
-      lat: data.coord.lat,
-      lon: data.coord.lon,
+      lat: weatherData.lat,
+      lon: weatherData.lon,
       data: weatherData,
       timestamp: new Date(),
       expiresAt: new Date(Date.now() + WEATHER_API.CACHE_DURATION)

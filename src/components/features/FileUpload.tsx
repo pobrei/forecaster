@@ -44,12 +44,13 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
 
   const validateFile = (file: File): string | null => {
     try {
-      console.log('Validating file:', {
+      console.log('Validating file (iOS Safari compatible):', {
         name: file.name,
         size: file.size,
         type: file.type,
         lastModified: file.lastModified,
-        isMobile
+        isMobile,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown'
       });
 
       // Check file size
@@ -62,12 +63,25 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
         return 'File appears to be empty. Please select a valid GPX file.';
       }
 
-      // Simplified file extension check
-      const fileName = file.name.toLowerCase();
+      // iOS Safari compatible file extension check
+      const fileName = file.name.toLowerCase().trim();
       const hasGpxExtension = fileName.endsWith('.gpx');
 
       if (!hasGpxExtension) {
         return 'Please select a valid GPX file (.gpx extension required)';
+      }
+
+      // iOS Safari often doesn't provide MIME types or provides unexpected ones
+      // So we'll be more lenient with MIME type validation
+      const isValidMimeType = file.type === '' || // Empty MIME type (common on iOS Safari)
+                             GPX_CONSTRAINTS.MIME_TYPES.includes(file.type as any);
+
+      if (!isValidMimeType) {
+        console.warn('Unexpected MIME type on iOS Safari:', file.type);
+        // Don't fail validation for MIME type on mobile - just log it
+        if (!isMobile) {
+          return 'Invalid file type. Please select a GPX file.';
+        }
       }
 
       return null;
@@ -260,7 +274,7 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
             <input
               ref={fileInputRef}
               type="file"
-              accept=".gpx,application/gpx+xml,text/xml,application/xml"
+              accept=".gpx,application/gpx+xml,text/xml,application/xml,application/octet-stream"
               onChange={handleFileInput}
               className="hidden"
               disabled={isLoading}
