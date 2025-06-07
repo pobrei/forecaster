@@ -5,8 +5,8 @@ const envSchema = z.object({
   // Database
   MONGODB_URI: z.string().min(1, 'MongoDB URI is required'),
   
-  // Weather API
-  OPENWEATHER_API_KEY: z.string().min(1, 'OpenWeather API key is required'),
+  // Weather API (Optional - Open-Meteo is used as fallback)
+  OPENWEATHER_API_KEY: z.string().optional(),
   
   // Application
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),

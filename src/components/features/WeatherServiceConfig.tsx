@@ -6,16 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Cloud, 
-  Zap, 
-  Shield, 
-  DollarSign, 
-  CheckCircle, 
+import {
+  Cloud,
+  Zap,
+  Shield,
+  DollarSign,
+  CheckCircle,
   AlertCircle,
   Info,
-  Settings
+  Settings,
+  RefreshCw
 } from 'lucide-react';
+// Note: We'll manage service switching via localStorage and API calls
 
 interface WeatherServiceInfo {
   id: string;
@@ -82,7 +84,7 @@ const weatherServices: WeatherServiceInfo[] = [
       'Rate limits',
       'Credit card required for free tier'
     ],
-    status: process.env.OPENWEATHER_API_KEY ? 'available' : 'unavailable'
+    status: typeof window !== 'undefined' ? 'available' : 'unavailable' // Will be updated dynamically
   }
 ];
 
@@ -94,13 +96,45 @@ interface WeatherServiceConfigProps {
 export function WeatherServiceConfig({ className, onServiceChange }: WeatherServiceConfigProps) {
   const [selectedService, setSelectedService] = useState('open-meteo');
   const [isLoading, setIsLoading] = useState(false);
+  const [availableServices, setAvailableServices] = useState<typeof weatherServices>([]);
 
   useEffect(() => {
-    // Load saved preference from localStorage
-    const saved = localStorage.getItem('forecaster-weather-service');
-    if (saved && weatherServices.find(s => s.id === saved)) {
-      setSelectedService(saved);
-    }
+    // Check available services via API
+    const checkAvailableServices = async () => {
+      try {
+        const response = await fetch('/api/weather-service-status');
+        const data = await response.json();
+
+        if (data.success) {
+          // Update services based on API response
+          const updatedServices = weatherServices.map(service => ({
+            ...service,
+            status: (service.id === 'open-meteo' ? 'available' :
+                   (service.id === 'openweathermap' && process.env.OPENWEATHER_API_KEY) ? 'available' : 'unavailable') as 'available' | 'active' | 'unavailable'
+          }));
+          setAvailableServices(updatedServices);
+
+          // Load saved preference from localStorage
+          const saved = localStorage.getItem('forecaster-weather-service');
+          if (saved && updatedServices.find(s => s.id === saved && s.status === 'available')) {
+            setSelectedService(saved);
+          } else {
+            // Set default to first available service
+            const firstAvailable = updatedServices.find(s => s.status === 'available');
+            if (firstAvailable) {
+              setSelectedService(firstAvailable.id);
+            }
+          }
+        } else {
+          setAvailableServices(weatherServices);
+        }
+      } catch (error) {
+        console.error('Error checking available services:', error);
+        setAvailableServices(weatherServices);
+      }
+    };
+
+    checkAvailableServices();
   }, []);
 
   const handleServiceChange = async (serviceId: string) => {
@@ -108,6 +142,7 @@ export function WeatherServiceConfig({ className, onServiceChange }: WeatherServ
     try {
       setSelectedService(serviceId);
       localStorage.setItem('forecaster-weather-service', serviceId);
+      // Note: Service switching will be handled by the server on next request
       onServiceChange?.(serviceId);
     } catch (error) {
       console.error('Error changing weather service:', error);
@@ -116,7 +151,7 @@ export function WeatherServiceConfig({ className, onServiceChange }: WeatherServ
     }
   };
 
-  const currentService = weatherServices.find(s => s.id === selectedService);
+  const currentService = availableServices.find(s => s.id === selectedService) || weatherServices.find(s => s.id === selectedService);
 
   return (
     <Card className={className}>
@@ -138,15 +173,15 @@ export function WeatherServiceConfig({ className, onServiceChange }: WeatherServ
               <SelectValue placeholder="Select weather service" />
             </SelectTrigger>
             <SelectContent>
-              {weatherServices.map((service) => (
-                <SelectItem 
-                  key={service.id} 
+              {availableServices.map((service) => (
+                <SelectItem
+                  key={service.id}
                   value={service.id}
                   disabled={service.status === 'unavailable'}
                 >
                   <div className="flex items-center gap-2">
                     <span>{service.name}</span>
-                    {service.status === 'active' && (
+                    {service.id === selectedService && (
                       <Badge variant="default" className="text-xs">Active</Badge>
                     )}
                     {service.status === 'unavailable' && (
@@ -176,11 +211,11 @@ export function WeatherServiceConfig({ className, onServiceChange }: WeatherServ
                     {currentService.description}
                   </p>
                 </div>
-                <Badge 
-                  variant={currentService.status === 'active' ? 'default' : 'secondary'}
+                <Badge
+                  variant={currentService.id === selectedService ? 'default' : 'secondary'}
                   className="ml-2"
                 >
-                  {currentService.status}
+                  {currentService.id === selectedService ? 'active' : currentService.status}
                 </Badge>
               </div>
 
@@ -249,8 +284,17 @@ export function WeatherServiceConfig({ className, onServiceChange }: WeatherServ
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>API Key Required:</strong> To use OpenWeatherMap, you need to set the 
-                  OPENWEATHER_API_KEY environment variable. Consider using Open-Meteo instead for a free alternative.
+                  <strong>API Key Required:</strong> OpenWeatherMap requires an API key to be configured.
+                  You can get a free API key from{' '}
+                  <a
+                    href="https://openweathermap.org/api"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:no-underline"
+                  >
+                    OpenWeatherMap
+                  </a>
+                  {' '}and set it as the OPENWEATHER_API_KEY environment variable.
                 </AlertDescription>
               </Alert>
             )}

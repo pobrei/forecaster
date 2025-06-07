@@ -7,11 +7,13 @@ import { SettingsPanel } from '@/components/features/SettingsPanel';
 import { WeatherMap } from '@/components/features/WeatherMap';
 import { WeatherCharts } from '@/components/features/WeatherCharts';
 import { OptimizedWeatherCharts } from '@/components/charts/OptimizedWeatherCharts';
+import { ProWeatherCharts } from '@/components/charts/ProWeatherCharts';
 import { WeatherTimeline } from '@/components/features/WeatherTimeline';
 import { WeatherSummary } from '@/components/features/WeatherSummary';
 import { PDFExport } from '@/components/features/PDFExport';
 import { WeatherServiceConfig } from '@/components/features/WeatherServiceConfig';
 import { PerformanceMonitor } from '@/components/features/PerformanceMonitor';
+import { WeatherServiceStatus } from '@/components/features/WeatherServiceStatus';
 
 import { Header } from '@/components/layout/Header';
 import { PWAInstallBanner, PWAOfflineBanner } from '@/components/features/PWAInstallBanner';
@@ -31,7 +33,7 @@ export default function Home() {
   });
   const [selectedPoint, setSelectedPoint] = useState<SelectedWeatherPoint | null>(null);
   const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false);
-  const [useOptimizedCharts, setUseOptimizedCharts] = useState(true);
+  const [chartMode, setChartMode] = useState<'standard' | 'optimized' | 'professional'>('professional');
 
   // Use progressive weather loading hook
   const {
@@ -132,6 +134,11 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Weather Service Status */}
+        <div className="flex justify-center">
+          <WeatherServiceStatus className="max-w-md" />
+        </div>
+
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
         {/* Upload Section */}
@@ -203,7 +210,14 @@ export default function Home() {
               selectedPoint={selectedPoint}
               onPointSelect={handlePointSelection}
             />
-            {useOptimizedCharts ? (
+            {chartMode === 'professional' ? (
+              <ProWeatherCharts
+                forecasts={forecasts}
+                units={settings.units}
+                onPointSelect={handlePointSelection}
+                selectedPoint={selectedPoint}
+              />
+            ) : chartMode === 'optimized' ? (
               <OptimizedWeatherCharts
                 forecasts={forecasts}
                 units={settings.units}
@@ -262,33 +276,66 @@ export default function Home() {
                 <PerformanceMonitor />
               </div>
 
-              {/* Chart Optimization Toggle */}
+              {/* Chart Mode Selection */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Chart Performance</CardTitle>
+                  <CardTitle>Chart Rendering Mode</CardTitle>
                   <CardDescription>
-                    Toggle between standard and optimized chart rendering
+                    Choose between different chart rendering modes for optimal experience
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Use Optimized Charts</p>
-                      <p className="text-sm text-muted-foreground">
-                        Lazy loading, better performance, and enhanced mobile experience
-                      </p>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <button
+                        type="button"
+                        onClick={() => setChartMode('standard')}
+                        className={`p-4 rounded-lg border-2 transition-all ${
+                          chartMode === 'standard'
+                            ? 'border-primary bg-primary/10'
+                            : 'border-muted hover:border-muted-foreground/50'
+                        }`}
+                      >
+                        <div className="text-left">
+                          <h3 className="font-medium">Standard Charts</h3>
+                          <p className="text-sm text-muted-foreground">Basic chart functionality</p>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setChartMode('optimized')}
+                        className={`p-4 rounded-lg border-2 transition-all ${
+                          chartMode === 'optimized'
+                            ? 'border-primary bg-primary/10'
+                            : 'border-muted hover:border-muted-foreground/50'
+                        }`}
+                      >
+                        <div className="text-left">
+                          <h3 className="font-medium">Optimized Charts</h3>
+                          <p className="text-sm text-muted-foreground">Lazy loading & performance</p>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setChartMode('professional')}
+                        className={`p-4 rounded-lg border-2 transition-all ${
+                          chartMode === 'professional'
+                            ? 'border-primary bg-primary/10'
+                            : 'border-muted hover:border-muted-foreground/50'
+                        }`}
+                      >
+                        <div className="text-left">
+                          <h3 className="font-medium flex items-center gap-2">
+                            Professional Charts
+                            <span className="text-xs bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-2 py-1 rounded">PRO</span>
+                          </h3>
+                          <p className="text-sm text-muted-foreground">Advanced features & controls</p>
+                        </div>
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setUseOptimizedCharts(!useOptimizedCharts)}
-                      className={`px-4 py-2 rounded-md transition-colors ${
-                        useOptimizedCharts
-                          ? 'bg-green-600 text-white hover:bg-green-700'
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                      }`}
-                    >
-                      {useOptimizedCharts ? 'Enabled' : 'Disabled'}
-                    </button>
+                    <div className="text-sm text-muted-foreground">
+                      <strong>Current mode:</strong> {chartMode === 'professional' ? 'Professional (Recommended)' : chartMode === 'optimized' ? 'Optimized' : 'Standard'}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
