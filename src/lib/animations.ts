@@ -2,22 +2,22 @@
 
 export const animations = {
   // Fade animations
-  fadeIn: "animate-in fade-in duration-500",
-  fadeOut: "animate-out fade-out duration-300",
-  fadeInUp: "animate-in fade-in slide-in-from-bottom-4 duration-500",
-  fadeInDown: "animate-in fade-in slide-in-from-top-4 duration-500",
-  fadeInLeft: "animate-in fade-in slide-in-from-left-4 duration-500",
-  fadeInRight: "animate-in fade-in slide-in-from-right-4 duration-500",
+  fadeIn: "animate-fade-in",
+  fadeOut: "animate-fade-out",
+  fadeInUp: "animate-fade-in animate-slide-in-from-bottom",
+  fadeInDown: "animate-fade-in animate-slide-in-from-top",
+  fadeInLeft: "animate-fade-in animate-slide-in-from-left",
+  fadeInRight: "animate-fade-in animate-slide-in-from-right",
 
   // Scale animations
-  scaleIn: "animate-in zoom-in-95 duration-300",
-  scaleOut: "animate-out zoom-out-95 duration-200",
+  scaleIn: "animate-zoom-in",
+  scaleOut: "animate-zoom-out",
 
   // Slide animations
-  slideInFromTop: "animate-in slide-in-from-top-full duration-500",
-  slideInFromBottom: "animate-in slide-in-from-bottom-full duration-500",
-  slideInFromLeft: "animate-in slide-in-from-left-full duration-500",
-  slideInFromRight: "animate-in slide-in-from-right-full duration-500",
+  slideInFromTop: "animate-slide-in-from-top",
+  slideInFromBottom: "animate-slide-in-from-bottom",
+  slideInFromLeft: "animate-slide-in-from-left",
+  slideInFromRight: "animate-slide-in-from-right",
 
   // Bounce animations
   bounceIn: "animate-bounce",
@@ -35,16 +35,16 @@ export const animations = {
   focusScale: "focus:scale-105 transition-transform duration-200",
 
   // Loading animations
-  shimmer: "animate-pulse bg-gradient-to-r from-muted via-muted/50 to-muted bg-[length:200%_100%]",
+  shimmer: "animate-shimmer bg-gradient-to-r from-muted via-muted/50 to-muted bg-[length:200%_100%]",
   skeleton: "animate-pulse bg-muted",
-  
+
   // Stagger animations (for lists)
-  staggerChildren: "space-y-2 [&>*]:animate-in [&>*]:fade-in [&>*]:slide-in-from-left-4",
+  staggerChildren: "space-y-2",
   staggerDelay: {
-    1: "[&>*:nth-child(1)]:duration-300",
-    2: "[&>*:nth-child(2)]:duration-500 [&>*:nth-child(2)]:delay-100",
-    3: "[&>*:nth-child(3)]:duration-700 [&>*:nth-child(3)]:delay-200",
-    4: "[&>*:nth-child(4)]:duration-900 [&>*:nth-child(4)]:delay-300",
+    1: "delay-0",
+    2: "delay-100",
+    3: "delay-200",
+    4: "delay-300",
   },
 } as const;
 

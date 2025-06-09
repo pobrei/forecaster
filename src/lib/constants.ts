@@ -29,7 +29,7 @@ export const OPEN_METEO_API = {
 
 // GPX File Constraints
 export const GPX_CONSTRAINTS = {
-  MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB (reduced from 10MB)
+  MAX_FILE_SIZE: 100 * 1024 * 1024, // 100MB (increased for GPX files with elevation and more data)
   MAX_WAYPOINTS: 2000, // Increased from 500 to 2000
   SUPPORTED_FORMATS: ['.gpx'],
   // iOS Safari often doesn't provide MIME types or uses different ones

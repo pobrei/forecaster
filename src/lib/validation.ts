@@ -91,7 +91,7 @@ export const secureFileValidationSchema = z.object({
 // GPX content validation with security checks
 export const gpxContentValidationSchema = z.string()
   .min(1, 'GPX content cannot be empty')
-  .max(50 * 1024 * 1024, 'GPX content too large') // 50MB text limit
+  .max(200 * 1024 * 1024, 'GPX content too large') // 200MB text limit (increased for large GPX files)
   .refine((content) => {
     // Check for basic GPX structure
     return content.includes('<gpx') && content.includes('</gpx>');

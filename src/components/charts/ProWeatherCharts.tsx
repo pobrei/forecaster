@@ -74,7 +74,7 @@ export function ProWeatherCharts({
   // Professional chart settings
   const [showTrendlines, setShowTrendlines] = useState(true);
   const [showDataLabels, setShowDataLabels] = useState(false);
-  const [showAnimations, setShowAnimations] = useState(true);
+  const showAnimations = true; // Always enabled, toggle removed from UI
   const [chartHeight, setChartHeight] = useState([400]);
   const [showGrid, setShowGrid] = useState(true);
   const [showLegend, setShowLegend] = useState(true);
@@ -386,7 +386,10 @@ export function ProWeatherCharts({
         },
       }),
     },
-    // animation: showAnimations, // Disabled for TypeScript compatibility
+    animation: {
+      duration: showAnimations ? 1000 : 0,
+      easing: 'easeInOutQuart' as const,
+    },
     onClick: (event: any, elements: any[]) => {
       if (elements.length > 0 && onPointSelect) {
         const elementIndex = elements[0].index;
@@ -497,7 +500,7 @@ export function ProWeatherCharts({
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Professional Controls */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
           <div className="space-y-2">
             <label className="text-xs font-medium flex items-center gap-1">
               <Eye className="h-3 w-3" />
@@ -511,13 +514,6 @@ export function ProWeatherCharts({
               Data Labels
             </label>
             <Switch checked={showDataLabels} onCheckedChange={setShowDataLabels} />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium flex items-center gap-1">
-              <Activity className="h-3 w-3" />
-              Animations
-            </label>
-            <Switch checked={showAnimations} onCheckedChange={setShowAnimations} />
           </div>
           <div className="space-y-2">
             <label className="text-xs font-medium flex items-center gap-1">

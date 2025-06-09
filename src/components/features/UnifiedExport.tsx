@@ -13,19 +13,16 @@ import {
   Image,
   FileSpreadsheet,
   FileCode,
-  Globe,
-  Map,
   CheckCircle,
   Loader2
 } from 'lucide-react';
 import { Route, WeatherForecast, AppSettings } from '@/types';
-import { 
-  generateTextPDFReport, 
-  generateHTMLReport, 
-  generateCSVReport, 
-  generateGPXWithWeather,
-  downloadBlob, 
-  generateExportFilename 
+import {
+  generateTextPDFReport,
+  generateHTMLReport,
+  generateCSVReport,
+  downloadBlob,
+  generateExportFilename
 } from '@/lib/pdf-generator';
 import { formatTemperature, formatWindSpeed, formatDistance } from '@/lib/format';
 import { toast } from 'sonner';
@@ -161,23 +158,7 @@ export function UnifiedExport({ route, forecasts, settings, className }: Unified
     }
   };
 
-  // GPX Export
-  const handleExportGPX = async () => {
-    if (!route || !forecasts.length) {
-      toast.error('No data available for export');
-      return;
-    }
 
-    try {
-      const gpxBlob = generateGPXWithWeather(route, forecasts, settings);
-      const filename = generateExportFilename(route, 'gpx');
-      downloadBlob(gpxBlob, filename);
-      toast.success('GPX file with weather data exported successfully!');
-    } catch (error) {
-      console.error('GPX export error:', error);
-      toast.error('Failed to export GPX file');
-    }
-  };
 
   // PNG Export with comprehensive chart capture
   const handleExportPNG = async () => {
@@ -332,7 +313,7 @@ export function UnifiedExport({ route, forecasts, settings, className }: Unified
                 disabled={isExporting}
                 className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
               >
-                <Globe className="h-4 w-4" />
+                <FileText className="h-4 w-4" />
                 Export HTML Report
               </Button>
 
@@ -356,15 +337,7 @@ export function UnifiedExport({ route, forecasts, settings, className }: Unified
                 Export PNG Image
               </Button>
 
-              <Button
-                onClick={handleExportGPX}
-                disabled={isExporting}
-                className="flex items-center gap-2"
-                variant="outline"
-              >
-                <Map className="h-4 w-4" />
-                Export GPX File
-              </Button>
+
             </div>
 
             {isExporting && exportProgress > 0 && (
@@ -470,7 +443,7 @@ export function UnifiedExport({ route, forecasts, settings, className }: Unified
             <li>• <strong>PNG:</strong> High-quality image with charts</li>
             <li>• <strong>CSV:</strong> Spreadsheet data</li>
             <li>• <strong>JSON:</strong> Raw data for developers</li>
-            <li>• <strong>GPX:</strong> GPS file with weather data</li>
+
           </ul>
         </div>
       </CardContent>
