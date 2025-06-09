@@ -11,13 +11,13 @@ import { WeatherCharts } from '@/components/features/WeatherCharts';
 import { ProWeatherCharts } from '@/components/charts/ProWeatherCharts';
 import { WeatherTimeline } from '@/components/features/WeatherTimeline';
 import { WeatherSummary } from '@/components/features/WeatherSummary';
-import { PDFExport } from '@/components/features/PDFExport';
-import { PerformanceMonitor } from '@/components/features/PerformanceMonitor';
-import { FloatingActionButton } from '@/components/ui/floating-action-button';
+import { UnifiedExport } from '@/components/features/UnifiedExport';
+import { PerformanceIndicator } from '@/components/ui/performance-indicator';
+
 import { ProgressBreadcrumbs } from '@/components/ui/progress-breadcrumbs';
 import { HelpTooltip } from '@/components/ui/enhanced-tooltip';
 import { MetricGrid } from '@/components/ui/metric-card';
-import { EnhancedLoading } from '@/components/ui/enhanced-loading';
+
 import { StatusBadge } from '@/components/ui/status-indicator';
 import { SmartSuggestions, generateWeatherSuggestions } from '@/components/ui/smart-suggestions';
 
@@ -46,8 +46,6 @@ export default function Home() {
     forecasts,
     isLoading: isGeneratingForecast,
     progress,
-    error: weatherError,
-    isComplete,
     loadWeatherData,
     reset: resetWeatherData
   } = useProgressiveWeather({
@@ -169,16 +167,15 @@ export default function Home() {
         {/* Enhanced Progress Indicator for Large Routes */}
         {isGeneratingForecast && progress.total > 1 && (
           <div className="lg:col-span-3">
-            <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
-              <CardContent className="pt-6">
-                <EnhancedLoading
-                  type="weather"
-                  message="Analyzing weather patterns"
-                  submessage={`Processing chunk ${progress.current} of ${progress.total}`}
-                  progress={progress.percentage}
-                />
-              </CardContent>
-            </Card>
+            <PerformanceIndicator
+              isProcessing={isGeneratingForecast}
+              progress={progress.percentage}
+              currentStep={`Processing weather data chunk ${progress.current} of ${progress.total}`}
+              totalSteps={progress.total}
+              currentStepIndex={progress.current - 1}
+              estimatedTimeRemaining={route ? (100 - progress.percentage) * (route.points.length / 100) : undefined}
+              processingSpeed={route && route.points.length > 20 ? progress.percentage * 1.5 : undefined}
+            />
           </div>
         )}
       </div>
@@ -277,7 +274,7 @@ export default function Home() {
           </div>
 
           {/* Export Section */}
-          <PDFExport
+          <UnifiedExport
             route={route}
             forecasts={forecasts}
             settings={settings}
@@ -288,7 +285,7 @@ export default function Home() {
             <CardHeader>
               <CardTitle>Advanced Features</CardTitle>
               <CardDescription>
-                Explore performance monitoring and weather service configuration
+                Explore chart modes and advanced visualization options
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -296,7 +293,7 @@ export default function Home() {
                 <div>
                   <p className="font-medium">Show Advanced Features</p>
                   <p className="text-sm text-muted-foreground">
-                    Performance monitoring, service configuration, and optimization tools
+                    Chart modes, visualization options, and advanced features
                   </p>
                 </div>
                 <button
@@ -314,7 +311,6 @@ export default function Home() {
           {showAdvancedFeatures && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="grid grid-cols-1 gap-8">
-                <PerformanceMonitor />
               </div>
 
               {/* Chart Mode Selection */}
@@ -423,7 +419,7 @@ export default function Home() {
                   <span className="text-orange-600 dark:text-orange-400 font-semibold">4</span>
                 </div>
                 <h3 className="font-semibold mb-2">Export</h3>
-                <p className="text-sm text-muted-foreground">Generate and download PDF reports (coming soon)</p>
+                <p className="text-sm text-muted-foreground">Export weather data in multiple formats (PDF, PNG, HTML, CSV, JSON, GPX)</p>
               </div>
             </div>
           </CardContent>
@@ -465,33 +461,7 @@ export default function Home() {
 
       <PWAInstallBanner />
 
-      {/* Floating Action Button */}
-      <FloatingActionButton
-        hasData={!!hasData}
-        onUpload={() => {
-          // Scroll to upload section
-          const uploadSection = document.querySelector('[data-upload-section]');
-          uploadSection?.scrollIntoView({ behavior: 'smooth' });
-        }}
-        onDownload={() => {
-          // Trigger PDF export
-          const exportButton = document.querySelector('[data-export-button]');
-          (exportButton as HTMLButtonElement)?.click();
-        }}
-        onShare={() => {
-          if (navigator.share && route) {
-            navigator.share({
-              title: `Weather forecast for ${route.name}`,
-              text: `Check out the weather forecast for my ${route.totalDistance.toFixed(1)}km route`,
-              url: window.location.href
-            });
-          } else {
-            // Fallback to clipboard
-            navigator.clipboard.writeText(window.location.href);
-            toast.success('Link copied to clipboard!');
-          }
-        }}
-      />
+
     </>
   );
 }

@@ -424,9 +424,9 @@ export async function getWeatherForecasts(routePoints: RoutePoint[]): Promise<We
   const forecasts: WeatherForecast[] = [];
   const errors: string[] = [];
 
-  // Batch size for parallel processing (adjust based on rate limits)
-  const BATCH_SIZE = 10;
-  const MAX_CONCURRENT = 5;
+  // Optimized batch size for better performance
+  const BATCH_SIZE = 15; // Increased from 10
+  const MAX_CONCURRENT = 8; // Increased from 5
 
   console.log(`Processing ${routePoints.length} points in batches of ${BATCH_SIZE}`);
 
@@ -435,10 +435,10 @@ export async function getWeatherForecasts(routePoints: RoutePoint[]): Promise<We
     const batch = routePoints.slice(i, i + BATCH_SIZE);
     console.log(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(routePoints.length / BATCH_SIZE)}`);
 
-    // Process batch with limited concurrency
+    // Process batch with limited concurrency and optimized delays
     const batchPromises = batch.map(async (point, index) => {
-      // Add delay to respect rate limits
-      const delay = Math.floor(index / MAX_CONCURRENT) * 100; // 100ms delay per group
+      // Reduced delay for better performance while respecting rate limits
+      const delay = Math.floor(index / MAX_CONCURRENT) * 50; // 50ms delay per group (was 100ms)
       if (delay > 0) {
         await new Promise(resolve => setTimeout(resolve, delay));
       }
@@ -471,9 +471,9 @@ export async function getWeatherForecasts(routePoints: RoutePoint[]): Promise<We
       }
     });
 
-    // Add small delay between batches to avoid overwhelming the API
+    // Reduced delay between batches for better performance
     if (i + BATCH_SIZE < routePoints.length) {
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 100)); // Reduced from 200ms
     }
   }
 

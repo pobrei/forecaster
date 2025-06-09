@@ -239,6 +239,53 @@ export function useSwipeableList<T>(
   }
 }
 
+// Touch-optimized chart interactions
+export function useTouchChart(
+  onPointSelect?: (index: number) => void,
+  onZoom?: (scale: number) => void,
+  onPan?: (offset: { x: number; y: number }) => void
+) {
+  const [selectedPoint, setSelectedPoint] = useState<number | null>(null)
+  const [zoomLevel, setZoomLevel] = useState(1)
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 })
+
+  const bind = useGesture({
+    onPinch: ({ offset: [scale] }) => {
+      const newZoom = Math.max(0.5, Math.min(3, scale))
+      setZoomLevel(newZoom)
+      onZoom?.(newZoom)
+    },
+    onDrag: ({ movement: [mx, my], pinching }) => {
+      if (!pinching) {
+        const newOffset = { x: mx, y: my }
+        setPanOffset(newOffset)
+        onPan?.(newOffset)
+      }
+    },
+    onPointerDown: ({ event }) => {
+      // Calculate which point was touched based on chart dimensions
+      const rect = (event.target as Element).getBoundingClientRect()
+      const x = event.clientX - rect.left
+      const pointIndex = Math.floor((x / rect.width) * 10) // Assuming 10 data points
+      
+      setSelectedPoint(pointIndex)
+      onPointSelect?.(pointIndex)
+    },
+  })
+
+  return {
+    bind,
+    selectedPoint,
+    zoomLevel,
+    panOffset,
+    setSelectedPoint,
+    resetZoom: () => {
+      setZoomLevel(1)
+      setPanOffset({ x: 0, y: 0 })
+    },
+  }
+}
+
 // Haptic feedback (for supported devices)
 export function useHapticFeedback() {
   const triggerHaptic = useCallback((type: 'light' | 'medium' | 'heavy' = 'light') => {

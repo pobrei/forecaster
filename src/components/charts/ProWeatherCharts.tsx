@@ -24,7 +24,7 @@ import {
 import { WeatherForecast, SelectedWeatherPoint } from '@/types';
 import { formatTemperature, formatWindSpeed, formatPrecipitation, formatPressure } from '@/lib/format';
 import { CHART_CONFIG } from '@/lib/constants';
-import { ChartDataExport } from './ChartDataExport';
+
 import { WeatherAnalytics } from './WeatherAnalytics';
 
 // Lazy load Chart.js components with advanced features
@@ -670,13 +670,7 @@ export function ProWeatherCharts({
         </div>
 
         {/* Advanced Professional Features */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Data Export */}
-          <ChartDataExport
-            forecasts={forecasts}
-            units={units}
-            chartRef={chartRef}
-          />
+        <div className="grid grid-cols-1 gap-6">
 
           {/* Weather Analytics */}
           <WeatherAnalytics

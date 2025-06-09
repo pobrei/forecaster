@@ -13,7 +13,7 @@ A beautifully designed Next.js application for planning routes with detailed wea
 - **Interactive Cross-Component Selection**: Click weather points in timeline, charts, or map to center and explore data.
 - **Detailed Data Visualization**: View weather patterns through interactive charts (temperature, precipitation, wind, humidity, pressure, elevation).
 - **Timeline & Alerts**: Scrollable timeline of forecast points and important weather alerts (high wind, extreme heat, freezing temperatures, heavy rain).
-- **PDF Export**: Generate comprehensive PDF reports of your route with weather data.
+- **Unified Export System**: Export weather data in multiple formats (PDF, PNG, HTML, CSV, JSON, GPX) with customizable options.
 - **Premium UI/UX Design**: Clean visual hierarchy, consistent spacing, and thoughtful animations for a delightful user experience.
 - **Mobile-Responsive Design**: Fully responsive layout that works on all devices.
 - **Dark Mode**: Toggle between light and dark themes.
@@ -28,7 +28,7 @@ A beautifully designed Next.js application for planning routes with detailed wea
 - **Charts**: Chart.js with custom theming
 - **PDF Generation**: jsPDF and html2canvas
 - **Database**: MongoDB for weather data caching
-- **APIs**: OpenWeather API
+- **APIs**: Open-Meteo (free weather service)
 - **TypeScript**: Full type safety throughout the application
 
 ## Project Status
@@ -68,14 +68,13 @@ A beautifully designed Next.js application for planning routes with detailed wea
 - ✅ Comprehensive error handling and loading states
 
 ✅ **Phase 4 Complete: Advanced Features**
-- ✅ PDF export functionality with comprehensive weather reports
+- ✅ Unified export system with multiple formats (PDF, PNG, HTML, CSV, JSON, GPX)
 - ✅ Enhanced forecast-level caching system with TTL and statistics
 - ✅ Performance optimizations with React.memo and useMemo hooks
 - ✅ Settings import/export with local storage management
-- ✅ Advanced performance monitoring and debugging hooks
+- ✅ Touch-optimized interactions for mobile devices
 - ✅ Optimized chart data processing for large datasets
 - ✅ Intelligent cache invalidation and preloading strategies
-- ✅ JSON data export for external application integration
 - ✅ Enhanced health check with cache statistics
 - ✅ Auto-save settings functionality
 
@@ -102,8 +101,8 @@ The Forecaster app is now a fully-featured, production-ready weather planning ap
 
 - Node.js 18+
 - npm or yarn
-- MongoDB connection string (for Phase 2)
-- OpenWeather API key (for Phase 2)
+- MongoDB connection string (optional, for caching)
+- No API keys required (uses Open-Meteo free service)
 
 ### Installation
 
@@ -122,10 +121,10 @@ The Forecaster app is now a fully-featured, production-ready weather planning ap
    cp .env.example .env.local
    ```
 
-4. Edit `.env.local` with your actual credentials (when implementing Phase 2):
+4. Edit `.env.local` with your credentials (optional):
    ```env
    MONGODB_URI=your_mongodb_connection_string
-   OPENWEATHER_API_KEY=your_openweather_api_key
+   # No API keys required - uses Open-Meteo free service
    ```
 
 5. Run the development server:

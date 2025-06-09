@@ -113,20 +113,11 @@ export const LazyWeatherTimeline = dynamic(
   }
 )
 
-export const LazyPDFExport = dynamic(
-  () => import('@/components/features/PDFExport').then(mod => ({ default: mod.PDFExport })),
+export const LazyUnifiedExport = dynamic(
+  () => import('@/components/features/UnifiedExport').then(mod => ({ default: mod.UnifiedExport })),
   {
     loading: () => <PDFSkeleton />,
-    ssr: false, // PDF generation is client-side only
-  }
-)
-
-// Advanced lazy loading with intersection observer
-export const LazyWeatherChartsWithIntersection = dynamic(
-  () => import('@/components/features/WeatherCharts').then(mod => ({ default: mod.WeatherCharts })),
-  {
-    loading: () => <ChartSkeleton />,
-    ssr: false,
+    ssr: false, // Export generation is client-side only
   }
 )
 
@@ -141,8 +132,8 @@ export const preloadWeatherMap = () => {
   componentImport()
 }
 
-export const preloadPDFExport = () => {
-  const componentImport = () => import('@/components/features/PDFExport')
+export const preloadUnifiedExport = () => {
+  const componentImport = () => import('@/components/features/UnifiedExport')
   componentImport()
 }
 

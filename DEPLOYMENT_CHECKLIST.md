@@ -11,8 +11,8 @@
 
 ### Environment Configuration
 - [x] Environment variables configured in `.env.local`
-- [x] MongoDB connection string configured
-- [x] OpenWeather API key configured
+- [x] MongoDB connection string configured (optional)
+- [x] No API keys required (uses Open-Meteo free service)
 - [x] Security settings configured (CSP disabled for development)
 
 ### Core Functionality

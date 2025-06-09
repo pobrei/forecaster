@@ -172,18 +172,33 @@ function convertGPXToRoute(gpxData: GPXData, routeId: string): Route {
   const track = gpxData.tracks[0];
   let gpxPoints = track.points;
 
-  // If there are too many points, sample them to reduce the count
+  // Optimized point sampling for better performance
   if (gpxPoints.length > GPX_CONSTRAINTS.MAX_WAYPOINTS) {
     console.log(`GPX file has ${gpxPoints.length} points, sampling to ${GPX_CONSTRAINTS.MAX_WAYPOINTS} points`);
-    const sampleRate = Math.ceil(gpxPoints.length / GPX_CONSTRAINTS.MAX_WAYPOINTS);
-    gpxPoints = gpxPoints.filter((_, index) => index % sampleRate === 0);
 
-    // Always include the last point
-    if (gpxPoints[gpxPoints.length - 1] !== track.points[track.points.length - 1]) {
-      gpxPoints.push(track.points[track.points.length - 1]);
+    // Use more efficient sampling algorithm
+    const targetCount = GPX_CONSTRAINTS.MAX_WAYPOINTS;
+    const step = gpxPoints.length / targetCount;
+    const sampledPoints: GPXPoint[] = [];
+
+    // Always include first point
+    sampledPoints.push(gpxPoints[0]);
+
+    // Sample intermediate points
+    for (let i = 1; i < targetCount - 1; i++) {
+      const index = Math.round(i * step);
+      if (index < gpxPoints.length) {
+        sampledPoints.push(gpxPoints[index]);
+      }
     }
 
-    console.log(`Sampled down to ${gpxPoints.length} points`);
+    // Always include last point
+    if (gpxPoints.length > 1) {
+      sampledPoints.push(gpxPoints[gpxPoints.length - 1]);
+    }
+
+    gpxPoints = sampledPoints;
+    console.log(`Efficiently sampled down to ${gpxPoints.length} points`);
   }
 
   // Convert GPX points to route points with distance calculations
