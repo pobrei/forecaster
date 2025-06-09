@@ -183,76 +183,17 @@ class OpenWeatherMapService implements WeatherService {
   }
 }
 
-// Weather Service Factory
+// Weather Service Factory - Simplified to use only Open-Meteo
 class WeatherServiceFactory {
   private static instance: WeatherService | null = null;
-  private static preferredService: string | null = null;
 
   static getService(): WeatherService {
     if (!this.instance) {
-      this.instance = this.createService();
+      console.log('Using Open-Meteo weather service (free and reliable)');
+      this.instance = new OpenMeteoService();
     }
 
     return this.instance;
-  }
-
-  static setPreferredService(serviceId: string): void {
-    this.preferredService = serviceId;
-    this.instance = null; // Reset instance to force recreation
-  }
-
-  static getAvailableServices(): { id: string; name: string; available: boolean }[] {
-    const openWeatherApiKey = process.env.OPENWEATHER_API_KEY;
-
-    return [
-      {
-        id: 'open-meteo',
-        name: 'Open-Meteo',
-        available: true
-      },
-      {
-        id: 'openweathermap',
-        name: 'OpenWeatherMap',
-        available: !!openWeatherApiKey
-      }
-    ];
-  }
-
-  private static createService(): WeatherService {
-    const openWeatherApiKey = process.env.OPENWEATHER_API_KEY;
-    const availableServices = this.getAvailableServices();
-
-    // Check if preferred service is available
-    if (this.preferredService) {
-      const preferredAvailable = availableServices.find(
-        s => s.id === this.preferredService && s.available
-      );
-
-      if (preferredAvailable) {
-        switch (this.preferredService) {
-          case 'openweathermap':
-            if (openWeatherApiKey) {
-              console.log('Using preferred OpenWeatherMap service');
-              return new OpenWeatherMapService(openWeatherApiKey);
-            }
-            break;
-          case 'open-meteo':
-            console.log('Using preferred Open-Meteo service');
-            return new OpenMeteoService();
-        }
-      }
-    }
-
-    // Default fallback logic
-    // Try OpenWeatherMap first if API key is available
-    if (openWeatherApiKey) {
-      console.log('Using OpenWeatherMap service (API key available)');
-      return new OpenWeatherMapService(openWeatherApiKey);
-    }
-
-    // Fallback to Open-Meteo
-    console.log('Using Open-Meteo service (fallback)');
-    return new OpenMeteoService();
   }
 
   static setService(service: WeatherService): void {
@@ -261,7 +202,6 @@ class WeatherServiceFactory {
 
   static reset(): void {
     this.instance = null;
-    this.preferredService = null;
   }
 }
 

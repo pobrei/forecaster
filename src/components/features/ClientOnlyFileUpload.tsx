@@ -34,30 +34,35 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
     setIsIOSDevice(isIOSSafari());
   }, []);
 
-  // Show static skeleton during SSR and initial client render
+  // Show enhanced skeleton during SSR and initial client render
   if (!isMounted) {
     return (
-      <Card className={cn('w-full', className)}>
+      <Card className={cn('w-full card-interactive', className)} data-upload-section>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-headline">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Upload className="h-5 w-5 text-primary" />
+            </div>
             Upload GPX File
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-body-large">
             Upload your GPX file to get started with weather analysis
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="border-2 border-dashed rounded-lg p-8 text-center transition-colors border-muted-foreground/25">
-            <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <div className="border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 border-muted-foreground/25 hover:border-primary/50 hover:bg-primary/5">
+            <div className="relative">
+              <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground animate-bounce-gentle" />
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent rounded-full blur-xl opacity-50" />
+            </div>
             <p className="text-sm text-muted-foreground mb-4">
               Drag and drop your GPX file here, or click to browse
             </p>
-            <Button variant="outline" disabled>
+            <Button variant="outline" disabled className="touch-target">
               Choose File
             </Button>
             <p className="text-xs text-muted-foreground mt-4">
-              Supports GPX files up to 5 MB
+              Supports GPX files up to 5 MB • Professional analysis ready
             </p>
           </div>
         </CardContent>

@@ -2,18 +2,24 @@
 
 import { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from '@/components/ui/badge';
+import { BarChart3, Zap, Thermometer, Wind, CloudRain, Sun } from 'lucide-react';
 import { FileUpload } from '@/components/features/ClientOnlyFileUpload';
 import { SettingsPanel } from '@/components/features/SettingsPanel';
 import { WeatherMap } from '@/components/features/WeatherMap';
 import { WeatherCharts } from '@/components/features/WeatherCharts';
-import { OptimizedWeatherCharts } from '@/components/charts/OptimizedWeatherCharts';
 import { ProWeatherCharts } from '@/components/charts/ProWeatherCharts';
 import { WeatherTimeline } from '@/components/features/WeatherTimeline';
 import { WeatherSummary } from '@/components/features/WeatherSummary';
 import { PDFExport } from '@/components/features/PDFExport';
-import { WeatherServiceConfig } from '@/components/features/WeatherServiceConfig';
 import { PerformanceMonitor } from '@/components/features/PerformanceMonitor';
-import { WeatherServiceStatus } from '@/components/features/WeatherServiceStatus';
+import { FloatingActionButton } from '@/components/ui/floating-action-button';
+import { ProgressBreadcrumbs } from '@/components/ui/progress-breadcrumbs';
+import { HelpTooltip } from '@/components/ui/enhanced-tooltip';
+import { MetricGrid } from '@/components/ui/metric-card';
+import { EnhancedLoading } from '@/components/ui/enhanced-loading';
+import { StatusBadge } from '@/components/ui/status-indicator';
+import { SmartSuggestions, generateWeatherSuggestions } from '@/components/ui/smart-suggestions';
 
 import { Header } from '@/components/layout/Header';
 import { PWAInstallBanner, PWAOfflineBanner } from '@/components/features/PWAInstallBanner';
@@ -33,7 +39,7 @@ export default function Home() {
   });
   const [selectedPoint, setSelectedPoint] = useState<SelectedWeatherPoint | null>(null);
   const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false);
-  const [chartMode, setChartMode] = useState<'standard' | 'optimized' | 'professional'>('professional');
+  const [chartMode, setChartMode] = useState<'standard' | 'professional'>('professional');
 
   // Use progressive weather loading hook
   const {
@@ -118,26 +124,28 @@ export default function Home() {
             A weather planning application for outdoor activities. Upload GPX files,
             analyze weather conditions along your path, and make informed decisions for your adventures.
           </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-muted/50">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span>Real-time Weather Data</span>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-muted/50">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-              <span>Interactive Maps</span>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-muted/50">
-              <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-              <span>PDF Reports</span>
-            </div>
+          <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm">
+            <StatusBadge status="live" showPulse>
+              Open-Meteo Weather Service
+            </StatusBadge>
+            <StatusBadge status="success">
+              Interactive Maps
+            </StatusBadge>
+            <StatusBadge status="success">
+              PDF Reports
+            </StatusBadge>
+            <StatusBadge status="success">
+              Professional Analytics
+            </StatusBadge>
           </div>
         </div>
 
-        {/* Weather Service Status */}
-        <div className="flex justify-center">
-          <WeatherServiceStatus className="max-w-md" />
-        </div>
+        {/* Progress Breadcrumbs */}
+        <ProgressBreadcrumbs
+          hasGpxData={!!route}
+          hasWeatherData={!!forecasts.length}
+          className="mb-8"
+        />
 
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
@@ -158,26 +166,17 @@ export default function Home() {
           className="lg:col-span-2"
         />
 
-        {/* Progress Indicator for Large Routes */}
+        {/* Enhanced Progress Indicator for Large Routes */}
         {isGeneratingForecast && progress.total > 1 && (
           <div className="lg:col-span-3">
-            <Card>
+            <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
               <CardContent className="pt-6">
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span>Loading weather data...</span>
-                    <span>{progress.percentage}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${progress.percentage}%` }}
-                    />
-                  </div>
-                  <div className="text-xs text-muted-foreground text-center">
-                    Processing chunk {progress.current} of {progress.total}
-                  </div>
-                </div>
+                <EnhancedLoading
+                  type="weather"
+                  message="Analyzing weather patterns"
+                  submessage={`Processing chunk ${progress.current} of ${progress.total}`}
+                  progress={progress.percentage}
+                />
               </CardContent>
             </Card>
           </div>
@@ -187,6 +186,56 @@ export default function Home() {
       {/* Weather Data Visualization */}
       {hasData && (
         <div className="space-y-8">
+          {/* Smart Suggestions */}
+          <SmartSuggestions
+            suggestions={generateWeatherSuggestions(forecasts)}
+            onApplySuggestion={(suggestion) => {
+              toast.info(`Applied suggestion: ${suggestion.title}`);
+            }}
+            onDismissSuggestion={() => {
+              toast.success('Suggestion dismissed');
+            }}
+          />
+
+          {/* Weather Metrics Overview */}
+          <MetricGrid
+            metrics={[
+              {
+                icon: <Thermometer className="h-8 w-8" />,
+                label: "Temperature Range",
+                value: `${Math.min(...forecasts.map(f => f.weather.temp)).toFixed(0)}° - ${Math.max(...forecasts.map(f => f.weather.temp)).toFixed(0)}°`,
+                trend: `${(Math.max(...forecasts.map(f => f.weather.temp)) - Math.min(...forecasts.map(f => f.weather.temp))).toFixed(0)}° variation`,
+                trendDirection: 'neutral',
+                color: 'red'
+              },
+              {
+                icon: <Wind className="h-8 w-8" />,
+                label: "Wind Speed",
+                value: `${Math.max(...forecasts.map(f => f.weather.wind_speed * 3.6)).toFixed(0)} km/h`,
+                trend: "Max wind speed",
+                trendDirection: 'up',
+                color: 'blue'
+              },
+              {
+                icon: <CloudRain className="h-8 w-8" />,
+                label: "Precipitation",
+                value: `${forecasts.filter(f => (f.weather.rain?.['1h'] || 0) > 0).length}`,
+                trend: `${Math.round((forecasts.filter(f => (f.weather.rain?.['1h'] || 0) > 0).length / forecasts.length) * 100)}% of route`,
+                trendDirection: forecasts.filter(f => (f.weather.rain?.['1h'] || 0) > 0).length > 0 ? 'up' : 'neutral',
+                color: 'purple'
+              },
+              {
+                icon: <Sun className="h-8 w-8" />,
+                label: "Forecast Points",
+                value: `${forecasts.length}`,
+                trend: "Data points analyzed",
+                trendDirection: 'neutral',
+                color: 'yellow'
+              }
+            ]}
+            className="mb-8"
+          />
+
           {/* Weather Summary */}
           <WeatherSummary
             forecasts={forecasts}
@@ -212,13 +261,6 @@ export default function Home() {
             />
             {chartMode === 'professional' ? (
               <ProWeatherCharts
-                forecasts={forecasts}
-                units={settings.units}
-                onPointSelect={handlePointSelection}
-                selectedPoint={selectedPoint}
-              />
-            ) : chartMode === 'optimized' ? (
-              <OptimizedWeatherCharts
                 forecasts={forecasts}
                 units={settings.units}
                 onPointSelect={handlePointSelection}
@@ -271,70 +313,70 @@ export default function Home() {
           {/* Advanced Features Section */}
           {showAdvancedFeatures && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                <WeatherServiceConfig />
+              <div className="grid grid-cols-1 gap-8">
                 <PerformanceMonitor />
               </div>
 
               {/* Chart Mode Selection */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Chart Rendering Mode</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    Chart Rendering Mode
+                    <HelpTooltip
+                      title="Chart Modes"
+                      content="Standard charts provide basic weather visualization, while Professional charts include advanced analytics, data export, and customization options."
+                    />
+                  </CardTitle>
                   <CardDescription>
-                    Choose between different chart rendering modes for optimal experience
+                    Choose between standard and professional chart modes
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <button
-                        type="button"
-                        onClick={() => setChartMode('standard')}
-                        className={`p-4 rounded-lg border-2 transition-all ${
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Card
+                        className={`cursor-pointer transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 ${
                           chartMode === 'standard'
-                            ? 'border-primary bg-primary/10'
-                            : 'border-muted hover:border-muted-foreground/50'
+                            ? 'border-primary bg-primary/5 shadow-md'
+                            : 'hover:border-primary/50'
                         }`}
+                        onClick={() => setChartMode('standard')}
                       >
-                        <div className="text-left">
-                          <h3 className="font-medium">Standard Charts</h3>
-                          <p className="text-sm text-muted-foreground">Basic chart functionality</p>
-                        </div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setChartMode('optimized')}
-                        className={`p-4 rounded-lg border-2 transition-all ${
-                          chartMode === 'optimized'
-                            ? 'border-primary bg-primary/10'
-                            : 'border-muted hover:border-muted-foreground/50'
-                        }`}
-                      >
-                        <div className="text-left">
-                          <h3 className="font-medium">Optimized Charts</h3>
-                          <p className="text-sm text-muted-foreground">Lazy loading & performance</p>
-                        </div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setChartMode('professional')}
-                        className={`p-4 rounded-lg border-2 transition-all ${
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h3 className="font-medium mb-1">Standard Charts</h3>
+                              <p className="text-sm text-muted-foreground">Basic chart functionality with essential features</p>
+                            </div>
+                            <BarChart3 className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card
+                        className={`cursor-pointer transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 relative overflow-hidden ${
                           chartMode === 'professional'
-                            ? 'border-primary bg-primary/10'
-                            : 'border-muted hover:border-muted-foreground/50'
+                            ? 'border-primary bg-gradient-to-br from-primary/5 to-primary/10 shadow-md'
+                            : 'hover:border-primary/50'
                         }`}
+                        onClick={() => setChartMode('professional')}
                       >
-                        <div className="text-left">
-                          <h3 className="font-medium flex items-center gap-2">
-                            Professional Charts
-                            <span className="text-xs bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-2 py-1 rounded">PRO</span>
-                          </h3>
-                          <p className="text-sm text-muted-foreground">Advanced features & controls</p>
-                        </div>
-                      </button>
+                        <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-primary/20 to-transparent rounded-bl-full" />
+                        <CardContent className="p-4 relative">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h3 className="font-medium flex items-center gap-2 mb-1">
+                                Professional Charts
+                                <Badge className="text-xs bg-gradient-to-r from-primary to-primary/80">PRO</Badge>
+                              </h3>
+                              <p className="text-sm text-muted-foreground">Advanced features, analytics & data export</p>
+                            </div>
+                            <Zap className="h-5 w-5 text-primary" />
+                          </div>
+                        </CardContent>
+                      </Card>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      <strong>Current mode:</strong> {chartMode === 'professional' ? 'Professional (Recommended)' : chartMode === 'optimized' ? 'Optimized' : 'Standard'}
+                      <strong>Current mode:</strong> {chartMode === 'professional' ? 'Professional (Recommended)' : 'Standard'}
                     </div>
                   </div>
                 </CardContent>
@@ -422,6 +464,34 @@ export default function Home() {
       </div>
 
       <PWAInstallBanner />
+
+      {/* Floating Action Button */}
+      <FloatingActionButton
+        hasData={!!hasData}
+        onUpload={() => {
+          // Scroll to upload section
+          const uploadSection = document.querySelector('[data-upload-section]');
+          uploadSection?.scrollIntoView({ behavior: 'smooth' });
+        }}
+        onDownload={() => {
+          // Trigger PDF export
+          const exportButton = document.querySelector('[data-export-button]');
+          (exportButton as HTMLButtonElement)?.click();
+        }}
+        onShare={() => {
+          if (navigator.share && route) {
+            navigator.share({
+              title: `Weather forecast for ${route.name}`,
+              text: `Check out the weather forecast for my ${route.totalDistance.toFixed(1)}km route`,
+              url: window.location.href
+            });
+          } else {
+            // Fallback to clipboard
+            navigator.clipboard.writeText(window.location.href);
+            toast.success('Link copied to clipboard!');
+          }
+        }}
+      />
     </>
   );
 }

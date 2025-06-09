@@ -25,9 +25,7 @@ import { WeatherForecast, SelectedWeatherPoint } from '@/types';
 import { formatTemperature, formatWindSpeed, formatPrecipitation, formatPressure } from '@/lib/format';
 import { CHART_CONFIG } from '@/lib/constants';
 import { ChartDataExport } from './ChartDataExport';
-import { ChartAnnotations } from './ChartAnnotations';
 import { WeatherAnalytics } from './WeatherAnalytics';
-import { ChartComparison } from './ChartComparison';
 
 // Lazy load Chart.js components with advanced features
 const LazyLineChart = lazy(() => 
@@ -680,24 +678,12 @@ export function ProWeatherCharts({
             chartRef={chartRef}
           />
 
-          {/* Chart Annotations */}
-          <ChartAnnotations
+          {/* Weather Analytics */}
+          <WeatherAnalytics
             forecasts={forecasts}
-            onAnnotationSelect={(pointIndex) => onPointSelect?.(pointIndex, 'chart')}
+            units={units}
           />
         </div>
-
-        {/* Weather Analytics */}
-        <WeatherAnalytics
-          forecasts={forecasts}
-          units={units}
-        />
-
-        {/* Chart Comparison */}
-        <ChartComparison
-          currentForecasts={forecasts}
-          units={units}
-        />
       </CardContent>
     </Card>
   );
