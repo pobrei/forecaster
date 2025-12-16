@@ -34,7 +34,7 @@ export function createValidationMiddleware<T, R>(schema: z.ZodSchema<T>) {
       
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const validationErrors = error.errors.map(err => ({
+        const validationErrors = error.issues.map(err => ({
           path: err.path.join('.'),
           message: err.message,
           code: err.code,
@@ -70,7 +70,7 @@ export function createValidationMiddleware<T, R>(schema: z.ZodSchema<T>) {
 
 // Rate limiting validation
 export const rateLimitSchema = z.object({
-  ip: z.string().ip(),
+  ip: z.string().regex(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$|^(?:[a-fA-F0-9]{1,4}:){7}[a-fA-F0-9]{1,4}$/, 'Invalid IP address'),
   userAgent: z.string().max(500).optional(),
   endpoint: z.string().max(100)
 });
@@ -78,7 +78,7 @@ export const rateLimitSchema = z.object({
 // Request metadata validation
 export const requestMetadataSchema = z.object({
   timestamp: z.date(),
-  ip: z.string().ip(),
+  ip: z.string().regex(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$|^(?:[a-fA-F0-9]{1,4}:){7}[a-fA-F0-9]{1,4}$/, 'Invalid IP address'),
   userAgent: z.string().max(500).optional(),
   referer: z.string().url().optional()
 });
@@ -90,7 +90,7 @@ export function validateInput<T>(schema: z.ZodSchema<T>) {
       return schema.parse(input);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const errorMessages = error.errors.map(err => 
+        const errorMessages = error.issues.map(err =>
           `${err.path.join('.')}: ${err.message}`
         ).join(', ');
         throw new ValidationError(`Validation failed: ${errorMessages}`);

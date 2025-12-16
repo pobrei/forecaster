@@ -48,10 +48,10 @@ async function uploadHandler(
   });
 
   if (!fileValidation.success) {
-    console.error('File validation failed:', fileValidation.error.errors);
+    console.error('File validation failed:', fileValidation.error.issues);
 
     // Provide more specific error messages for iOS Safari users
-    const errors = fileValidation.error.errors;
+    const errors = fileValidation.error.issues;
     const mimeTypeError = errors.find(e => e.path.includes('type'));
     const nameError = errors.find(e => e.path.includes('name'));
 
@@ -64,7 +64,7 @@ async function uploadHandler(
     }
 
     throw new ValidationError(userFriendlyMessage, {
-      errors: fileValidation.error.errors,
+      errors: fileValidation.error.issues,
       isIOSSafariIssue: file.type === ''
     });
   }
@@ -79,7 +79,7 @@ async function uploadHandler(
   if (!contentValidation.success) {
     throw new ValidationError(
       'Invalid GPX content',
-      { errors: contentValidation.error.errors }
+      { errors: contentValidation.error.issues }
     );
   }
 

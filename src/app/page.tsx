@@ -8,7 +8,6 @@ import { FileUpload } from '@/components/features/ClientOnlyFileUpload';
 import { SettingsPanel } from '@/components/features/SettingsPanel';
 import { WeatherMap } from '@/components/features/WeatherMap';
 import { WeatherCharts } from '@/components/features/WeatherCharts';
-import { ProWeatherCharts } from '@/components/charts/ProWeatherCharts';
 import { WeatherTimeline } from '@/components/features/WeatherTimeline';
 import { WeatherSummary } from '@/components/features/WeatherSummary';
 import { UnifiedExport } from '@/components/features/UnifiedExport';
@@ -39,7 +38,6 @@ export default function Home() {
   });
   const [selectedPoint, setSelectedPoint] = useState<SelectedWeatherPoint | null>(null);
   const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false);
-  const [chartMode, setChartMode] = useState<'standard' | 'professional'>('professional');
 
   // Use progressive weather loading hook
   const {
@@ -256,21 +254,12 @@ export default function Home() {
               selectedPoint={selectedPoint}
               onPointSelect={handlePointSelection}
             />
-            {chartMode === 'professional' ? (
-              <ProWeatherCharts
-                forecasts={forecasts}
-                units={settings.units}
-                onPointSelect={handlePointSelection}
-                selectedPoint={selectedPoint}
-              />
-            ) : (
-              <WeatherCharts
-                forecasts={forecasts}
-                units={settings.units}
-                onPointSelect={handlePointSelection}
-                selectedPoint={selectedPoint}
-              />
-            )}
+            <WeatherCharts
+              forecasts={forecasts}
+              units={settings.units}
+              onPointSelect={handlePointSelection}
+              selectedPoint={selectedPoint}
+            />
           </div>
 
           {/* Export Section */}
@@ -308,77 +297,7 @@ export default function Home() {
           </Card>
 
           {/* Advanced Features Section */}
-          {showAdvancedFeatures && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="grid grid-cols-1 gap-8">
-              </div>
 
-              {/* Chart Mode Selection */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    Chart Rendering Mode
-                    <HelpTooltip
-                      title="Chart Modes"
-                      content="Standard charts provide basic weather visualization, while Professional charts include advanced analytics, data export, and customization options."
-                    />
-                  </CardTitle>
-                  <CardDescription>
-                    Choose between standard and professional chart modes
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Card
-                        className={`cursor-pointer transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 ${
-                          chartMode === 'standard'
-                            ? 'border-primary bg-primary/5 shadow-md'
-                            : 'hover:border-primary/50'
-                        }`}
-                        onClick={() => setChartMode('standard')}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <h3 className="font-medium mb-1">Standard Charts</h3>
-                              <p className="text-sm text-muted-foreground">Basic chart functionality with essential features</p>
-                            </div>
-                            <BarChart3 className="h-5 w-5 text-muted-foreground" />
-                          </div>
-                        </CardContent>
-                      </Card>
-                      <Card
-                        className={`cursor-pointer transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 relative overflow-hidden ${
-                          chartMode === 'professional'
-                            ? 'border-primary bg-gradient-to-br from-primary/5 to-primary/10 shadow-md'
-                            : 'hover:border-primary/50'
-                        }`}
-                        onClick={() => setChartMode('professional')}
-                      >
-                        <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-primary/20 to-transparent rounded-bl-full" />
-                        <CardContent className="p-4 relative">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <h3 className="font-medium flex items-center gap-2 mb-1">
-                                Professional Charts
-                                <Badge className="text-xs bg-gradient-to-r from-primary to-primary/80">PRO</Badge>
-                              </h3>
-                              <p className="text-sm text-muted-foreground">Advanced features, analytics & data export</p>
-                            </div>
-                            <Zap className="h-5 w-5 text-primary" />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      <strong>Current mode:</strong> {chartMode === 'professional' ? 'Professional (Recommended)' : 'Standard'}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
         </div>
       )}
 

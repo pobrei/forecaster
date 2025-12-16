@@ -249,7 +249,7 @@ export function validateFile(file: File): { valid: boolean; errors: string[] } {
     if (error instanceof z.ZodError) {
       return {
         valid: false,
-        errors: error.errors.map(err => err.message)
+        errors: error.issues.map(err => err.message)
       }
     }
     return { valid: false, errors: ['Unknown validation error'] }

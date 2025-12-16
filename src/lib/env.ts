@@ -16,18 +16,18 @@ const envSchema = z.object({
   // Security (Optional - only needed if using NextAuth)
   NEXTAUTH_SECRET: z.string().optional(),
   NEXTAUTH_URL: z.string().url().default('http://localhost:3000'),
-  CONTENT_SECURITY_POLICY_ENABLED: z.string().transform(val => val === 'true').default('false'),
-  
+  CONTENT_SECURITY_POLICY_ENABLED: z.string().default('false').transform(val => val === 'true'),
+
   // Rate Limiting
-  RATE_LIMIT_MAX: z.string().transform(Number).default('60'),
-  RATE_LIMIT_WINDOW: z.string().transform(Number).default('60000'),
-  
+  RATE_LIMIT_MAX: z.string().default('60').transform(Number),
+  RATE_LIMIT_WINDOW: z.string().default('60000').transform(Number),
+
   // File Upload
-  MAX_FILE_SIZE: z.string().transform(Number).default('5242880'),
-  MAX_WAYPOINTS: z.string().transform(Number).default('2000'),
-  
+  MAX_FILE_SIZE: z.string().default('5242880').transform(Number),
+  MAX_WAYPOINTS: z.string().default('2000').transform(Number),
+
   // Cache
-  CACHE_DURATION: z.string().transform(Number).default('3600000'),
+  CACHE_DURATION: z.string().default('3600000').transform(Number),
   REDIS_URL: z.string().optional(),
   
   // Monitoring (Optional)
@@ -35,7 +35,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_ANALYTICS_ID: z.string().optional(),
   
   // Debug
-  DEBUG: z.string().transform(val => val === 'true').default('false'),
+  DEBUG: z.string().default('false').transform(val => val === 'true'),
 })
 
 // Validate environment variables
@@ -44,7 +44,7 @@ function validateEnv() {
     return envSchema.parse(process.env)
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const missingVars = error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join('\n')
+      const missingVars = error.issues.map(err => `${err.path.join('.')}: ${err.message}`).join('\n')
       throw new Error(`Environment validation failed:\n${missingVars}`)
     }
     throw error
