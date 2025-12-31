@@ -214,3 +214,6 @@ export interface CachedRoute {
   createdAt: Date;
   lastAccessed: Date;
 }
+
+// Re-export weather source types
+export * from './weather-sources';

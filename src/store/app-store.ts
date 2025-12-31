@@ -3,40 +3,55 @@ import { immer } from 'zustand/middleware/immer'
 import { persist } from 'zustand/middleware'
 import { Route, WeatherForecast, AppSettings, SelectedWeatherPoint } from '@/types'
 import { ROUTE_CONFIG } from '@/lib/constants'
+import {
+  WeatherSourcePreferences,
+  WeatherProviderId,
+  ProviderStatusInfo,
+  MultiSourceWeatherForecast,
+  DEFAULT_WEATHER_SOURCE_PREFERENCES,
+} from '@/types/weather-sources'
 
 // Store state interface
 interface AppState {
   // Route data
   route: Route | null
   forecasts: WeatherForecast[]
+  multiSourceForecasts: MultiSourceWeatherForecast[]
   selectedPoint: SelectedWeatherPoint | null
-  
+
   // UI state
   isGeneratingForecast: boolean
   isUploadingFile: boolean
   sidebarOpen: boolean
-  
+
   // Settings
   settings: AppSettings
-  
+
+  // Weather source settings
+  weatherSourcePreferences: WeatherSourcePreferences
+  providerStatuses: Map<WeatherProviderId, ProviderStatusInfo>
+
   // Cache and performance
   lastForecastGenerated: Date | null
   cacheHit: boolean
-  
+
   // Error state
   lastError: string | null
-  
+
   // Actions
   setRoute: (route: Route | null) => void
   setForecasts: (forecasts: WeatherForecast[]) => void
+  setMultiSourceForecasts: (forecasts: MultiSourceWeatherForecast[]) => void
   setSelectedPoint: (point: SelectedWeatherPoint | null) => void
   setIsGeneratingForecast: (loading: boolean) => void
   setIsUploadingFile: (loading: boolean) => void
   setSidebarOpen: (open: boolean) => void
   updateSettings: (settings: Partial<AppSettings>) => void
+  updateWeatherSourcePreferences: (prefs: Partial<WeatherSourcePreferences>) => void
+  setProviderStatuses: (statuses: Map<WeatherProviderId, ProviderStatusInfo>) => void
   setLastError: (error: string | null) => void
   setCacheHit: (hit: boolean) => void
-  
+
   // Computed getters
   hasData: () => boolean
   getTotalAlerts: () => number
@@ -45,7 +60,7 @@ interface AppState {
     totalPoints: number
     estimatedDuration: number
   } | null
-  
+
   // Actions
   clearData: () => void
   resetToDefaults: () => void
@@ -67,11 +82,14 @@ export const useAppStore = create<AppState>()(
       // Initial state
       route: null,
       forecasts: [],
+      multiSourceForecasts: [],
       selectedPoint: null,
       isGeneratingForecast: false,
       isUploadingFile: false,
       sidebarOpen: false,
       settings: defaultSettings,
+      weatherSourcePreferences: DEFAULT_WEATHER_SOURCE_PREFERENCES,
+      providerStatuses: new Map(),
       lastForecastGenerated: null,
       cacheHit: false,
       lastError: null,
@@ -92,6 +110,12 @@ export const useAppStore = create<AppState>()(
           state.forecasts = forecasts
           state.lastForecastGenerated = new Date()
           state.selectedPoint = null // Reset selection
+        }),
+
+      setMultiSourceForecasts: (forecasts) =>
+        set((state) => {
+          state.multiSourceForecasts = forecasts
+          state.lastForecastGenerated = new Date()
         }),
 
       setSelectedPoint: (point) =>
@@ -123,6 +147,16 @@ export const useAppStore = create<AppState>()(
       updateSettings: (newSettings) =>
         set((state) => {
           state.settings = { ...state.settings, ...newSettings }
+        }),
+
+      updateWeatherSourcePreferences: (prefs) =>
+        set((state) => {
+          state.weatherSourcePreferences = { ...state.weatherSourcePreferences, ...prefs }
+        }),
+
+      setProviderStatuses: (statuses) =>
+        set((state) => {
+          state.providerStatuses = statuses
         }),
 
       setLastError: (error) =>
@@ -165,6 +199,7 @@ export const useAppStore = create<AppState>()(
         set((state) => {
           state.route = null
           state.forecasts = []
+          state.multiSourceForecasts = []
           state.selectedPoint = null
           state.lastForecastGenerated = null
           state.cacheHit = false
@@ -182,6 +217,7 @@ export const useAppStore = create<AppState>()(
         // Only persist settings and some UI state
         settings: state.settings,
         sidebarOpen: state.sidebarOpen,
+        weatherSourcePreferences: state.weatherSourcePreferences,
       }),
     }
   )
@@ -190,8 +226,11 @@ export const useAppStore = create<AppState>()(
 // Selectors for better performance
 export const useRoute = () => useAppStore((state) => state.route)
 export const useForecasts = () => useAppStore((state) => state.forecasts)
+export const useMultiSourceForecasts = () => useAppStore((state) => state.multiSourceForecasts)
 export const useSelectedPoint = () => useAppStore((state) => state.selectedPoint)
 export const useSettings = () => useAppStore((state) => state.settings)
+export const useWeatherSourcePreferences = () => useAppStore((state) => state.weatherSourcePreferences)
+export const useProviderStatuses = () => useAppStore((state) => state.providerStatuses)
 export const useIsLoading = () => useAppStore((state) => ({
   isGeneratingForecast: state.isGeneratingForecast,
   isUploadingFile: state.isUploadingFile,
@@ -204,10 +243,13 @@ export const useRouteStats = () => useAppStore((state) => state.getRouteStats())
 export const useAppActions = () => useAppStore((state) => ({
   setRoute: state.setRoute,
   setForecasts: state.setForecasts,
+  setMultiSourceForecasts: state.setMultiSourceForecasts,
   setSelectedPoint: state.setSelectedPoint,
   setIsGeneratingForecast: state.setIsGeneratingForecast,
   setIsUploadingFile: state.setIsUploadingFile,
   updateSettings: state.updateSettings,
+  updateWeatherSourcePreferences: state.updateWeatherSourcePreferences,
+  setProviderStatuses: state.setProviderStatuses,
   clearData: state.clearData,
   resetToDefaults: state.resetToDefaults,
 }))
