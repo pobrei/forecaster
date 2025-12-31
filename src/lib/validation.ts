@@ -72,8 +72,10 @@ export const secureFileValidationSchema = z.object({
   name: z.string()
     .min(1, 'Filename is required')
     .max(255, 'Filename too long')
-    .regex(/^[a-zA-Z0-9._\s-]+\.gpx$/i, 'Invalid filename format - must be a .gpx file')
-    .refine((name) => !name.includes('..'), 'Filename contains invalid characters'),
+    // Allow most characters but ensure .gpx extension and no path traversal
+    .regex(/^[^<>:"/\\|?*\x00-\x1f]+\.gpx$/i, 'Invalid filename format - must be a .gpx file')
+    .refine((name) => !name.includes('..'), 'Filename contains invalid characters')
+    .refine((name) => !name.startsWith('.'), 'Filename cannot start with a dot'),
   size: z.number()
     .positive('File size must be positive')
     .max(GPX_CONSTRAINTS.MAX_FILE_SIZE, `File too large (max ${GPX_CONSTRAINTS.MAX_FILE_SIZE / 1024 / 1024}MB)`),

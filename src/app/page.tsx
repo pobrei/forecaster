@@ -2,10 +2,10 @@
 
 import { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from '@/components/ui/badge';
-import { BarChart3, Zap, Thermometer, Wind, CloudRain, Sun } from 'lucide-react';
+import { Thermometer, Wind, CloudRain, Sun, Layers } from 'lucide-react';
 import { FileUpload } from '@/components/features/ClientOnlyFileUpload';
 import { SettingsPanel } from '@/components/features/SettingsPanel';
+import { WeatherSourceSelector } from '@/components/features/WeatherSourceSelector';
 import { WeatherMap } from '@/components/features/WeatherMap';
 import { WeatherCharts } from '@/components/features/WeatherCharts';
 import { WeatherTimeline } from '@/components/features/WeatherTimeline';
@@ -14,10 +14,8 @@ import { UnifiedExport } from '@/components/features/UnifiedExport';
 import { PerformanceIndicator } from '@/components/ui/performance-indicator';
 
 import { ProgressBreadcrumbs } from '@/components/ui/progress-breadcrumbs';
-import { HelpTooltip } from '@/components/ui/enhanced-tooltip';
 import { MetricGrid } from '@/components/ui/metric-card';
 
-import { StatusBadge } from '@/components/ui/status-indicator';
 import { SmartSuggestions, generateWeatherSuggestions } from '@/components/ui/smart-suggestions';
 
 import { Header } from '@/components/layout/Header';
@@ -25,6 +23,8 @@ import { PWAInstallBanner, PWAOfflineBanner } from '@/components/features/PWAIns
 import { Route, AppSettings, SelectedWeatherPoint } from '@/types';
 import { ROUTE_CONFIG } from '@/lib/constants';
 import { useProgressiveWeather } from '@/hooks/useProgressiveWeather';
+import { useWeatherSourcePreferences, useAppStore } from '@/store/app-store';
+import { WeatherSourcePreferences } from '@/types/weather-sources';
 import { toast } from 'sonner';
 
 export default function Home() {
@@ -37,7 +37,14 @@ export default function Home() {
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   });
   const [selectedPoint, setSelectedPoint] = useState<SelectedWeatherPoint | null>(null);
-  const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false);
+
+  // Weather source preferences from store
+  const weatherSourcePreferences = useWeatherSourcePreferences();
+  const updateWeatherSourcePreferences = useAppStore((state) => state.updateWeatherSourcePreferences);
+
+  const handleWeatherSourceChange = useCallback((prefs: WeatherSourcePreferences) => {
+    updateWeatherSourcePreferences(prefs);
+  }, [updateWeatherSourcePreferences]);
 
   // Use progressive weather loading hook
   const {
@@ -108,32 +115,17 @@ export default function Home() {
       <Header />
       <PWAOfflineBanner />
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Hero Section */}
-        <div className="text-center mb-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-          <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6">
-            <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent">
+      <div className="container mx-auto px-4 py-6 md:py-10">
+        {/* Hero Section - Clean and Minimal */}
+        <div className="text-center mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+            <span className="bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
               Forecaster
             </span>
           </h1>
-          <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            A weather planning application for outdoor activities. Upload GPX files,
-            analyze weather conditions along your path, and make informed decisions for your adventures.
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Plan your outdoor adventures with accurate weather forecasts along your route
           </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm">
-            <StatusBadge status="live" showPulse>
-              Open-Meteo Weather Service
-            </StatusBadge>
-            <StatusBadge status="success">
-              Interactive Maps
-            </StatusBadge>
-            <StatusBadge status="success">
-              PDF Reports
-            </StatusBadge>
-            <StatusBadge status="success">
-              Professional Analytics
-            </StatusBadge>
-          </div>
         </div>
 
         {/* Progress Breadcrumbs */}
@@ -143,87 +135,92 @@ export default function Home() {
           className="mb-8"
         />
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        {/* Upload Section */}
-        <FileUpload
-          onRouteUploaded={handleRouteUploaded}
-          isLoading={isGeneratingForecast}
-          className="lg:col-span-1"
-        />
-
-        {/* Settings Panel */}
-        <SettingsPanel
-          settings={settings}
-          onSettingsChange={handleSettingsChange}
-          onGenerateForecast={handleGenerateForecast}
-          isLoading={isGeneratingForecast}
-          hasRoute={!!route}
-          className="lg:col-span-2"
-        />
-
-        {/* Enhanced Progress Indicator for Large Routes */}
-        {isGeneratingForecast && progress.total > 1 && (
-          <div className="lg:col-span-3">
-            <PerformanceIndicator
-              isProcessing={isGeneratingForecast}
-              progress={progress.percentage}
-              currentStep={`Processing weather data chunk ${progress.current} of ${progress.total}`}
-              totalSteps={progress.total}
-              currentStepIndex={progress.current - 1}
-              estimatedTimeRemaining={route ? (100 - progress.percentage) * (route.points.length / 100) : undefined}
-              processingSpeed={route && route.points.length > 20 ? progress.percentage * 1.5 : undefined}
+        {/* Main Content - Clean Grid Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+          {/* Left Column - Upload */}
+          <div className="lg:col-span-4">
+            <FileUpload
+              onRouteUploaded={handleRouteUploaded}
+              isLoading={isGeneratingForecast}
             />
           </div>
-        )}
-      </div>
 
-      {/* Weather Data Visualization */}
-      {hasData && (
-        <div className="space-y-8">
-          {/* Smart Suggestions */}
-          <SmartSuggestions
-            suggestions={generateWeatherSuggestions(forecasts)}
-            onApplySuggestion={(suggestion) => {
-              toast.info(`Applied suggestion: ${suggestion.title}`);
-            }}
-            onDismissSuggestion={() => {
-              toast.success('Suggestion dismissed');
-            }}
+          {/* Middle Column - Settings */}
+          <div className="lg:col-span-4">
+            <SettingsPanel
+              settings={settings}
+              onSettingsChange={handleSettingsChange}
+              onGenerateForecast={handleGenerateForecast}
+              isLoading={isGeneratingForecast}
+              hasRoute={!!route}
+            />
+          </div>
+
+          {/* Right Column - Weather Sources */}
+          <div className="lg:col-span-4">
+            <WeatherSourceSelector
+              preferences={weatherSourcePreferences}
+              onPreferencesChange={handleWeatherSourceChange}
+              isLoading={isGeneratingForecast}
+            />
+          </div>
+        </div>
+
+        {/* Progress Indicator for Large Routes */}
+        {isGeneratingForecast && progress.total > 1 && (
+          <PerformanceIndicator
+            isProcessing={isGeneratingForecast}
+            progress={progress.percentage}
+            currentStep={`Loading weather... ${progress.current}/${progress.total}`}
+            totalSteps={progress.total}
+            currentStepIndex={progress.current - 1}
           />
+        )}
 
-          {/* Weather Metrics Overview */}
-          <MetricGrid
-            metrics={[
-              {
-                icon: <Thermometer className="h-8 w-8" />,
-                label: "Temperature Range",
-                value: `${Math.min(...forecasts.map(f => f.weather.temp)).toFixed(0)}° - ${Math.max(...forecasts.map(f => f.weather.temp)).toFixed(0)}°`,
-                trend: `${(Math.max(...forecasts.map(f => f.weather.temp)) - Math.min(...forecasts.map(f => f.weather.temp))).toFixed(0)}° variation`,
-                trendDirection: 'neutral',
-                color: 'red'
-              },
-              {
-                icon: <Wind className="h-8 w-8" />,
-                label: "Wind Speed",
-                value: `${Math.max(...forecasts.map(f => f.weather.wind_speed * 3.6)).toFixed(0)} km/h`,
-                trend: "Max wind speed",
-                trendDirection: 'up',
-                color: 'blue'
-              },
-              {
-                icon: <CloudRain className="h-8 w-8" />,
-                label: "Precipitation",
-                value: `${forecasts.filter(f => (f.weather.rain?.['1h'] || 0) > 0).length}`,
-                trend: `${Math.round((forecasts.filter(f => (f.weather.rain?.['1h'] || 0) > 0).length / forecasts.length) * 100)}% of route`,
-                trendDirection: forecasts.filter(f => (f.weather.rain?.['1h'] || 0) > 0).length > 0 ? 'up' : 'neutral',
-                color: 'purple'
-              },
-              {
-                icon: <Sun className="h-8 w-8" />,
-                label: "Forecast Points",
-                value: `${forecasts.length}`,
-                trend: "Data points analyzed",
+        {/* Weather Data Visualization */}
+        {hasData && (
+          <div className="space-y-6">
+            {/* Smart Suggestions - Compact */}
+            <SmartSuggestions
+              suggestions={generateWeatherSuggestions(forecasts)}
+              onApplySuggestion={(suggestion) => {
+                toast.info(`Applied: ${suggestion.title}`);
+              }}
+              onDismissSuggestion={() => {}}
+            />
+
+            {/* Weather Metrics - Clean Grid */}
+            <MetricGrid
+              metrics={[
+                {
+                  icon: <Thermometer className="h-6 w-6" />,
+                  label: "Temperature",
+                  value: `${Math.min(...forecasts.map(f => f.weather.temp)).toFixed(0)}° - ${Math.max(...forecasts.map(f => f.weather.temp)).toFixed(0)}°`,
+                  trend: `${(Math.max(...forecasts.map(f => f.weather.temp)) - Math.min(...forecasts.map(f => f.weather.temp))).toFixed(0)}° range`,
+                  trendDirection: 'neutral',
+                  color: 'red'
+                },
+                {
+                  icon: <Wind className="h-6 w-6" />,
+                  label: "Max Wind",
+                  value: `${Math.max(...forecasts.map(f => f.weather.wind_speed * 3.6)).toFixed(0)} km/h`,
+                  trend: "Peak wind speed",
+                  trendDirection: 'up',
+                  color: 'blue'
+                },
+                {
+                  icon: <CloudRain className="h-6 w-6" />,
+                  label: "Rain Points",
+                  value: `${forecasts.filter(f => (f.weather.rain?.['1h'] || 0) > 0).length}`,
+                  trend: `${Math.round((forecasts.filter(f => (f.weather.rain?.['1h'] || 0) > 0).length / forecasts.length) * 100)}% of route`,
+                  trendDirection: forecasts.filter(f => (f.weather.rain?.['1h'] || 0) > 0).length > 0 ? 'up' : 'neutral',
+                  color: 'purple'
+                },
+                {
+                  icon: <Sun className="h-6 w-6" />,
+                  label: "Data Points",
+                  value: `${forecasts.length}`,
+                  trend: "Analyzed",
                 trendDirection: 'neutral',
                 color: 'yellow'
               }
@@ -231,156 +228,72 @@ export default function Home() {
             className="mb-8"
           />
 
-          {/* Weather Summary */}
-          <WeatherSummary
-            forecasts={forecasts}
-            units={settings.units}
-          />
+            {/* Weather Summary */}
+            <WeatherSummary
+              forecasts={forecasts}
+              units={settings.units}
+            />
 
-          {/* Weather Timeline */}
-          <WeatherTimeline
-            forecasts={forecasts}
-            units={settings.units}
-            onPointSelect={handlePointSelection}
-            selectedPoint={selectedPoint}
-          />
+            {/* Weather Timeline */}
+            <WeatherTimeline
+              forecasts={forecasts}
+              units={settings.units}
+              onPointSelect={handlePointSelection}
+              selectedPoint={selectedPoint}
+            />
 
-          {/* Map and Charts */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-            <WeatherMap
+            {/* Map and Charts - Side by Side */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <WeatherMap
+                route={route}
+                forecasts={forecasts}
+                units={settings.units}
+                selectedPoint={selectedPoint}
+                onPointSelect={handlePointSelection}
+              />
+              <WeatherCharts
+                forecasts={forecasts}
+                units={settings.units}
+                onPointSelect={handlePointSelection}
+                selectedPoint={selectedPoint}
+              />
+            </div>
+
+            {/* Export */}
+            <UnifiedExport
               route={route}
               forecasts={forecasts}
-              units={settings.units}
-              selectedPoint={selectedPoint}
-              onPointSelect={handlePointSelection}
-            />
-            <WeatherCharts
-              forecasts={forecasts}
-              units={settings.units}
-              onPointSelect={handlePointSelection}
-              selectedPoint={selectedPoint}
+              settings={settings}
             />
           </div>
+        )}
 
-          {/* Export Section */}
-          <UnifiedExport
-            route={route}
-            forecasts={forecasts}
-            settings={settings}
-          />
-
-          {/* Advanced Features Toggle */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Advanced Features</CardTitle>
-              <CardDescription>
-                Explore chart modes and advanced visualization options
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Show Advanced Features</p>
-                  <p className="text-sm text-muted-foreground">
-                    Chart modes, visualization options, and advanced features
-                  </p>
+        {/* Route Summary - Show when route is loaded */}
+        {route && !hasData && (
+          <Card className="mt-6 border-dashed">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Layers className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">{route.name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {route.totalDistance.toFixed(1)} km · {route.points.length} points
+                    </p>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowAdvancedFeatures(!showAdvancedFeatures)}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-                >
-                  {showAdvancedFeatures ? 'Hide' : 'Show'}
-                </button>
+                <p className="text-sm text-muted-foreground">
+                  Configure settings and click &quot;Generate Weather Forecast&quot; to view weather data
+                </p>
               </div>
             </CardContent>
           </Card>
-
-          {/* Advanced Features Section */}
-
-        </div>
-      )}
-
-      {/* Getting Started / Features Overview */}
-      {!hasData && (
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle>Getting Started</CardTitle>
-            <CardDescription>
-              Follow these simple steps to analyze weather conditions for your outdoor activity
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="text-center">
-                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-blue-600 dark:text-blue-400 font-semibold">1</span>
-                </div>
-                <h3 className="font-semibold mb-2">Upload GPX</h3>
-                <p className="text-sm text-muted-foreground">Upload your GPX file containing the route data</p>
-              </div>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-green-600 dark:text-green-400 font-semibold">2</span>
-                </div>
-                <h3 className="font-semibold mb-2">Configure</h3>
-                <p className="text-sm text-muted-foreground">Set start time, speed, and forecast intervals</p>
-              </div>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-purple-600 dark:text-purple-400 font-semibold">3</span>
-                </div>
-                <h3 className="font-semibold mb-2">Analyze</h3>
-                <p className="text-sm text-muted-foreground">View weather data on maps and charts</p>
-              </div>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-orange-600 dark:text-orange-400 font-semibold">4</span>
-                </div>
-                <h3 className="font-semibold mb-2">Export</h3>
-                <p className="text-sm text-muted-foreground">Export weather data in multiple formats (PDF, PNG, HTML, CSV, JSON, GPX)</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Route Summary */}
-      {route && (
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle>Route Summary</CardTitle>
-            <CardDescription>
-              Overview of your uploaded route and current settings
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">Route Name:</span>
-                <div className="font-medium">{route.name}</div>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Total Distance:</span>
-                <div className="font-medium">{route.totalDistance.toFixed(1)} km</div>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Route Points:</span>
-                <div className="font-medium">{route.points.length}</div>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Forecast Points:</span>
-                <div className="font-medium">{forecasts.length}</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+        )}
       </div>
 
       <PWAInstallBanner />
-
-
     </>
   );
 }
