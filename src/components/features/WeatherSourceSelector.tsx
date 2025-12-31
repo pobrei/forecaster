@@ -1,73 +1,33 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { 
-  Cloud, CloudSun, Sun, CloudLightning, RefreshCw, Check, X, AlertCircle,
-  Settings, Layers, Zap
-} from 'lucide-react';
+import { Cloud, CloudSun, Sun, CloudLightning, Check, Settings, Layers, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   WeatherProviderId,
   WeatherSourcePreferences,
-  ProviderStatusInfo,
   WEATHER_PROVIDERS,
-  DEFAULT_WEATHER_SOURCE_PREFERENCES,
 } from '@/types/weather-sources';
 
 interface WeatherSourceSelectorProps {
   preferences: WeatherSourcePreferences;
   onPreferencesChange: (prefs: WeatherSourcePreferences) => void;
-  providerStatuses?: Map<WeatherProviderId, ProviderStatusInfo>;
-  onRefreshStatus?: () => void;
   isLoading?: boolean;
   className?: string;
 }
 
 const ProviderIcons: Record<WeatherProviderId, React.ReactNode> = {
-  'open-meteo': <Cloud className="h-5 w-5" />,
-  'weatherapi': <CloudSun className="h-5 w-5" />,
-  'visual-crossing': <CloudLightning className="h-5 w-5" />,
-  'openweathermap': <Sun className="h-5 w-5" />,
+  'open-meteo': <Cloud className="h-4 w-4" />,
+  'weatherapi': <CloudSun className="h-4 w-4" />,
+  'visual-crossing': <CloudLightning className="h-4 w-4" />,
+  'openweathermap': <Sun className="h-4 w-4" />,
 };
-
-function StatusIndicator({ status }: { status?: ProviderStatusInfo }) {
-  if (!status) {
-    return <span className="flex items-center gap-1 text-xs text-muted-foreground">
-      <AlertCircle className="h-3 w-3" /> Unknown
-    </span>;
-  }
-
-  const statusConfig = {
-    available: { color: 'bg-green-500', text: 'Available', icon: Check },
-    degraded: { color: 'bg-yellow-500', text: 'Degraded', icon: AlertCircle },
-    unavailable: { color: 'bg-red-500', text: 'Unavailable', icon: X },
-    unknown: { color: 'bg-gray-500', text: 'Unknown', icon: AlertCircle },
-  };
-
-  const config = statusConfig[status.status];
-  const Icon = config.icon;
-
-  return (
-    <span className="flex items-center gap-1.5 text-xs">
-      <span className={cn("h-2 w-2 rounded-full animate-pulse", config.color)} />
-      <span className="text-muted-foreground">{config.text}</span>
-      {status.responseTimeMs && (
-        <span className="text-muted-foreground">({status.responseTimeMs}ms)</span>
-      )}
-    </span>
-  );
-}
 
 export function WeatherSourceSelector({
   preferences,
   onPreferencesChange,
-  providerStatuses = new Map(),
-  onRefreshStatus,
   isLoading = false,
   className,
 }: WeatherSourceSelectorProps) {
@@ -124,20 +84,9 @@ export function WeatherSourceSelector({
               Weather Sources
             </CardTitle>
             <CardDescription>
-              Select and compare weather data from multiple providers
+              Choose your weather data provider
             </CardDescription>
           </div>
-          {onRefreshStatus && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRefreshStatus}
-              disabled={isLoading}
-            >
-              <RefreshCw className={cn("h-4 w-4 mr-1", isLoading && "animate-spin")} />
-              Refresh
-            </Button>
-          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -161,67 +110,64 @@ export function WeatherSourceSelector({
         </div>
 
         {/* Provider List */}
-        <div className="space-y-3">
+        <div className="space-y-2">
           {availableProviders.map(([id, config]) => {
             const providerId = id as WeatherProviderId;
-            const isEnabled = localPrefs.enabledSources.includes(providerId);
             const isPrimary = localPrefs.primarySource === providerId;
-            const status = providerStatuses.get(providerId);
-            const isConfigured = !config.apiKeyRequired ||
-              (providerId === 'weatherapi' && !!process.env.NEXT_PUBLIC_WEATHERAPI_KEY) ||
-              (providerId === 'visual-crossing' && !!process.env.NEXT_PUBLIC_VISUAL_CROSSING_KEY);
+            // Only Open-Meteo is available without API key
+            const isAvailable = !config.apiKeyRequired;
 
             return (
               <div
                 key={providerId}
+                onClick={() => isAvailable && handlePrimaryChange(providerId)}
                 className={cn(
                   "flex items-center justify-between p-3 rounded-lg border transition-all",
-                  isPrimary && "border-primary bg-primary/5",
-                  !isConfigured && "opacity-50"
+                  isPrimary && "border-primary bg-primary/5 ring-1 ring-primary",
+                  isAvailable ? "cursor-pointer hover:bg-accent" : "opacity-40 cursor-not-allowed"
                 )}
-                style={{ borderLeftColor: config.color, borderLeftWidth: 3 }}
               >
                 <div className="flex items-center gap-3">
-                  <div
-                    className="p-2 rounded-lg"
-                    style={{ backgroundColor: `${config.color}20` }}
-                  >
-                    <span style={{ color: config.color }}>
+                  <div className={cn(
+                    "p-2 rounded-lg",
+                    providerId === 'open-meteo' && "bg-emerald-100 dark:bg-emerald-900/30",
+                    providerId === 'weatherapi' && "bg-blue-100 dark:bg-blue-900/30",
+                    providerId === 'visual-crossing' && "bg-purple-100 dark:bg-purple-900/30",
+                    providerId === 'openweathermap' && "bg-orange-100 dark:bg-orange-900/30"
+                  )}>
+                    <span className={cn(
+                      providerId === 'open-meteo' && "text-emerald-600 dark:text-emerald-400",
+                      providerId === 'weatherapi' && "text-blue-600 dark:text-blue-400",
+                      providerId === 'visual-crossing' && "text-purple-600 dark:text-purple-400",
+                      providerId === 'openweathermap' && "text-orange-600 dark:text-orange-400"
+                    )}>
                       {ProviderIcons[providerId]}
                     </span>
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{config.name}</span>
+                      <span className="font-medium text-sm">{config.name}</span>
                       {isPrimary && (
-                        <Badge variant="outline" className="text-xs">Primary</Badge>
+                        <Badge variant="default" className="text-xs">Active</Badge>
                       )}
-                      {!config.apiKeyRequired && (
+                      {!config.apiKeyRequired ? (
                         <Badge variant="secondary" className="text-xs">Free</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs opacity-60">API Key</Badge>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">{config.description}</p>
-                    <StatusIndicator status={status} />
+                    <p className="text-xs text-muted-foreground line-clamp-1">{config.description}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  {isEnabled && !isPrimary && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handlePrimaryChange(providerId)}
-                      disabled={!isConfigured}
-                    >
-                      Set Primary
-                    </Button>
-                  )}
-                  <Switch
-                    checked={isEnabled}
-                    onCheckedChange={() => handleToggleSource(providerId)}
-                    disabled={!isConfigured || (isPrimary && localPrefs.enabledSources.length === 1)}
-                  />
-                </div>
+                {isAvailable && (
+                  <div className={cn(
+                    "h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0",
+                    isPrimary ? "border-primary bg-primary" : "border-muted-foreground/30"
+                  )}>
+                    {isPrimary && <Check className="h-3 w-3 text-primary-foreground" />}
+                  </div>
+                )}
               </div>
             );
           })}
