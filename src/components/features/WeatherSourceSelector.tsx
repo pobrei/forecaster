@@ -114,8 +114,14 @@ export function WeatherSourceSelector({
           {availableProviders.map(([id, config]) => {
             const providerId = id as WeatherProviderId;
             const isPrimary = localPrefs.primarySource === providerId;
-            // Only Open-Meteo is available without API key
-            const isAvailable = !config.apiKeyRequired;
+
+            // Check if provider is available (has API key or doesn't need one)
+            const hasApiKey =
+              providerId === 'open-meteo' || // Free, no key needed
+              (providerId === 'openweathermap' && !!process.env.NEXT_PUBLIC_OPENWEATHERMAP_KEY) ||
+              (providerId === 'visual-crossing' && !!process.env.NEXT_PUBLIC_VISUAL_CROSSING_KEY) ||
+              (providerId === 'weatherapi' && !!process.env.NEXT_PUBLIC_WEATHERAPI_KEY);
+            const isAvailable = !config.apiKeyRequired || hasApiKey;
 
             return (
               <div
