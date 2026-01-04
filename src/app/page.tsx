@@ -24,8 +24,9 @@ import { PWAInstallBanner, PWAOfflineBanner } from '@/components/features/PWAIns
 import { Route, AppSettings, SelectedWeatherPoint } from '@/types';
 import { ROUTE_CONFIG } from '@/lib/constants';
 import { useProgressiveWeather } from '@/hooks/useProgressiveWeather';
+import { useMultiSourceWeather } from '@/hooks/useMultiSourceWeather';
 import { useWeatherSourcePreferences, useAppStore } from '@/store/app-store';
-import { WeatherSourcePreferences } from '@/types/weather-sources';
+import { WeatherSourcePreferences, MultiSourceWeatherForecast } from '@/types/weather-sources';
 import { toast } from 'sonner';
 
 export default function Home() {
@@ -75,9 +76,26 @@ export default function Home() {
     }
   });
 
+  // Multi-source weather hook for comparison mode
+  const {
+    forecasts: multiSourceForecasts,
+    isLoading: isLoadingMultiSource,
+    loadMultiSourceWeather,
+    reset: resetMultiSource,
+    usedProviders
+  } = useMultiSourceWeather({
+    onComplete: (forecasts) => {
+      toast.success(`Loaded weather from ${forecasts[0]?.multiSourceData.sources.length || 0} source(s)`);
+    },
+    onError: (error) => {
+      toast.error(`Multi-source error: ${error}`);
+    }
+  });
+
   const handleRouteUploaded = (newRoute: Route) => {
     setRoute(newRoute);
-    resetWeatherData(); // Clear previous forecasts
+    resetWeatherData();
+    resetMultiSource();
     toast.success(`Route "${newRoute.name}" loaded successfully!`);
   };
 
@@ -102,14 +120,23 @@ export default function Home() {
     }
 
     try {
+      // Always load primary weather data
       await loadWeatherData(route, settings);
+
+      // If in comparison mode, also load multi-source data
+      if (weatherSourcePreferences.comparisonMode === 'comparison') {
+        toast.loading('Loading comparison data...', { id: 'multi-source' });
+        await loadMultiSourceWeather(route, settings, weatherSourcePreferences.enabledSources);
+        toast.dismiss('multi-source');
+      }
     } catch (error) {
-      // Error handling is done in the hook
+      toast.dismiss('multi-source');
       console.error('Forecast generation error:', error);
     }
   };
 
   const hasData = route && forecasts.length > 0;
+  const hasMultiSourceData = multiSourceForecasts.length > 0;
 
   return (
     <>
@@ -260,10 +287,10 @@ export default function Home() {
               />
             </div>
 
-            {/* Source Comparison - Show in comparison mode */}
+            {/* Source Comparison - Show in comparison mode with real multi-source data */}
             {weatherSourcePreferences.comparisonMode === 'comparison' && (
               <WeatherSourceComparison
-                forecasts={forecasts.map(f => ({
+                forecasts={hasMultiSourceData ? multiSourceForecasts : forecasts.map(f => ({
                   routePoint: f.routePoint,
                   multiSourceData: {
                     lat: f.routePoint.lat,
@@ -284,6 +311,13 @@ export default function Home() {
                 }))}
                 units={settings.units}
               />
+            )}
+
+            {/* Loading indicator for multi-source */}
+            {isLoadingMultiSource && (
+              <div className="text-center py-4 text-muted-foreground">
+                Loading comparison data from multiple sources...
+              </div>
             )}
 
             {/* Export */}
