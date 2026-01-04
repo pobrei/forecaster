@@ -28,8 +28,9 @@ export const OPEN_METEO_API = {
 } as const;
 
 // GPX File Constraints
+// Note: Vercel serverless has a 4.5MB limit, so we use 4MB for safety margin
 export const GPX_CONSTRAINTS = {
-  MAX_FILE_SIZE: 100 * 1024 * 1024, // 100MB (increased for GPX files with elevation and more data)
+  MAX_FILE_SIZE: 4 * 1024 * 1024, // 4MB (Vercel serverless limit is 4.5MB)
   MAX_WAYPOINTS: 2000, // Increased from 500 to 2000
   SUPPORTED_FORMATS: ['.gpx'],
   // iOS Safari often doesn't provide MIME types or uses different ones

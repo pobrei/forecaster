@@ -189,6 +189,14 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
       });
 
       console.log('Upload response status:', response.status);
+
+      // Handle 413 specifically (file too large)
+      if (response.status === 413) {
+        setUploadStatus('error');
+        toast.error('File is too large. Please use a GPX file under 4MB.');
+        return;
+      }
+
       const result: APIResponse<UploadResponse> = await response.json();
       console.log('Upload result:', result);
 
@@ -293,7 +301,7 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
               Choose File
             </Button>
             <p className="text-xs text-muted-foreground mt-4">
-              Supports GPX files up to 5 MB
+              Supports GPX files up to 4 MB
             </p>
             <p className="text-xs text-gray-500 mt-2">
               Having trouble? Try refreshing the page or using a different browser.
