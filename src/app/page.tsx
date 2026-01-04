@@ -11,6 +11,7 @@ import { WeatherCharts } from '@/components/features/WeatherCharts';
 import { WeatherTimeline } from '@/components/features/WeatherTimeline';
 import { WeatherSummary } from '@/components/features/WeatherSummary';
 import { UnifiedExport } from '@/components/features/UnifiedExport';
+import { WeatherSourceComparison } from '@/components/features/WeatherSourceComparison';
 import { PerformanceIndicator } from '@/components/ui/performance-indicator';
 
 import { ProgressBreadcrumbs } from '@/components/ui/progress-breadcrumbs';
@@ -258,6 +259,32 @@ export default function Home() {
                 selectedPoint={selectedPoint}
               />
             </div>
+
+            {/* Source Comparison - Show in comparison mode */}
+            {weatherSourcePreferences.comparisonMode === 'comparison' && (
+              <WeatherSourceComparison
+                forecasts={forecasts.map(f => ({
+                  routePoint: f.routePoint,
+                  multiSourceData: {
+                    lat: f.routePoint.lat,
+                    lon: f.routePoint.lon,
+                    timestamp: new Date(f.weather.dt * 1000),
+                    sources: [{
+                      ...f.weather,
+                      source: weatherSourcePreferences.primarySource,
+                      fetchedAt: new Date(),
+                    }],
+                  },
+                  primaryWeather: {
+                    ...f.weather,
+                    source: weatherSourcePreferences.primarySource,
+                    fetchedAt: new Date(),
+                  },
+                  alerts: f.alerts,
+                }))}
+                units={settings.units}
+              />
+            )}
 
             {/* Export */}
             <UnifiedExport
