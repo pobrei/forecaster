@@ -42,6 +42,7 @@ export function useMultiSourceWeather(options: UseMultiSourceWeatherOptions = {}
     }));
 
     try {
+      console.log('📊 Fetching multi-source weather data...');
       const response = await fetch('/api/weather/multi-source', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -54,10 +55,13 @@ export function useMultiSourceWeather(options: UseMultiSourceWeatherOptions = {}
       }
 
       const result = await response.json();
+      console.log('📊 Multi-source result:', result);
 
       if (!result.success) {
         throw new Error(result.error || 'Unknown error');
       }
+
+      console.log(`📊 Loaded data from ${result.data.usedProviders?.length || 0} providers:`, result.data.usedProviders);
 
       setState(prev => ({
         ...prev,

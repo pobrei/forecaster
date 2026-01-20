@@ -120,8 +120,11 @@ export default function Home() {
     }
 
     try {
+      console.log('🌤️ Comparison mode:', weatherSourcePreferences.comparisonMode);
+
       // In comparison mode, ONLY load multi-source data (which includes all sources)
       if (weatherSourcePreferences.comparisonMode === 'comparison') {
+        console.log('🌤️ Loading multi-source weather data...');
         toast.loading('Loading weather from all sources...', { id: 'multi-source' });
         await loadMultiSourceWeather(route, settings);
         // Also load primary data for backward compatibility
@@ -129,6 +132,7 @@ export default function Home() {
         toast.dismiss('multi-source');
         toast.success('Comparison data loaded from all available sources!');
       } else {
+        console.log('🌤️ Loading single-source weather data...');
         // Single source mode - just load primary weather data
         await loadWeatherData(route, settings);
       }
