@@ -120,14 +120,17 @@ export default function Home() {
     }
 
     try {
-      // Always load primary weather data
-      await loadWeatherData(route, settings);
-
-      // If in comparison mode, also load multi-source data
+      // In comparison mode, ONLY load multi-source data (which includes all sources)
       if (weatherSourcePreferences.comparisonMode === 'comparison') {
-        toast.loading('Loading comparison data...', { id: 'multi-source' });
-        await loadMultiSourceWeather(route, settings, weatherSourcePreferences.enabledSources);
+        toast.loading('Loading weather from all sources...', { id: 'multi-source' });
+        await loadMultiSourceWeather(route, settings);
+        // Also load primary data for backward compatibility
+        await loadWeatherData(route, settings);
         toast.dismiss('multi-source');
+        toast.success('Comparison data loaded from all available sources!');
+      } else {
+        // Single source mode - just load primary weather data
+        await loadWeatherData(route, settings);
       }
     } catch (error) {
       toast.dismiss('multi-source');
@@ -135,8 +138,27 @@ export default function Home() {
     }
   };
 
+  // Load comparison data when switching to comparison mode (if we already have forecasts)
+  const handleLoadComparison = async () => {
+    if (!route) {
+      toast.error('Please upload a GPX file first');
+      return;
+    }
+
+    toast.loading('Loading comparison data from all sources...', { id: 'multi-source' });
+    try {
+      await loadMultiSourceWeather(route, settings);
+      toast.dismiss('multi-source');
+      toast.success('Comparison data loaded!');
+    } catch (error) {
+      toast.dismiss('multi-source');
+      toast.error('Failed to load comparison data');
+    }
+  };
+
   const hasData = route && forecasts.length > 0;
   const hasMultiSourceData = multiSourceForecasts.length > 0;
+  const isComparisonMode = weatherSourcePreferences.comparisonMode === 'comparison';
 
   return (
     <>
@@ -287,37 +309,53 @@ export default function Home() {
               />
             </div>
 
-            {/* Source Comparison - Show in comparison mode with real multi-source data */}
-            {weatherSourcePreferences.comparisonMode === 'comparison' && (
-              <WeatherSourceComparison
-                forecasts={hasMultiSourceData ? multiSourceForecasts : forecasts.map(f => ({
-                  routePoint: f.routePoint,
-                  multiSourceData: {
-                    lat: f.routePoint.lat,
-                    lon: f.routePoint.lon,
-                    timestamp: new Date(f.weather.dt * 1000),
-                    sources: [{
-                      ...f.weather,
-                      source: weatherSourcePreferences.primarySource,
-                      fetchedAt: new Date(),
-                    }],
-                  },
-                  primaryWeather: {
-                    ...f.weather,
-                    source: weatherSourcePreferences.primarySource,
-                    fetchedAt: new Date(),
-                  },
-                  alerts: f.alerts,
-                }))}
-                units={settings.units}
-              />
-            )}
+            {/* Source Comparison - Show in comparison mode */}
+            {isComparisonMode && (
+              <>
+                {/* Show load button if no comparison data yet */}
+                {!hasMultiSourceData && !isLoadingMultiSource && (
+                  <Card className="border-dashed border-2 border-primary/30 bg-primary/5">
+                    <CardContent className="py-8">
+                      <div className="text-center space-y-4">
+                        <Layers className="h-12 w-12 mx-auto text-primary/60" />
+                        <div>
+                          <h3 className="font-semibold text-lg">Multi-Source Comparison</h3>
+                          <p className="text-muted-foreground">
+                            Load weather data from all available sources to compare predictions
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleLoadComparison}
+                          className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                        >
+                          Load Comparison Data
+                        </button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
-            {/* Loading indicator for multi-source */}
-            {isLoadingMultiSource && (
-              <div className="text-center py-4 text-muted-foreground">
-                Loading comparison data from multiple sources...
-              </div>
+                {/* Loading indicator */}
+                {isLoadingMultiSource && (
+                  <Card className="border-primary/30">
+                    <CardContent className="py-8">
+                      <div className="text-center space-y-4">
+                        <div className="h-12 w-12 mx-auto border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+                        <p className="text-muted-foreground">Loading weather from all available sources...</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Comparison Chart with real data */}
+                {hasMultiSourceData && (
+                  <WeatherSourceComparison
+                    forecasts={multiSourceForecasts}
+                    units={settings.units}
+                  />
+                )}
+              </>
             )}
 
             {/* Export */}

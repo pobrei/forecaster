@@ -159,11 +159,23 @@ export function WeatherSourceComparison({
     <Card className={className}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Layers className="h-5 w-5" />
-          Source Comparison
+          <Layers className="h-5 w-5 text-primary" />
+          Weather Source Comparison
         </CardTitle>
-        <CardDescription>
-          Comparing {sources.length} weather sources across {forecasts.length} points
+        <CardDescription className="space-y-2">
+          <span>Comparing {sources.length} weather sources across {forecasts.length} route points</span>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {sources.map(source => (
+              <span
+                key={source}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
+                style={{ backgroundColor: PROVIDER_COLORS[source].fill, color: PROVIDER_COLORS[source].line }}
+              >
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: PROVIDER_COLORS[source].line }} />
+                {WEATHER_PROVIDERS[source]?.name || source}
+              </span>
+            ))}
+          </div>
         </CardDescription>
       </CardHeader>
       <CardContent>
