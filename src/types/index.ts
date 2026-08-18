@@ -188,14 +188,7 @@ export interface WeatherSummaryStats {
   };
 }
 
-// Export/PDF Types
-export interface ExportOptions {
-  includeMap: boolean;
-  includeCharts: boolean;
-  includeWeatherDetails: boolean;
-  includeAlerts: boolean;
-  format: 'pdf' | 'json';
-}
+
 
 // Database Types (for caching)
 export interface CachedWeatherData {

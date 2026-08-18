@@ -219,6 +219,19 @@ export const useAppStore = create<AppState>()(
         sidebarOpen: state.sidebarOpen,
         weatherSourcePreferences: state.weatherSourcePreferences,
       }),
+      merge: (persistedState: any, currentState: AppState) => {
+        const merged = { ...currentState, ...(persistedState || {}) };
+        if (merged.settings) {
+          merged.settings = { ...currentState.settings, ...merged.settings };
+          if (merged.settings.startTime) {
+            const parsedDate = new Date(merged.settings.startTime);
+            merged.settings.startTime = isNaN(parsedDate.getTime()) 
+              ? new Date(Date.now() + 60 * 60 * 1000) 
+              : parsedDate;
+          }
+        }
+        return merged;
+      },
     }
   )
 )

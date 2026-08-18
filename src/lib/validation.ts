@@ -75,7 +75,15 @@ export const secureFileValidationSchema = z.object({
     // Allow most characters but ensure .gpx extension and no path traversal
     .regex(/^[^<>:"/\\|?*\x00-\x1f]+\.gpx$/i, 'Invalid filename format - must be a .gpx file')
     .refine((name) => !name.includes('..'), 'Filename contains invalid characters')
-    .refine((name) => !name.startsWith('.'), 'Filename cannot start with a dot'),
+    .refine((name) => !name.startsWith('.'), 'Filename cannot start with a dot')
+    .refine((name) => {
+      // Check for encoded dangerous characters/entities
+      const dangerousPatterns = [
+        /&[a-z0-9#]+;/i,
+        /%[0-9a-f]{2}/i,
+      ];
+      return !dangerousPatterns.some(pattern => pattern.test(name));
+    }, 'Filename contains potentially dangerous encoded characters'),
   size: z.number()
     .positive('File size must be positive')
     .max(GPX_CONSTRAINTS.MAX_FILE_SIZE, `File too large (max ${GPX_CONSTRAINTS.MAX_FILE_SIZE / 1024 / 1024}MB)`),

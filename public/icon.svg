@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="sunGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FBBF24"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)"/>
+  <!-- Sun -->
+  <circle cx="340" cy="180" r="70" fill="url(#sunGrad)"/>
+  <!-- Sun Rays -->
+  <path d="M340 80v25M340 255v25M240 180h25M415 180h25M270 110l18 18M392 232l18 18M270 250l18-18M392 128l18-18" stroke="#FBBF24" stroke-width="8" stroke-linecap="round"/>
+  <!-- Cloud -->
+  <path d="M160 360h220c38.66 0 70-31.34 70-70 0-35.08-25.82-64.12-59.54-69.15C384.88 174.4 344.53 140 295 140c-43.14 0-79.35 26.11-92.42 63.37C196.2 201.2 188.29 200 180 200c-44.18 0-80 35.82-80 80 0 44.18 35.82 80 60 80z" fill="#FFFFFF" fill-opacity="0.95"/>
+  <!-- Wind / Route Streamline -->
+  <path d="M120 400c50-20 110 20 170-10s90-40 140-10" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-dasharray="2 1" opacity="0.8"/>
+</svg>

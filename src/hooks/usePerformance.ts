@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useEffect } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { WeatherForecast, Route } from '@/types';
 
 /**
@@ -240,6 +240,3 @@ export function useRouteCalculations(route: Route | null) {
     };
   }, [route]);
 }
-
-// Import useState for useDebounce
-import { useState } from 'react';
