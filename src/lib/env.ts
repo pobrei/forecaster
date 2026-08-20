@@ -2,8 +2,8 @@ import { z } from 'zod'
 
 // Environment variable schema
 const envSchema = z.object({
-  // Database
-  MONGODB_URI: z.string().min(1, 'MongoDB URI is required'),
+  // Database (Optional - in-memory cache used when not configured)
+  MONGODB_URI: z.string().optional(),
   
   // Note: Using Open-Meteo (free service) - no API key required
   

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkDatabaseHealth, initializeDatabase } from '@/lib/mongodb';
+import { checkDatabaseHealth, initializeDatabase, isMongoConfigured } from '@/lib/mongodb';
 import { testWeatherAPI } from '@/lib/weather-service';
 import { initializeForecastCache, getForecastCacheStats } from '@/lib/forecast-cache';
 import { withRetryAndTimeout } from '@/lib/api-error-handler';
@@ -17,42 +17,44 @@ async function healthHandler(_request: NextRequest) {
   let overallStatus = 'healthy';
   const errors: string[] = [];
 
-  // Test database connection with timeout
-  try {
-    const dbHealthy = await withRetryAndTimeout(
-      () => checkDatabaseHealth(),
-      { maxRetries: 2, timeout: 5000 }
-    );
-    services.database = dbHealthy ? 'healthy' : 'unhealthy';
+  // Test database connection if configured
+  if (isMongoConfigured()) {
+    try {
+      const dbHealthy = await withRetryAndTimeout(
+        () => checkDatabaseHealth(),
+        { maxRetries: 2, timeout: 5000 }
+      );
+      services.database = dbHealthy ? 'healthy' : 'unhealthy';
 
-    if (dbHealthy) {
-      // Initialize database indexes if healthy
-      try {
-        await withRetryAndTimeout(
-          () => initializeDatabase(),
-          { maxRetries: 1, timeout: 10000 }
-        );
-        await withRetryAndTimeout(
-          () => initializeForecastCache(),
-          { maxRetries: 1, timeout: 5000 }
-        );
-        services.forecast_cache = 'healthy';
-      } catch (error) {
-        logError(error instanceof Error ? error : new Error(String(error)), { context: 'cache_initialization' });
-        services.forecast_cache = 'degraded';
-        errors.push('Cache initialization failed');
-        overallStatus = 'degraded';
+      if (dbHealthy) {
+        try {
+          await withRetryAndTimeout(
+            () => initializeDatabase(),
+            { maxRetries: 1, timeout: 10000 }
+          );
+          await withRetryAndTimeout(
+            () => initializeForecastCache(),
+            { maxRetries: 1, timeout: 5000 }
+          );
+          services.forecast_cache = 'healthy';
+        } catch (error) {
+          logError(error instanceof Error ? error : new Error(String(error)), { context: 'cache_initialization' });
+          services.forecast_cache = 'degraded';
+          errors.push('Cache initialization failed');
+          overallStatus = 'degraded';
+        }
+      } else {
+        errors.push('Database connection failed');
+        services.forecast_cache = 'memory_fallback';
       }
-    } else {
-      errors.push('Database connection failed');
-      services.forecast_cache = 'unhealthy';
-      overallStatus = 'degraded';
+    } catch (error) {
+      logError(error instanceof Error ? error : new Error(String(error)), { context: 'database_health_check' });
+      services.database = 'unhealthy';
+      services.forecast_cache = 'memory_fallback';
     }
-  } catch (error) {
-    logError(error instanceof Error ? error : new Error(String(error)), { context: 'database_health_check' });
-    services.database = 'unhealthy';
-    errors.push('Database error');
-    overallStatus = 'degraded';
+  } else {
+    services.database = 'in_memory_mode';
+    services.forecast_cache = 'healthy';
   }
 
   // Test weather API with timeout
@@ -74,17 +76,15 @@ async function healthHandler(_request: NextRequest) {
     overallStatus = 'degraded';
   }
 
-  // Get cache statistics if database is healthy
+  // Get cache statistics
   let cacheStats = null;
-  if (services.database === 'healthy') {
-    try {
-      cacheStats = await withRetryAndTimeout(
-        () => getForecastCacheStats(),
-        { maxRetries: 1, timeout: 5000 }
-      );
-    } catch (error) {
-      logError(error instanceof Error ? error : new Error(String(error)), { context: 'cache_stats' });
-    }
+  try {
+    cacheStats = await withRetryAndTimeout(
+      () => getForecastCacheStats(),
+      { maxRetries: 1, timeout: 5000 }
+    );
+  } catch (error) {
+    logError(error instanceof Error ? error : new Error(String(error)), { context: 'cache_stats' });
   }
 
   const health = {

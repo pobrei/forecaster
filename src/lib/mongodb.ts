@@ -1,4 +1,4 @@
-import { MongoClient, Db, Collection } from 'mongodb';
+import type { MongoClient, Db, Collection } from 'mongodb';
 import { CachedWeatherData, CachedRoute } from '@/types';
 
 const options = {
@@ -10,11 +10,21 @@ const options = {
 let client: MongoClient | null = null;
 let clientPromise: Promise<MongoClient> | null = null;
 
-function getClientPromise(): Promise<MongoClient> {
+export function isMongoConfigured(): boolean {
+  return !!(process.env.MONGODB_URI && process.env.MONGODB_URI.trim().length > 0);
+}
+
+// In-memory fallback caches when MongoDB is not configured or offline
+const inMemoryWeatherCache = new Map<string, { data: CachedWeatherData; expiresAt: number }>();
+const inMemoryRouteCache = new Map<string, CachedRoute>();
+
+async function getClientPromise(): Promise<MongoClient | null> {
   const uri = process.env.MONGODB_URI;
-  if (!uri) {
-    throw new Error('Invalid/Missing environment variable: "MONGODB_URI"');
+  if (!uri || !uri.trim()) {
+    return null;
   }
+
+  const { MongoClient: MongoClientClass } = await import('mongodb');
 
   if (process.env.NODE_ENV === 'development') {
     const globalWithMongo = global as typeof globalThis & {
@@ -22,13 +32,13 @@ function getClientPromise(): Promise<MongoClient> {
     };
 
     if (!globalWithMongo._mongoClientPromise) {
-      client = new MongoClient(uri, options);
+      client = new MongoClientClass(uri, options);
       globalWithMongo._mongoClientPromise = client.connect();
     }
     return globalWithMongo._mongoClientPromise;
   } else {
     if (!clientPromise) {
-      client = new MongoClient(uri, options);
+      client = new MongoClientClass(uri, options);
       clientPromise = client.connect();
     }
     return clientPromise;
@@ -37,8 +47,11 @@ function getClientPromise(): Promise<MongoClient> {
 
 // Database connection helper
 export async function connectToDatabase(): Promise<{ client: MongoClient; db: Db }> {
+  const connectedClient = await getClientPromise();
+  if (!connectedClient) {
+    throw new Error('MONGODB_URI is not configured');
+  }
   try {
-    const connectedClient = await getClientPromise();
     const db = connectedClient.db('forecaster');
     return { client: connectedClient, db };
   } catch (error) {
@@ -60,6 +73,10 @@ export async function getRouteCacheCollection(): Promise<Collection<CachedRoute>
 
 // Database initialization and indexes
 export async function initializeDatabase(): Promise<void> {
+  if (!isMongoConfigured()) {
+    console.log('MongoDB not configured - skipping database initialization');
+    return;
+  }
   try {
     const { db } = await connectToDatabase();
     
@@ -82,6 +99,9 @@ export async function initializeDatabase(): Promise<void> {
 
 // Health check for database
 export async function checkDatabaseHealth(): Promise<boolean> {
+  if (!isMongoConfigured()) {
+    return false;
+  }
   try {
     const { client } = await connectToDatabase();
     await client.db('admin').command({ ping: 1 });
@@ -98,90 +118,137 @@ export async function getCachedWeatherData(
   lon: number, 
   maxAge: number = 3600000 // 1 hour default
 ): Promise<CachedWeatherData | null> {
-  try {
-    const collection = await getWeatherCacheCollection();
-    const cutoff = new Date(Date.now() - maxAge);
-    
-    const cached = await collection.findOne({
-      lat: { $gte: lat - 0.01, $lte: lat + 0.01 }, // ~1km tolerance
-      lon: { $gte: lon - 0.01, $lte: lon + 0.01 },
-      timestamp: { $gte: cutoff }
-    });
-    
-    return cached;
-  } catch (error) {
-    console.error('Error fetching cached weather data:', error);
-    return null;
+  // Try MongoDB first if configured
+  if (isMongoConfigured()) {
+    try {
+      const collection = await getWeatherCacheCollection();
+      const cutoff = new Date(Date.now() - maxAge);
+      
+      const cached = await collection.findOne({
+        lat: { $gte: lat - 0.01, $lte: lat + 0.01 }, // ~1km tolerance
+        lon: { $gte: lon - 0.01, $lte: lon + 0.01 },
+        timestamp: { $gte: cutoff }
+      });
+      
+      if (cached) return cached;
+    } catch (error) {
+      console.warn('MongoDB weather cache lookup failed, falling back to memory:', error);
+    }
   }
+
+  // Fallback to in-memory cache
+  const key = `${lat.toFixed(2)}_${lon.toFixed(2)}`;
+  const item = inMemoryWeatherCache.get(key);
+  if (item) {
+    if (Date.now() < item.expiresAt && Date.now() - new Date(item.data.timestamp).getTime() <= maxAge) {
+      return item.data;
+    }
+    inMemoryWeatherCache.delete(key);
+  }
+
+  return null;
 }
 
 export async function setCachedWeatherData(data: Omit<CachedWeatherData, '_id'>): Promise<void> {
-  try {
-    const collection = await getWeatherCacheCollection();
-    await collection.insertOne({
-      ...data,
-      timestamp: new Date(),
-      expiresAt: new Date(Date.now() + (process.env.CACHE_DURATION ? parseInt(process.env.CACHE_DURATION) : 3600000))
-    });
-  } catch (error) {
-    console.error('Error caching weather data:', error);
-    // Don't throw - caching failure shouldn't break the app
+  const duration = process.env.CACHE_DURATION ? parseInt(process.env.CACHE_DURATION) : 3600000;
+  const expiresAt = Date.now() + duration;
+  const cachedData: CachedWeatherData = {
+    ...data,
+    timestamp: new Date(),
+    expiresAt: new Date(expiresAt)
+  };
+
+  // Cache in-memory
+  const key = `${data.lat.toFixed(2)}_${data.lon.toFixed(2)}`;
+  inMemoryWeatherCache.set(key, { data: cachedData, expiresAt });
+
+  // Also persist to MongoDB if configured
+  if (isMongoConfigured()) {
+    try {
+      const collection = await getWeatherCacheCollection();
+      await collection.insertOne(cachedData);
+    } catch (error) {
+      console.warn('MongoDB weather caching failed:', error);
+    }
   }
 }
 
 // Route cache operations
 export async function getCachedRoute(hash: string): Promise<CachedRoute | null> {
-  try {
-    const collection = await getRouteCacheCollection();
-    const cached = await collection.findOne({ hash });
-    
-    if (cached) {
-      // Update last accessed time
-      await collection.updateOne(
-        { hash },
-        { $set: { lastAccessed: new Date() } }
-      );
+  if (isMongoConfigured()) {
+    try {
+      const collection = await getRouteCacheCollection();
+      const cached = await collection.findOne({ hash });
+      
+      if (cached) {
+        // Update last accessed time
+        await collection.updateOne(
+          { hash },
+          { $set: { lastAccessed: new Date() } }
+        );
+        return cached;
+      }
+    } catch (error) {
+      console.warn('MongoDB route cache lookup failed, falling back to memory:', error);
     }
-    
-    return cached;
-  } catch (error) {
-    console.error('Error fetching cached route:', error);
-    return null;
   }
+
+  // Fallback to in-memory cache
+  const cached = inMemoryRouteCache.get(hash);
+  if (cached) {
+    cached.lastAccessed = new Date();
+    return cached;
+  }
+
+  return null;
 }
 
 export async function setCachedRoute(data: Omit<CachedRoute, '_id'>): Promise<void> {
-  try {
-    const collection = await getRouteCacheCollection();
-    await collection.replaceOne(
-      { hash: data.hash },
-      {
-        ...data,
-        createdAt: new Date(),
-        lastAccessed: new Date()
-      },
-      { upsert: true }
-    );
-  } catch (error) {
-    console.error('Error caching route data:', error);
-    // Don't throw - caching failure shouldn't break the app
+  const routeData: CachedRoute = {
+    ...data,
+    createdAt: new Date(),
+    lastAccessed: new Date()
+  };
+
+  // Cache in-memory
+  inMemoryRouteCache.set(data.hash, routeData);
+
+  if (isMongoConfigured()) {
+    try {
+      const collection = await getRouteCacheCollection();
+      await collection.replaceOne(
+        { hash: data.hash },
+        routeData,
+        { upsert: true }
+      );
+    } catch (error) {
+      console.warn('MongoDB route caching failed:', error);
+    }
   }
 }
 
 // Cleanup old cache entries
 export async function cleanupCache(): Promise<void> {
-  try {
-    const { db } = await connectToDatabase();
-    
-    // Clean up old route cache (older than 30 days)
-    const routeCache = db.collection('route_cache');
-    const routeCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    await routeCache.deleteMany({ lastAccessed: { $lt: routeCutoff } });
-    
-    console.log('Cache cleanup completed');
-  } catch (error) {
-    console.error('Error during cache cleanup:', error);
+  // Clean memory cache
+  const now = Date.now();
+  for (const [key, item] of inMemoryWeatherCache.entries()) {
+    if (now > item.expiresAt) {
+      inMemoryWeatherCache.delete(key);
+    }
+  }
+
+  if (isMongoConfigured()) {
+    try {
+      const { db } = await connectToDatabase();
+      const routeCache = db.collection('route_cache');
+      const routeCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      await routeCache.deleteMany({ lastAccessed: { $lt: routeCutoff } });
+      console.log('Cache cleanup completed');
+    } catch (error) {
+      console.error('Error during cache cleanup:', error);
+    }
   }
 }
 
 export default getClientPromise;
+

@@ -43,12 +43,15 @@ jest.mock('react-chartjs-2', () => ({
   Bar: jest.fn(() => <div data-testid="bar-chart" />),
 }))
 
-// Mock file reading
-global.FileReader = class {
-  readAsText() {
-    this.onload({ target: { result: '<gpx></gpx>' } })
-  }
-}
+// Polyfill TextEncoder and TextDecoder
+const { TextEncoder, TextDecoder } = require('util');
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
+// Polyfill Blob and File with node:buffer implementations
+const { Blob: NodeBlob, File: NodeFile } = require('node:buffer');
+global.Blob = NodeBlob;
+global.File = NodeFile;
 
 // Mock fetch
 global.fetch = jest.fn()

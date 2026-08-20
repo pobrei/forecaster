@@ -21,6 +21,7 @@ import {
   generateTextPDFReport,
   generateHTMLReport,
   generateCSVReport,
+  generateGeoJSONReport,
   downloadBlob,
   generateExportFilename
 } from '@/lib/pdf-generator';
@@ -155,6 +156,24 @@ export function UnifiedExport({ route, forecasts, settings, className }: Unified
     } catch (error) {
       console.error('JSON export error:', error);
       toast.error('Failed to export JSON data');
+    }
+  };
+
+  // GeoJSON Export
+  const handleExportGeoJSON = async () => {
+    if (!route || !forecasts.length) {
+      toast.error('No data available for export');
+      return;
+    }
+
+    try {
+      const geojsonBlob = generateGeoJSONReport(route, forecasts, settings);
+      const filename = generateExportFilename(route, 'geojson');
+      downloadBlob(geojsonBlob, filename);
+      toast.success('GeoJSON route exported successfully!');
+    } catch (error) {
+      console.error('GeoJSON export error:', error);
+      toast.error('Failed to export GeoJSON');
     }
   };
 
@@ -371,6 +390,16 @@ export function UnifiedExport({ route, forecasts, settings, className }: Unified
               >
                 <FileCode className="h-4 w-4" />
                 Export JSON Data
+              </Button>
+
+              <Button
+                onClick={handleExportGeoJSON}
+                disabled={isExporting}
+                className="flex items-center gap-2"
+                variant="outline"
+              >
+                <FileCode className="h-4 w-4" />
+                Export GeoJSON Route
               </Button>
             </div>
           </TabsContent>

@@ -45,11 +45,11 @@ export function useProgressiveWeather(options: UseProgressiveWeatherOptions = {}
     }));
 
     try {
-      // First, try the regular endpoint for smaller routes
       const estimatedPoints = Math.ceil(route.totalDistance / (settings?.forecastInterval || 5));
       
-      if (estimatedPoints <= 100) {
-        console.log('Using regular weather endpoint for small route');
+      // For moderate routes, use regular endpoint
+      if (estimatedPoints <= 50) {
+        console.log('Using regular weather endpoint for route');
         const response = await fetch('/api/weather', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -71,44 +71,83 @@ export function useProgressiveWeather(options: UseProgressiveWeatherOptions = {}
           onComplete?.(forecasts);
           return forecasts;
         } else if (response.status !== 408 && response.status !== 504) {
-          // If it's not a timeout, throw the error
           const errorData = await response.json();
           throw new Error(errorData.error || 'Failed to fetch weather data');
         }
-        
-        console.log('Regular endpoint timed out, falling back to progressive loading');
       }
 
-      // Use progressive loading for large routes or timeout fallback
-      console.log('Using progressive weather endpoint for large route');
+      // For larger routes or timeouts, use chunked progressive loading
+      console.log('Using progressive chunked weather loading');
+      const actualChunkSize = chunkSize || 25;
+      const totalEstimatedChunks = Math.max(1, Math.ceil(estimatedPoints / actualChunkSize));
+      
+      const allForecasts: WeatherForecast[] = [];
+      let currentChunk = 0;
+      let totalChunks = totalEstimatedChunks;
+      let isDone = false;
 
-      // For now, fall back to regular endpoint since progressive is not implemented
-      console.log('Progressive endpoint not fully implemented, falling back to regular endpoint');
+      while (!isDone && currentChunk < 50) { // Safety ceiling of 50 chunks
+        const progressInfo = {
+          current: currentChunk + 1,
+          total: totalChunks,
+          percentage: Math.round(((currentChunk + 1) / totalChunks) * 100)
+        };
 
-      const response = await fetch('/api/weather', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ route, settings })
-      });
+        setState(prev => ({
+          ...prev,
+          progress: progressInfo
+        }));
+        onProgress?.(progressInfo);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch weather data');
+        const response = await fetch('/api/weather/progressive', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            route,
+            settings,
+            chunkIndex: currentChunk,
+            chunkSize: actualChunkSize
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed to fetch weather chunk ${currentChunk + 1}`);
+        }
+
+        const resData = await response.json();
+        if (!resData.success) {
+          throw new Error(resData.error || 'Progressive fetch error');
+        }
+
+        const chunkForecasts: WeatherForecast[] = resData.data.forecasts || [];
+        allForecasts.push(...chunkForecasts);
+        totalChunks = resData.data.totalChunks || totalChunks;
+        isDone = resData.data.isComplete || currentChunk >= totalChunks - 1;
+
+        setState(prev => ({
+          ...prev,
+          forecasts: [...allForecasts],
+          progress: {
+            current: currentChunk + 1,
+            total: totalChunks,
+            percentage: Math.round(((currentChunk + 1) / totalChunks) * 100)
+          }
+        }));
+
+        currentChunk++;
       }
-
-      const data = await response.json();
-      const forecasts = data.data.forecasts;
 
       setState(prev => ({
         ...prev,
-        forecasts,
+        forecasts: allForecasts,
         isLoading: false,
         isComplete: true,
-        progress: { current: 1, total: 1, percentage: 100 }
+        progress: { current: totalChunks, total: totalChunks, percentage: 100 }
       }));
 
-      onComplete?.(forecasts);
-      return forecasts;
+      onComplete?.(allForecasts);
+      return allForecasts;
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to load weather data';

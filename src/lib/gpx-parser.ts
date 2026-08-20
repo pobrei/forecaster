@@ -130,6 +130,43 @@ function parseGPXContent(xmlContent: string): GPXData {
       }
     }
 
+    // Extract routes (<rte> and <rtept>)
+    const routeElements = xmlDoc.getElementsByTagName('rte');
+    for (let i = 0; i < routeElements.length; i++) {
+      const routeElement = routeElements[i];
+      const routeNameElements = routeElement.getElementsByTagName('name');
+      const routeName = routeNameElements[0]?.textContent || undefined;
+      const points: GPXPoint[] = [];
+
+      const rtePoints = routeElement.getElementsByTagName('rtept');
+      for (let j = 0; j < rtePoints.length; j++) {
+        const rtept = rtePoints[j];
+        const lat = parseFloat(rtept.getAttribute('lat') || '0');
+        const lon = parseFloat(rtept.getAttribute('lon') || '0');
+
+        if (isNaN(lat) || isNaN(lon)) {
+          continue;
+        }
+
+        const eleElements = rtept.getElementsByTagName('ele');
+        const timeElements = rtept.getElementsByTagName('time');
+
+        points.push({
+          lat,
+          lon,
+          ele: eleElements[0] ? parseFloat(eleElements[0].textContent || '0') : undefined,
+          time: timeElements[0]?.textContent || undefined,
+        });
+      }
+
+      if (points.length > 0) {
+        tracks.push({
+          name: routeName,
+          points
+        });
+      }
+    }
+
     // Extract waypoints
     const waypoints: GPXPoint[] = [];
     const waypointElements = xmlDoc.getElementsByTagName('wpt');
@@ -164,13 +201,22 @@ function parseGPXContent(xmlContent: string): GPXData {
  * Convert GPX data to Route with distance calculations
  */
 function convertGPXToRoute(gpxData: GPXData, routeId: string): Route {
-  if (gpxData.tracks.length === 0) {
+  if (!gpxData.tracks || gpxData.tracks.length === 0) {
     throw new Error(ERROR_MESSAGES.GPX.NO_TRACKS);
   }
 
-  // Use the first track (most common case)
-  const track = gpxData.tracks[0];
-  let gpxPoints = track.points;
+  // Combine points from all tracks / routes
+  const combinedPoints: GPXPoint[] = [];
+  gpxData.tracks.forEach(track => {
+    combinedPoints.push(...track.points);
+  });
+
+  if (combinedPoints.length === 0) {
+    throw new Error(ERROR_MESSAGES.GPX.NO_TRACKS);
+  }
+
+  const primaryName = gpxData.tracks[0]?.name || gpxData.metadata?.name || 'Imported Route';
+  let gpxPoints = combinedPoints;
 
   // Optimized point sampling for better performance
   if (gpxPoints.length > GPX_CONSTRAINTS.MAX_WAYPOINTS) {
@@ -238,7 +284,7 @@ function convertGPXToRoute(gpxData: GPXData, routeId: string): Route {
 
   return {
     id: routeId,
-    name: track.name || gpxData.metadata?.name || 'Imported Route',
+    name: primaryName,
     points: routePoints,
     totalDistance,
     totalElevationGain,
@@ -287,6 +333,22 @@ export function sampleRoutePoints(route: Route, intervalKm: number = ROUTE_CONFI
   return sampledPoints;
 }
 
+async function readFileContent(file: File): Promise<string> {
+  if (typeof (file as any).text === 'function') {
+    return await (file as any).text();
+  }
+  if (typeof (file as any).arrayBuffer === 'function') {
+    const buffer = await (file as any).arrayBuffer();
+    return new TextDecoder().decode(buffer);
+  }
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(file);
+  });
+}
+
 /**
  * Main function to parse GPX file
  */
@@ -297,25 +359,26 @@ export async function parseGPXFile(file: File): Promise<Route> {
     // Validate file
     validateGPXFile(file);
 
-    // Read file content with better error handling
+    // Read file content with resilient reader
     let content: string;
     try {
-      content = await file.text();
+      content = await readFileContent(file);
       console.log(`File content read successfully, length: ${content.length}`);
     } catch (readError) {
       console.error('Failed to read file content:', readError);
       throw new Error('Failed to read file content. Please try again.');
     }
 
-    // Check if content looks like GPX (more flexible check)
+    // Check if content looks like GPX (flexible check for tracks, routes, or gpx tag)
     const contentLower = content.toLowerCase();
     const hasGpxTag = contentLower.includes('<gpx');
-    const hasTrkptTag = contentLower.includes('<trkpt');
+    const hasTrkptTag = contentLower.includes('<trkpt') || contentLower.includes('<trk');
+    const hasRteTag = contentLower.includes('<rtept') || contentLower.includes('<rte');
     const hasXmlDeclaration = contentLower.includes('<?xml');
 
-    console.log('Content analysis:', { hasGpxTag, hasTrkptTag, hasXmlDeclaration, contentLength: content.length });
+    console.log('Content analysis:', { hasGpxTag, hasTrkptTag, hasRteTag, hasXmlDeclaration, contentLength: content.length });
 
-    if (!hasGpxTag && !hasTrkptTag) {
+    if (!hasGpxTag && !hasTrkptTag && !hasRteTag) {
       console.error('Content does not appear to be a GPX file');
       throw new Error(ERROR_MESSAGES.GPX.PARSE_ERROR);
     }

@@ -127,6 +127,29 @@ export function generateHTMLReport(
   const temps = forecasts.map(f => f.weather.temp);
   const winds = forecasts.map(f => f.weather.wind_speed);
 
+  const forecastRows = forecasts.map((f, i) => {
+    const timeStr = f.routePoint.estimatedTime ? formatDateTime(f.routePoint.estimatedTime) : '-';
+    const tempStr = formatTemperature(f.weather.temp, settings.units);
+    const condStr = f.weather.weather[0]?.description || 'Clear';
+    const windStr = `${formatWindSpeed(f.weather.wind_speed, settings.units)} ${f.weather.wind_deg ? formatWindDirection(f.weather.wind_deg) : ''}`;
+    const rainVal = (f.weather.rain?.['1h'] || f.weather.snow?.['1h']) || 0;
+    const rainStr = rainVal > 0 ? formatPrecipitation(rainVal, settings.units) : '-';
+    const alertsStr = f.alerts?.map(a => `<span style="color:#dc2626;font-weight:600;">⚠️ ${a.title}</span>`).join('<br/>') || '-';
+
+    return `
+      <tr>
+        <td>#${i + 1} (${formatDistance(f.routePoint.distance, settings.units)})</td>
+        <td>${timeStr}</td>
+        <td><strong>${tempStr}</strong></td>
+        <td>${condStr}</td>
+        <td>${windStr}</td>
+        <td>${f.weather.humidity}%</td>
+        <td>${rainStr}</td>
+        <td>${alertsStr}</td>
+      </tr>
+    `;
+  }).join('');
+
   const htmlContent = `
 <!DOCTYPE html>
 <html lang="en">
@@ -135,35 +158,72 @@ export function generateHTMLReport(
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Weather Forecast Report - ${route.name}</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; color: #333; }
-        .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #3b82f6; padding-bottom: 20px; }
-        .header h1 { color: #3b82f6; margin: 0; }
-        .summary { background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0; }
-        .forecast-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        .forecast-table th, .forecast-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
-        .forecast-table th { background: #f3f4f6; font-weight: 600; color: #374151; }
-        .forecast-table tr:hover { background: #f9fafb; }
-        .alert { background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 12px; margin: 10px 0; }
-        .alert-title { font-weight: 600; color: #dc2626; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; margin: 40px; line-height: 1.6; color: #1e293b; background: #ffffff; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #0284c7; padding-bottom: 20px; }
+        .header h1 { color: #0284c7; margin: 0 0 10px 0; }
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 20px 0 30px 0; }
+        .summary-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; text-align: center; }
+        .summary-card .label { font-size: 0.85em; color: #64748b; font-weight: 500; }
+        .summary-card .value { font-size: 1.3em; font-weight: 700; color: #0f172a; margin-top: 4px; }
+        .forecast-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 0.9em; }
+        .forecast-table th, .forecast-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        .forecast-table th { background: #f1f5f9; font-weight: 600; color: #334155; }
+        .forecast-table tr:nth-child(even) { background: #f8fafc; }
+        .forecast-table tr:hover { background: #f1f5f9; }
+        .footer { margin-top: 40px; text-align: center; color: #94a3b8; font-size: 0.85em; border-top: 1px solid #e2e8f0; padding-top: 20px; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>Weather Forecast Report</h1>
+        <h1>Forecaster Weather Report</h1>
         <h2>${route.name}</h2>
         <p>Generated on ${formatDateTime(new Date())}</p>
     </div>
 
-    <div class="summary">
-        <h3>Route Summary</h3>
-        <p><strong>Total Distance:</strong> ${formatDistance(route.totalDistance, settings.units)}</p>
-        <p><strong>Forecast Points:</strong> ${forecasts.length}</p>
-        <p><strong>Temperature Range:</strong> ${formatTemperature(Math.min(...temps), settings.units)} to ${formatTemperature(Math.max(...temps), settings.units)}</p>
-        <p><strong>Weather Alerts:</strong> ${totalAlerts} alerts</p>
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="label">Total Distance</div>
+            <div class="value">${formatDistance(route.totalDistance, settings.units)}</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">Forecast Points</div>
+            <div class="value">${forecasts.length}</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">Temp Range</div>
+            <div class="value">${formatTemperature(Math.min(...temps), settings.units)} - ${formatTemperature(Math.max(...temps), settings.units)}</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">Peak Wind</div>
+            <div class="value">${formatWindSpeed(Math.max(...winds), settings.units)}</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">Weather Alerts</div>
+            <div class="value">${totalAlerts}</div>
+        </div>
     </div>
 
-    <div class="footer" style="margin-top: 40px; text-align: center; color: #6b7280; font-size: 0.9em;">
-        <p>Generated by Forecaster - Weather Planning Application</p>
+    <h3>Detailed Route Forecast</h3>
+    <table class="forecast-table">
+        <thead>
+            <tr>
+                <th>Point</th>
+                <th>Estimated Time</th>
+                <th>Temp</th>
+                <th>Condition</th>
+                <th>Wind</th>
+                <th>Humidity</th>
+                <th>Precipitation</th>
+                <th>Alerts</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${forecastRows}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <p>Generated by Forecaster &bull; Outdoor Weather Planning</p>
     </div>
 </body>
 </html>`;
@@ -172,9 +232,70 @@ export function generateHTMLReport(
 }
 
 /**
+ * Generate GeoJSON FeatureCollection with embedded weather metadata
+ */
+export function generateGeoJSONReport(
+  route: Route,
+  forecasts: WeatherForecast[],
+  settings: AppSettings
+): Blob {
+  const geojson = {
+    type: 'FeatureCollection',
+    metadata: {
+      name: route.name,
+      totalDistanceKm: route.totalDistance,
+      totalElevationGainM: route.totalElevationGain,
+      generatedAt: new Date().toISOString(),
+      generator: 'Forecaster Weather Planner'
+    },
+    features: [
+      // LineString feature for the route
+      {
+        type: 'Feature',
+        properties: {
+          name: route.name,
+          distanceKm: route.totalDistance,
+          elevationGainM: route.totalElevationGain,
+        },
+        geometry: {
+          type: 'LineString',
+          coordinates: route.points.map(p => [p.lon, p.lat, p.elevation || 0])
+        }
+      },
+      // Point features for each forecast waypoint
+      ...forecasts.map((f, i) => ({
+        type: 'Feature',
+        properties: {
+          index: i + 1,
+          distanceKm: f.routePoint.distance,
+          estimatedTime: f.routePoint.estimatedTime?.toISOString(),
+          temperatureC: f.weather.temp,
+          feelsLikeC: f.weather.feels_like,
+          condition: f.weather.weather[0]?.description || 'Clear',
+          windSpeedMs: f.weather.wind_speed,
+          windDirectionDeg: f.weather.wind_deg,
+          humidityPct: f.weather.humidity,
+          pressureHpa: f.weather.pressure,
+          precipitationMmh: (f.weather.rain?.['1h'] || f.weather.snow?.['1h']) || 0,
+          alerts: f.alerts?.map(a => a.title) || []
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [f.routePoint.lon, f.routePoint.lat, f.routePoint.elevation || 0]
+        }
+      }))
+    ]
+  };
+
+  return new Blob([JSON.stringify(geojson, null, 2)], {
+    type: 'application/geo+json;charset=utf-8;'
+  });
+}
+
+/**
  * Generate filename for export
  */
-export function generateExportFilename(route: Route, format: 'pdf' | 'json' | 'csv' | 'html' = 'pdf'): string {
+export function generateExportFilename(route: Route, format: 'pdf' | 'json' | 'csv' | 'html' | 'geojson' = 'pdf'): string {
   const sanitizedName = route.name.replace(/[^a-zA-Z0-9-_]/g, '_');
   const timestamp = new Date().toISOString().split('T')[0];
   return `forecaster_${sanitizedName}_${timestamp}.${format}`;
