@@ -112,4 +112,43 @@ test.describe('Forecaster Smoke Tests', () => {
     const stats = fs.statSync(downloadPath);
     expect(stats.size).toBeGreaterThan(100000);
   });
+
+  test('should render expedition tablet with nature atmosphere and power standby', async ({ page }) => {
+    await page.goto('/');
+
+    // Check nature atmosphere WebGL canvas telemetry
+    await expect(page.getByText(/NATURE ATMOSPHERE \/\/ WIND & LEAVES/i)).toBeVisible();
+
+    // Check tablet status bar indicators
+    await expect(page.getByText(/FIELD SLATE \/\/ WGS84 RECON/i)).toBeVisible();
+    await expect(page.getByText(/98%/i)).toBeVisible();
+
+    // Verify physical power button on tablet frame
+    const powerBtn = page.getByRole('button', { name: /POWER \[ON\]/i });
+    await expect(powerBtn).toBeVisible();
+
+    // Click power button to enter standby mode
+    await powerBtn.click();
+
+    // Verify standby screen
+    await expect(page.getByText(/EXPEDITION TABLET IN STANDBY/i)).toBeVisible({ timeout: 5000 });
+    await page.screenshot({
+      path: '/Users/filippsh/.gemini/antigravity-ide/brain/8bd520e2-e567-497f-a4d3-e3ab959c2643/tablet_standby_preview.png',
+      fullPage: false,
+    });
+    await expect(page.getByRole('button', { name: /AWAKE EXPEDITION SLATE/i })).toBeVisible();
+
+    // Click awake button to restore tablet display
+    const awakeBtn = page.getByRole('button', { name: /AWAKE EXPEDITION SLATE/i });
+    await awakeBtn.click();
+
+    // Verify tablet display restored
+    await expect(page.getByText(/FILE \/\/ 01/i).first()).toBeVisible();
+
+    // Capture screenshot of expedition tablet in desk view
+    await page.screenshot({
+      path: '/Users/filippsh/.gemini/antigravity-ide/brain/8bd520e2-e567-497f-a4d3-e3ab959c2643/tablet_expedition_preview.png',
+      fullPage: false,
+    });
+  });
 });

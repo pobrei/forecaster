@@ -18,6 +18,7 @@ import { SmartSuggestions, generateWeatherSuggestions } from '@/components/ui/sm
 import { Header } from '@/components/layout/Header';
 import { PWAInstallBanner, PWAOfflineBanner } from '@/components/features/PWAInstallBanner';
 import { AtmosphericCanvas3D } from '@/components/canvas/AtmosphericCanvas3D';
+import { ExpeditionTablet } from '@/components/device/ExpeditionTablet';
 import { DossierFolder } from '@/components/dossier/DossierFolder';
 import { DossierPillDock } from '@/components/dossier/DossierPillDock';
 import { Route, AppSettings, SelectedWeatherPoint, SavedExpedition } from '@/types';
@@ -205,19 +206,22 @@ export default function Home() {
 
   return (
     <>
-      {/* 1. Interactive 3D Atmospheric WebGL Canvas (Gionatan Nese Inspiration) */}
+      {/* 1. Photorealistic Nature 3D Atmospheric Canvas (Wind, Floating Leaves & Dust) */}
       <AtmosphericCanvas3D />
 
-      {/* 2. Floating Tactile Dossier Pill Dock */}
-      <DossierPillDock />
+      {/* 2. Interactive Expedition Tablet / iPad Touch Screen Device Object */}
+      <div className="relative z-10 w-full min-h-screen">
+        <ExpeditionTablet>
+          {/* Tablet Screen Header Navigation */}
+          <Header />
+          <PWAOfflineBanner />
 
-      {/* 3. Header Bar */}
-      <Header />
-      <PWAOfflineBanner />
+          {/* Floating Tablet Dossier Dock */}
+          <DossierPillDock />
 
-      <main className="relative z-10 container mx-auto px-4 py-8 md:py-14 max-w-7xl">
-        {/* Editorial Hero Section (Mosby Files & Gionatan Nese Minimalist Luxury) */}
-        <section className="text-center mb-14 animate-in fade-in slide-in-from-bottom-4 duration-700 select-none">
+          <main className="container mx-auto px-3 sm:px-6 py-6 md:py-10 max-w-7xl">
+            {/* Editorial Hero Section (Mosby Files & Gionatan Nese Minimalist Luxury) */}
+            <section className="text-center mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700 select-none">
           {/* Classification & Metadata Top Stamp */}
           <div className="inline-flex items-center gap-2 px-3 py-1 mb-4 rounded-full border border-primary/20 bg-primary/5 font-mono text-[10px] tracking-widest text-primary uppercase">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
@@ -601,7 +605,9 @@ export default function Home() {
             </div>
           )}
         </DossierFolder>
-      </main>
+          </main>
+        </ExpeditionTablet>
+      </div>
 
       <PWAInstallBanner />
     </>

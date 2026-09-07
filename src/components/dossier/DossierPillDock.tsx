@@ -72,7 +72,7 @@ export const DossierPillDock: React.FC = () => {
   return (
     <nav
       aria-label="Expedition Dossier Navigation"
-      className="fixed top-3 left-1/2 -translate-x-1/2 z-40 max-w-[95vw] pointer-events-none transition-all duration-300"
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-[95vw] pointer-events-none transition-all duration-300"
     >
       <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 rounded-full bg-background/80 dark:bg-card/80 backdrop-blur-2xl border border-border/50 shadow-xl pointer-events-auto select-none">
         {/* Brand / Logo icon */}
