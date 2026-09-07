@@ -163,8 +163,8 @@ export const DossierFolder: React.FC<DossierFolderProps> = ({
 
         {/* Tab-line metadata (Gionatan Nese monospaced coordinates & datum stamp) */}
         <div className="hidden md:flex items-center gap-4 ml-4 pb-2 font-mono text-[10px] tracking-wider text-muted-foreground/70 uppercase">
-          <span className="flex items-center gap-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.8)]" />
             {statusBadge}
           </span>
           <span>•</span>

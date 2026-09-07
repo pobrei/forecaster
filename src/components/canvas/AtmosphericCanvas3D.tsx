@@ -430,10 +430,7 @@ export const AtmosphericCanvas3D: React.FC<AtmosphericCanvas3DProps> = ({
       {/* Subtle telemetry badge in bottom left (Gionatan Nese / tactical outdoor style) */}
       <div className="absolute bottom-4 left-6 z-10 flex items-center gap-3 font-mono text-[10px] tracking-wider text-muted-foreground/60 select-none uppercase pointer-events-auto">
         <span className="flex items-center gap-1.5">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-          </span>
+          <span className="h-2 w-2 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.8)]"></span>
           NATURE ATMOSPHERE // WIND & LEAVES
         </span>
         <span className="hidden sm:inline-block text-border">|</span>

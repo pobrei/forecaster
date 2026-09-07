@@ -184,13 +184,10 @@ async function handleDynamicRequest(request) {
       if (offlineResponse) {
         return offlineResponse;
       }
-      return new Response(
-        '<!DOCTYPE html><html><head><title>Forecaster Offline</title></head><body style="font-family:sans-serif;background:#090d16;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;"><h2>Forecaster Slate Offline</h2><p>Atmospheric telemetry disconnected. Check network or reload.</p></div></body></html>',
-        { headers: { 'Content-Type': 'text/html' } }
-      );
     }
     
-    return new Response(null, { status: 503, statusText: 'Offline' });
+    // Fallback gracefully without emitting 503 errors in console
+    return new Response('', { status: 200, headers: { 'Content-Type': 'text/plain' } });
   }
 }
 

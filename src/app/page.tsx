@@ -224,7 +224,7 @@ export default function Home() {
             <section className="text-center mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700 select-none">
           {/* Classification & Metadata Top Stamp */}
           <div className="inline-flex items-center gap-2 px-3 py-1 mb-4 rounded-full border border-primary/20 bg-primary/5 font-mono text-[10px] tracking-widest text-primary uppercase">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.8)]" />
             <span>CLASSIFIED // EXPEDITION RECONNAISSANCE</span>
             <span>•</span>
             <span className="hidden sm:inline">DATUM: WGS84</span>
@@ -334,7 +334,7 @@ export default function Home() {
 
               <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-border/20">
                 <div className="text-[11px] font-mono text-muted-foreground flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.8)]" />
                   <span>MONGODB ATLAS PERSISTENCE ACTIVE</span>
                 </div>
                 <button
