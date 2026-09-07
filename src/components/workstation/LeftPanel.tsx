@@ -8,8 +8,7 @@ import {
   Database, 
   Loader2,
   ShieldCheck,
-  Check,
-  Sparkles
+  Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Route, AppSettings } from '@/types';
@@ -17,9 +16,7 @@ import { WeatherSourcePreferences } from '@/types/weather-sources';
 import { GpxDropzone } from './GpxDropzone';
 import { ActivityPacePresets } from './ActivityPacePresets';
 import { ModelSelectorMatrix } from './ModelSelectorMatrix';
-import { createAlpine45KmSampleRoute } from '@/lib/sample-routes';
-import { playTelemetryChirp, playTactileClick } from '@/lib/audio-fx';
-import { toast } from 'sonner';
+import { playTelemetryChirp } from '@/lib/audio-fx';
 
 interface LeftPanelProps {
   route: Route | null;
@@ -51,13 +48,6 @@ export function LeftPanel({
     onGenerateForecast();
   };
 
-  const handleLoadSample = () => {
-    playTactileClick();
-    const sample = createAlpine45KmSampleRoute();
-    onRouteLoaded(sample);
-    toast.success('Loaded "Alpine 45km" Swiss Traverse');
-  };
-
   return (
     <div className="space-y-3 font-sans select-none text-[#F5F2EB]">
       {/* 1. GPX Telemetry Ingestion Dropzone */}
@@ -68,16 +58,6 @@ export function LeftPanel({
           onResetRoute={onResetRoute}
           isLoading={isLoading}
         />
-        {!route && (
-          <button
-            type="button"
-            onClick={handleLoadSample}
-            className="w-full mt-2.5 py-1.5 px-3 rounded-lg bg-[#28221B] hover:bg-[#342B23] border border-[#453A2E] text-[#E5A93C] font-mono text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-          >
-            <Sparkles className="h-3 w-3 text-[#E5A93C]" />
-            <span>LOAD SAMPLE ROUTE (ALPINE 45KM)</span>
-          </button>
-        )}
       </section>
 
       {/* 2. Activity Profiles & Speed Presets */}
