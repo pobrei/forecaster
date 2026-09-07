@@ -40,7 +40,11 @@ interface FloatingWindowArrayProps {
   onPointSelect: (forecastIndex: number, source: 'timeline' | 'chart' | 'map') => void;
   onSaveExpedition?: () => void;
   isSavingExpedition?: boolean;
+  onFocusCamera?: (mode: 'overview' | 'left' | 'center' | 'right') => void;
+  activeCameraMode?: 'overview' | 'left' | 'center' | 'right';
 }
+
+const DISTANCE_FACTOR = 2.4;
 
 export function FloatingWindowArray({
   route,
@@ -57,6 +61,8 @@ export function FloatingWindowArray({
   onPointSelect,
   onSaveExpedition,
   isSavingExpedition = false,
+  onFocusCamera,
+  activeCameraMode = 'overview',
 }: FloatingWindowArrayProps) {
   // Center Map HUD state
   const [basemap, setBasemap] = useState<BasemapMode>('satellite');
@@ -76,34 +82,48 @@ export function FloatingWindowArray({
     <group name="floating-window-array">
       {/* ========================================================================= */}
       {/* WINDOW 1: LEFT HUD - RECON INGESTION & SPEED PARAMETERS                   */}
-      {/* Positioned on cylindrical arc: [-3.4, 0, 0.4], Rotation: [0, 0.32, 0]    */}
+      {/* Positioned on cylindrical arc: [-3.5, 0, 0.35], Rotation: [0, 0.24, 0]    */}
       {/* ========================================================================= */}
-      <group position={[-3.4, 0, 0.4]} rotation={[0, 0.32, 0]}>
-        <Float speed={1.8} rotationIntensity={0.06} floatIntensity={0.2}>
+      <group position={[-3.5, 0, 0.35]} rotation={[0, 0.24, 0]}>
+        <Float speed={1.0} rotationIntensity={0.015} floatIntensity={0.05}>
           <Html
             transform
-            distanceFactor={5.2}
+            distanceFactor={DISTANCE_FACTOR}
             position={[0, 0, 0]}
             className="pointer-events-auto select-auto"
-            style={{ width: '430px', height: '640px' }}
+            style={{ width: '380px', height: '580px' }}
           >
-            <div className="w-[430px] h-[640px] flex flex-col rounded-2xl bg-slate-950/85 backdrop-blur-2xl border border-cyan-500/30 shadow-[0_0_35px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500/20 overflow-hidden font-mono text-xs text-slate-100">
+            <div
+              className={cn(
+                "w-[380px] h-[580px] flex flex-col rounded-2xl bg-slate-950/90 backdrop-blur-2xl border border-cyan-500/30 shadow-[0_0_30px_rgba(6,182,212,0.12)] ring-1 ring-cyan-500/20 overflow-hidden font-mono text-xs text-slate-100 transition-all duration-300",
+                activeCameraMode === 'left' && "ring-2 ring-cyan-400 border-cyan-400/60 shadow-[0_0_40px_rgba(6,182,212,0.3)]"
+              )}
+            >
               {/* Window Top Tactical Header */}
-              <div className="px-3.5 py-2.5 bg-slate-900/90 border-b border-cyan-500/20 flex items-center justify-between shrink-0 select-none">
+              <div className="px-3 py-2 bg-slate-900/90 border-b border-cyan-500/20 flex items-center justify-between shrink-0 select-none">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
                   <span className="font-bold tracking-wider text-cyan-300 text-[11px]">
-                    FILE // 01 • INGESTION & PARAMETERS
+                    FILE // 01 • INGESTION
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                  <Terminal className="h-3 w-3 text-cyan-400" />
-                  <span>GPS / GPX RECON</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] text-slate-400 hidden sm:inline">GPS RECON</span>
+                  {onFocusCamera && (
+                    <button
+                      type="button"
+                      onClick={() => onFocusCamera(activeCameraMode === 'left' ? 'overview' : 'left')}
+                      title={activeCameraMode === 'left' ? "Reset to Overview" : "Focus Panel"}
+                      className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                    >
+                      <Maximize2 className="h-3 w-3" />
+                    </button>
+                  )}
                 </div>
               </div>
 
               {/* Window Content: Scrollable Left Panel */}
-              <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3.5 space-y-3.5">
+              <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 space-y-3">
                 <LeftPanel
                   route={route}
                   settings={settings}
@@ -119,8 +139,8 @@ export function FloatingWindowArray({
               </div>
 
               {/* Window Bottom Status Strip */}
-              <div className="px-3.5 py-1.5 bg-slate-950/90 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-500 select-none">
-                <span>CHANNEL: GPX-INGEST-01</span>
+              <div className="px-3 py-1.5 bg-slate-950/90 border-t border-slate-800 flex items-center justify-between text-[9px] text-slate-500 select-none">
+                <span>CHANNEL: GPX-01</span>
                 <span>STATUS: ARMED</span>
               </div>
             </div>
@@ -130,43 +150,61 @@ export function FloatingWindowArray({
 
       {/* ========================================================================= */}
       {/* WINDOW 2: CENTER HUD - TACTICAL GEOSPATIAL RADAR & OPENLAYERS MAP        */}
-      {/* Positioned at center of cylindrical arc: [0, 0, 0], Rotation: [0, 0, 0]   */}
+      {/* Positioned at center: [0, 0, 0], Rotation: [0, 0, 0]                     */}
       {/* ========================================================================= */}
       <group position={[0, 0, 0]} rotation={[0, 0, 0]}>
-        <Float speed={1.8} rotationIntensity={0.05} floatIntensity={0.22}>
+        <Float speed={1.0} rotationIntensity={0.015} floatIntensity={0.05}>
           <Html
             transform
-            distanceFactor={5.2}
+            distanceFactor={DISTANCE_FACTOR}
             position={[0, 0, 0]}
             className="pointer-events-auto select-auto"
-            style={{ width: '640px', height: '640px' }}
+            style={{ width: '620px', height: '580px' }}
           >
-            <div className="w-[640px] h-[640px] flex flex-col rounded-2xl bg-slate-950/85 backdrop-blur-2xl border border-cyan-500/30 shadow-[0_0_40px_rgba(6,182,212,0.2)] ring-1 ring-cyan-500/20 overflow-hidden font-mono text-xs text-slate-100">
+            <div
+              className={cn(
+                "w-[620px] h-[580px] flex flex-col rounded-2xl bg-slate-950/90 backdrop-blur-2xl border border-cyan-500/30 shadow-[0_0_35px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500/20 overflow-hidden font-mono text-xs text-slate-100 transition-all duration-300",
+                activeCameraMode === 'center' && "ring-2 ring-cyan-400 border-cyan-400/60 shadow-[0_0_40px_rgba(6,182,212,0.3)]"
+              )}
+            >
               {/* Window Top Tactical Header */}
-              <div className="px-4 py-2.5 bg-slate-900/90 border-b border-cyan-500/20 flex items-center justify-between shrink-0 select-none">
+              <div className="px-3.5 py-2 bg-slate-900/90 border-b border-cyan-500/20 flex items-center justify-between shrink-0 select-none">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
                   <span className="font-bold tracking-wider text-emerald-300 text-[11px]">
-                    FILE // 02 • TACTICAL GEOSPATIAL RADAR
+                    FILE // 02 • GEOSPATIAL RADAR
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1 bg-slate-950/80 p-0.5 rounded-lg border border-slate-800 text-[9px]">
-                  {(['satellite', 'dark', 'mono', 'terrain', 'topo'] as BasemapMode[]).map((mode) => (
+                <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1 bg-slate-950/80 p-0.5 rounded-lg border border-slate-800 text-[9px]">
+                    {(['satellite', 'dark', 'mono', 'terrain', 'topo'] as BasemapMode[]).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setBasemap(mode)}
+                        className={cn(
+                          "px-1.5 py-0.5 rounded uppercase transition-colors cursor-pointer",
+                          basemap === mode
+                            ? "bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40"
+                            : "text-slate-400 hover:text-slate-200"
+                        )}
+                      >
+                        {mode === 'mono' ? 'B&W' : mode}
+                      </button>
+                    ))}
+                  </div>
+
+                  {onFocusCamera && (
                     <button
-                      key={mode}
                       type="button"
-                      onClick={() => setBasemap(mode)}
-                      className={cn(
-                        "px-1.5 py-0.5 rounded uppercase transition-colors cursor-pointer",
-                        basemap === mode
-                          ? "bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40"
-                          : "text-slate-400 hover:text-slate-200"
-                      )}
+                      onClick={() => onFocusCamera(activeCameraMode === 'center' ? 'overview' : 'center')}
+                      title={activeCameraMode === 'center' ? "Reset to Overview" : "Focus Panel"}
+                      className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer"
                     >
-                      {mode === 'mono' ? 'B&W' : mode}
+                      <Maximize2 className="h-3 w-3" />
                     </button>
-                  ))}
+                  )}
                 </div>
               </div>
 
@@ -198,22 +236,22 @@ export function FloatingWindowArray({
                     </div>
                   </>
                 ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px]">
-                    <div className="h-14 w-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-3 shadow-inner">
-                      <Compass className="h-7 w-7" />
+                  <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px]">
+                    <div className="h-12 w-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-2.5 shadow-inner">
+                      <Compass className="h-6 w-6" />
                     </div>
-                    <h3 className="text-sm font-bold text-slate-100 font-mono tracking-wide">
+                    <h3 className="text-xs font-bold text-slate-100 font-mono tracking-wide">
                       EXPEDITION GEOSPATIAL RADAR
                     </h3>
-                    <p className="font-sans text-xs text-slate-400 max-w-sm mt-1 mb-5 leading-relaxed">
-                      Satellite terrain engine standing by. Ingest a GPX track in File 01 or load the Swiss Alps traverse to plot polyline atmospheric telemetry.
+                    <p className="font-sans text-[11px] text-slate-400 max-w-xs mt-1 mb-4 leading-relaxed">
+                      Satellite terrain engine standing by. Ingest a GPX track or load the Swiss Alps traverse to plot polyline atmospheric telemetry.
                     </p>
                     <button
                       type="button"
                       onClick={handleLoadSample}
-                      className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.35)] transition-all cursor-pointer active:scale-95"
+                      className="px-3.5 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono font-bold text-[11px] uppercase tracking-wider flex items-center gap-1.5 shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all cursor-pointer active:scale-95"
                     >
-                      <Sparkles className="h-4 w-4" />
+                      <Sparkles className="h-3.5 w-3.5" />
                       <span>Load Alpine 45km Route</span>
                     </button>
                   </div>
@@ -221,9 +259,9 @@ export function FloatingWindowArray({
               </div>
 
               {/* Window Bottom Status Strip */}
-              <div className="px-4 py-1.5 bg-slate-950/90 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-500 select-none">
-                <span>PROJECTION: EPSG:3857 (SPHERICAL MERCATOR)</span>
-                <span>HUD: ACTIVE</span>
+              <div className="px-3.5 py-1.5 bg-slate-950/90 border-t border-slate-800 flex items-center justify-between text-[9px] text-slate-500 select-none">
+                <span>PROJECTION: EPSG:3857</span>
+                <span>RADAR: ACTIVE</span>
               </div>
             </div>
           </Html>
@@ -232,28 +270,33 @@ export function FloatingWindowArray({
 
       {/* ========================================================================= */}
       {/* WINDOW 3: RIGHT HUD - DYNAMIC TELEMETRY & MULTI-MODEL DIVERGENCE         */}
-      {/* Positioned on cylindrical arc: [3.4, 0, 0.4], Rotation: [0, -0.32, 0]   */}
+      {/* Positioned on cylindrical arc: [3.55, 0, 0.35], Rotation: [0, -0.24, 0]   */}
       {/* ========================================================================= */}
-      <group position={[3.4, 0, 0.4]} rotation={[0, -0.32, 0]}>
-        <Float speed={1.8} rotationIntensity={0.06} floatIntensity={0.2}>
+      <group position={[3.55, 0, 0.35]} rotation={[0, -0.24, 0]}>
+        <Float speed={1.0} rotationIntensity={0.015} floatIntensity={0.05}>
           <Html
             transform
-            distanceFactor={5.2}
+            distanceFactor={DISTANCE_FACTOR}
             position={[0, 0, 0]}
             className="pointer-events-auto select-auto"
-            style={{ width: '510px', height: '640px' }}
+            style={{ width: '460px', height: '580px' }}
           >
-            <div className="w-[510px] h-[640px] flex flex-col rounded-2xl bg-slate-950/85 backdrop-blur-2xl border border-cyan-500/30 shadow-[0_0_35px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500/20 overflow-hidden font-mono text-xs text-slate-100">
+            <div
+              className={cn(
+                "w-[460px] h-[580px] flex flex-col rounded-2xl bg-slate-950/90 backdrop-blur-2xl border border-cyan-500/30 shadow-[0_0_30px_rgba(6,182,212,0.12)] ring-1 ring-cyan-500/20 overflow-hidden font-mono text-xs text-slate-100 transition-all duration-300",
+                activeCameraMode === 'right' && "ring-2 ring-cyan-400 border-cyan-400/60 shadow-[0_0_40px_rgba(6,182,212,0.3)]"
+              )}
+            >
               {/* Window Top Tactical Header */}
-              <div className="px-3.5 py-2.5 bg-slate-900/90 border-b border-cyan-500/20 flex items-center justify-between shrink-0 select-none">
+              <div className="px-3.5 py-2 bg-slate-900/90 border-b border-cyan-500/20 flex items-center justify-between shrink-0 select-none">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
                   <span className="font-bold tracking-wider text-amber-300 text-[11px]">
-                    FILE // 03 • DYNAMIC TELEMETRY & CONSENSUS
+                    FILE // 03 • TELEMETRY & CONSENSUS
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   {route && onSaveExpedition && (
                     <button
                       type="button"
@@ -266,13 +309,24 @@ export function FloatingWindowArray({
                       <span>{isSavingExpedition ? 'Saving...' : 'Atlas'}</span>
                     </button>
                   )}
+
+                  {onFocusCamera && (
+                    <button
+                      type="button"
+                      onClick={() => onFocusCamera(activeCameraMode === 'right' ? 'overview' : 'right')}
+                      title={activeCameraMode === 'right' ? "Reset to Overview" : "Focus Panel"}
+                      className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                    >
+                      <Maximize2 className="h-3 w-3" />
+                    </button>
+                  )}
                 </div>
               </div>
 
               {/* Window Content */}
               <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
                 {/* Elevation & Weather Synchronized Graph */}
-                <div className="flex-1 min-h-0 p-3 bg-slate-950/70 border-b border-slate-800">
+                <div className="flex-1 min-h-0 p-2.5 bg-slate-950/70 border-b border-slate-800">
                   <ElevationWeatherSync
                     route={route}
                     forecasts={forecasts}
@@ -286,9 +340,9 @@ export function FloatingWindowArray({
                 </div>
 
                 {/* Multi-Model Consensus Ribbon & Divergence */}
-                <div className="shrink-0 p-3 bg-slate-950/90 max-h-[220px] overflow-y-auto custom-scrollbar">
-                  <div className="text-[10px] uppercase text-slate-500 font-bold mb-1.5 flex items-center justify-between">
-                    <span>SUPERCOMPUTER CONSENSUS SPREAD</span>
+                <div className="shrink-0 p-2.5 bg-slate-950/90 max-h-[190px] overflow-y-auto custom-scrollbar">
+                  <div className="text-[9px] uppercase text-slate-500 font-bold mb-1 flex items-center justify-between">
+                    <span>SUPERCOMPUTER CONSENSUS</span>
                     <span className="text-cyan-400">ECMWF • GFS • ICON</span>
                   </div>
                   <ModelDivergenceRibbon forecasts={forecasts} className="w-full" />
@@ -296,7 +350,7 @@ export function FloatingWindowArray({
               </div>
 
               {/* Window Bottom Status Strip */}
-              <div className="px-3.5 py-1.5 bg-slate-950/90 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-500 select-none">
+              <div className="px-3.5 py-1.5 bg-slate-950/90 border-t border-slate-800 flex items-center justify-between text-[9px] text-slate-500 select-none">
                 <span>TELEMETRY: SYNCHRONIZED</span>
                 <span>SAMPLES: {forecasts.length} PTS</span>
               </div>
