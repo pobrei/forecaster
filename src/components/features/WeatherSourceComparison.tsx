@@ -43,6 +43,7 @@ import {
   Legend,
   Filler,
   ChartData,
+  ChartDataset,
   ChartOptions,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
@@ -162,7 +163,7 @@ export function WeatherSourceComparison({
       return { labels: [], datasets: [] };
     }
 
-    const datasets: any[] = [];
+    const datasets: ChartDataset<'line'>[] = [];
 
     // Optional Consensus Ensemble shaded band (Min and Max spread envelope)
     if (showConsensusBand && allSources.length > 1) {

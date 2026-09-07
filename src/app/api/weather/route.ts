@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { getWeatherForecasts } from '@/lib/weather-service';
 import { sampleRoutePoints } from '@/lib/gpx-parser';
 import { getCachedForecast, setCachedForecast } from '@/lib/forecast-cache';
@@ -9,10 +10,12 @@ import { createValidationMiddleware } from '@/lib/api-validation';
 import { weatherRequestValidationSchema } from '@/lib/validation';
 import { ValidationError, NetworkError } from '@/lib/error-tracking';
 
-const validateWeatherRequest = createValidationMiddleware<any, WeatherResponse>(weatherRequestValidationSchema);
+type WeatherRequestData = z.infer<typeof weatherRequestValidationSchema>;
+
+const validateWeatherRequest = createValidationMiddleware<WeatherRequestData, WeatherResponse>(weatherRequestValidationSchema);
 
 async function weatherHandler(
-  validatedData: any,
+  validatedData: WeatherRequestData,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _request: NextRequest
 ): Promise<NextResponse<APIResponse<WeatherResponse>>> {

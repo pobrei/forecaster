@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   MONGODB_URI: ${{ secrets.MONGODB_URI }}
   OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
 
@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [20, 22]
+        node-version: [22]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -164,6 +164,7 @@ jobs:
         with:
           name: build-files
           path: .next/
+          include-hidden-files: true
 
       - name: Performance audit with Lighthouse
         uses: treosh/lighthouse-ci-action@v12
@@ -193,17 +194,17 @@ jobs:
           output: 'trivy-results.sarif'
 
       - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'trivy-results.sarif'
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: javascript
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
 
   # Deployment to Staging
   deploy-staging:

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Thermometer, Wind, CloudRain, Sun, Layers } from 'lucide-react';
 import { FileUpload } from '@/components/features/ClientOnlyFileUpload';
 import { SettingsPanel } from '@/components/features/SettingsPanel';
@@ -26,7 +26,7 @@ import { ROUTE_CONFIG } from '@/lib/constants';
 import { useProgressiveWeather } from '@/hooks/useProgressiveWeather';
 import { useMultiSourceWeather } from '@/hooks/useMultiSourceWeather';
 import { useWeatherSourcePreferences, useAppStore } from '@/store/app-store';
-import { WeatherSourcePreferences, MultiSourceWeatherForecast } from '@/types/weather-sources';
+import { WeatherSourcePreferences } from '@/types/weather-sources';
 import { toast } from 'sonner';
 
 export default function Home() {
@@ -81,8 +81,7 @@ export default function Home() {
     forecasts: multiSourceForecasts,
     isLoading: isLoadingMultiSource,
     loadMultiSourceWeather,
-    reset: resetMultiSource,
-    usedProviders
+    reset: resetMultiSource
   } = useMultiSourceWeather({
     onComplete: (forecasts) => {
       toast.success(`Loaded weather from ${forecasts[0]?.multiSourceData.sources.length || 0} source(s)`);
@@ -163,7 +162,7 @@ export default function Home() {
       );
       toast.dismiss('multi-source');
       toast.success('Model comparison data loaded!');
-    } catch (error) {
+    } catch {
       toast.dismiss('multi-source');
       toast.error('Failed to load comparison data');
     }

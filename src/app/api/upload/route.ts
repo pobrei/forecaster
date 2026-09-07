@@ -19,7 +19,7 @@ const uploadValidationSchema = z.object({
     .refine((file) => {
       // iOS Safari compatible MIME type validation
       const validMimeTypes = GPX_CONSTRAINTS.MIME_TYPES;
-      return file.type === '' || validMimeTypes.includes(file.type as any);
+      return file.type === '' || (validMimeTypes as readonly string[]).includes(file.type);
     }, 'Invalid file type - please select a GPX file')
 });
 

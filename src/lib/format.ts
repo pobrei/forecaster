@@ -201,6 +201,7 @@ export function getWindDirectionRotation(degrees: number): number {
  * Returns a CSS class name for styling the arrow
  */
 export function getWindDirectionArrow(_degrees: number): string {
+  void _degrees;
   // For backward compatibility, return a simple arrow character
   // This will be replaced by CSS-based arrows in the UI components
   return '→';

@@ -13,7 +13,7 @@ export default function OfflinePage() {
           <div className="mx-auto mb-4 p-3 bg-muted rounded-full w-fit">
             <WifiOff className="h-8 w-8 text-muted-foreground" />
           </div>
-          <CardTitle>You're Offline</CardTitle>
+          <CardTitle>You&apos;re Offline</CardTitle>
           <CardDescription>
             It looks like you&apos;ve lost your internet connection. Some features may not be available.
           </CardDescription>
