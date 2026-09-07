@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useCallback } from 'react';
-import { Card, CardContent } from "@/components/ui/card";
-import { Thermometer, Wind, CloudRain, Sun, Layers } from 'lucide-react';
+import { Thermometer, Wind, CloudRain, Sun, Layers, Compass, ShieldCheck, MapPin, Activity } from 'lucide-react';
 import { FileUpload } from '@/components/features/ClientOnlyFileUpload';
 import { SettingsPanel } from '@/components/features/SettingsPanel';
 import { WeatherSourceSelector } from '@/components/features/WeatherSourceSelector';
@@ -13,14 +12,14 @@ import { WeatherSummary } from '@/components/features/WeatherSummary';
 import { UnifiedExport } from '@/components/features/UnifiedExport';
 import { WeatherSourceComparison } from '@/components/features/WeatherSourceComparison';
 import { PerformanceIndicator } from '@/components/ui/performance-indicator';
-
 import { ProgressBreadcrumbs } from '@/components/ui/progress-breadcrumbs';
 import { MetricGrid } from '@/components/ui/metric-card';
-
 import { SmartSuggestions, generateWeatherSuggestions } from '@/components/ui/smart-suggestions';
-
 import { Header } from '@/components/layout/Header';
 import { PWAInstallBanner, PWAOfflineBanner } from '@/components/features/PWAInstallBanner';
+import { AtmosphericCanvas3D } from '@/components/canvas/AtmosphericCanvas3D';
+import { DossierFolder } from '@/components/dossier/DossierFolder';
+import { DossierPillDock } from '@/components/dossier/DossierPillDock';
 import { Route, AppSettings, SelectedWeatherPoint } from '@/types';
 import { ROUTE_CONFIG } from '@/lib/constants';
 import { useProgressiveWeather } from '@/hooks/useProgressiveWeather';
@@ -58,43 +57,28 @@ export default function Home() {
   } = useProgressiveWeather({
     onProgress: (progress) => {
       if (progress.total > 1) {
-        toast.loading(`Loading weather data... ${progress.percentage}% (${progress.current}/${progress.total} chunks)`, {
-          id: 'weather-progress'
-        });
-      }
-    },
-    onComplete: (forecasts) => {
-      toast.dismiss('weather-progress');
-      const totalAlerts = forecasts.reduce((sum, forecast) => sum + (forecast.alerts?.length || 0), 0);
-      if (totalAlerts > 0) {
-        toast.warning(`Generated ${totalAlerts} weather alert(s) for your route`);
+        console.log(`Weather loading progress: ${progress.percentage}%`);
       }
     },
     onError: (error) => {
-      toast.dismiss('weather-progress');
-      console.error('Weather loading error:', error);
+      console.error('Weather loading failed:', error);
+      toast.error('Failed to load weather data. Please check your network connection and try again.');
     }
   });
 
-  // Multi-source weather hook for comparison mode
+  // Multi-source comparison hook
   const {
     forecasts: multiSourceForecasts,
     isLoading: isLoadingMultiSource,
     loadMultiSourceWeather,
     reset: resetMultiSource
-  } = useMultiSourceWeather({
-    onComplete: (forecasts) => {
-      toast.success(`Loaded weather from ${forecasts[0]?.multiSourceData.sources.length || 0} source(s)`);
-    },
-    onError: (error) => {
-      toast.error(`Multi-source error: ${error}`);
-    }
-  });
+  } = useMultiSourceWeather();
 
   const handleRouteUploaded = (newRoute: Route) => {
     setRoute(newRoute);
     resetWeatherData();
     resetMultiSource();
+    setSelectedPoint(null);
     toast.success(`Route "${newRoute.name}" loaded successfully!`);
   };
 
@@ -119,24 +103,20 @@ export default function Home() {
     }
 
     try {
-      console.log('🌤️ Comparison mode:', weatherSourcePreferences.comparisonMode);
-
-      if (weatherSourcePreferences.comparisonMode === 'comparison' || weatherSourcePreferences.comparisonMode === 'consensus') {
-        console.log('🌤️ Loading multi-source weather data...');
-        toast.loading(`Loading forecast from ${weatherSourcePreferences.enabledSources.length} models...`, { id: 'multi-source' });
+      if (weatherSourcePreferences.comparisonMode === 'comparison') {
+        toast.loading(`Querying ${weatherSourcePreferences.enabledSources.length} meteorological models...`, { id: 'multi-source' });
         await Promise.all([
+          loadWeatherData(route, settings),
           loadMultiSourceWeather(
             route,
             settings,
             weatherSourcePreferences.enabledSources,
             weatherSourcePreferences.customApiKeys
-          ),
-          loadWeatherData(route, settings)
+          )
         ]);
         toast.dismiss('multi-source');
-        toast.success(`Loaded predictions from ${weatherSourcePreferences.enabledSources.length} models!`);
+        toast.success(`Multi-model forecast generated across ${weatherSourcePreferences.enabledSources.length} models!`);
       } else {
-        console.log('🌤️ Loading single-source weather data...');
         await loadWeatherData(route, settings);
       }
     } catch (error) {
@@ -145,7 +125,6 @@ export default function Home() {
     }
   };
 
-  // Load comparison data when switching to comparison mode
   const handleLoadComparison = async () => {
     if (!route) {
       toast.error('Please upload a GPX file first');
@@ -170,142 +149,227 @@ export default function Home() {
 
   const hasData = route && forecasts.length > 0;
   const hasMultiSourceData = multiSourceForecasts.length > 0;
-  const isComparisonMode = weatherSourcePreferences.comparisonMode === 'comparison' || weatherSourcePreferences.comparisonMode === 'consensus';
 
   return (
     <>
+      {/* 1. Interactive 3D Atmospheric WebGL Canvas (Gionatan Nese Inspiration) */}
+      <AtmosphericCanvas3D />
+
+      {/* 2. Floating Tactile Dossier Pill Dock */}
+      <DossierPillDock />
+
+      {/* 3. Header Bar */}
       <Header />
       <PWAOfflineBanner />
 
-      <div className="container mx-auto px-4 py-6 md:py-10">
-        {/* Hero Section - Clean and Minimal */}
-        <div className="text-center mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
-            <span className="bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              Forecaster
-            </span>
+      <main className="relative z-10 container mx-auto px-4 py-8 md:py-14 max-w-7xl">
+        {/* Editorial Hero Section (Mosby Files & Gionatan Nese Minimalist Luxury) */}
+        <section className="text-center mb-14 animate-in fade-in slide-in-from-bottom-4 duration-700 select-none">
+          {/* Classification & Metadata Top Stamp */}
+          <div className="inline-flex items-center gap-2 px-3 py-1 mb-4 rounded-full border border-primary/20 bg-primary/5 font-mono text-[10px] tracking-widest text-primary uppercase">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
+            <span>CLASSIFIED // EXPEDITION RECONNAISSANCE</span>
+            <span>•</span>
+            <span className="hidden sm:inline">DATUM: WGS84</span>
+          </div>
+
+          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight mb-4 text-foreground">
+            FORECASTER <span className="text-muted-foreground/50 font-serif italic font-normal">ARCHIVE</span>
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Plan your outdoor adventures with accurate weather forecasts along your route
+
+          <p className="font-mono text-xs sm:text-sm text-muted-foreground/80 max-w-2xl mx-auto uppercase tracking-wide leading-relaxed">
+            Atmospheric Intelligence • Multi-Model Divergence • Route Topography
           </p>
-        </div>
+
+          <div className="flex items-center justify-center gap-6 mt-6 font-mono text-[11px] text-muted-foreground/70 border-y border-border/40 py-2.5 max-w-xl mx-auto">
+            <span className="flex items-center gap-1.5">
+              <Compass className="h-3.5 w-3.5 text-primary" />
+              <span>GLOBAL ENSEMBLE</span>
+            </span>
+            <span>•</span>
+            <span className="flex items-center gap-1.5">
+              <Activity className="h-3.5 w-3.5 text-primary" />
+              <span>RADAR SYNCHRONIZED</span>
+            </span>
+            <span>•</span>
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+              <span>ZERO TRACKING</span>
+            </span>
+          </div>
+        </section>
 
         {/* Progress Breadcrumbs */}
         <ProgressBreadcrumbs
           hasGpxData={!!route}
           hasWeatherData={!!forecasts.length}
-          className="mb-8"
+          className="mb-10 max-w-3xl mx-auto"
         />
 
-        {/* Main Content - Clean Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
-          {/* Left Column - Upload */}
-          <div className="lg:col-span-4">
-            <FileUpload
-              onRouteUploaded={handleRouteUploaded}
-              isLoading={isGeneratingForecast}
-            />
+        {/* ========================================================== */}
+        {/* FILE // 01: ROUTE INGESTION & MISSION PARAMETERS           */}
+        {/* ========================================================== */}
+        <DossierFolder
+          id="dossier-ingest"
+          fileNumber="01"
+          title="Route Ingestion & Telemetry"
+          category="Mission Brief & Parameters"
+          classification="UNCLASSIFIED // GPX INGESTION"
+          coordinateStamp="DATUM: WGS84 // RECON"
+          statusBadge={route ? "ROUTE ARMED" : "AWAITING GPX"}
+          accentColor="indigo"
+          defaultExpanded={true}
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Column - Upload + Quick Presets */}
+            <div className="lg:col-span-4">
+              <FileUpload
+                onRouteUploaded={handleRouteUploaded}
+                isLoading={isGeneratingForecast}
+              />
+            </div>
+
+            {/* Middle Column - Settings */}
+            <div className="lg:col-span-4">
+              <SettingsPanel
+                settings={settings}
+                onSettingsChange={handleSettingsChange}
+                onGenerateForecast={handleGenerateForecast}
+                isLoading={isGeneratingForecast}
+                hasRoute={!!route}
+              />
+            </div>
+
+            {/* Right Column - Weather Sources */}
+            <div className="lg:col-span-4">
+              <WeatherSourceSelector
+                preferences={weatherSourcePreferences}
+                onPreferencesChange={handleWeatherSourceChange}
+                isLoading={isGeneratingForecast}
+              />
+            </div>
           </div>
 
-          {/* Middle Column - Settings */}
-          <div className="lg:col-span-4">
-            <SettingsPanel
-              settings={settings}
-              onSettingsChange={handleSettingsChange}
-              onGenerateForecast={handleGenerateForecast}
-              isLoading={isGeneratingForecast}
-              hasRoute={!!route}
-            />
-          </div>
-
-          {/* Right Column - Weather Sources */}
-          <div className="lg:col-span-4">
-            <WeatherSourceSelector
-              preferences={weatherSourcePreferences}
-              onPreferencesChange={handleWeatherSourceChange}
-              isLoading={isGeneratingForecast}
-            />
-          </div>
-        </div>
+          {/* Active Route Telemetry Strip */}
+          {route && (
+            <div className="mt-6 pt-5 border-t border-border/40 grid grid-cols-2 sm:grid-cols-4 gap-4 font-mono select-none">
+              <div className="p-3 rounded-lg bg-background/50 border border-border/50">
+                <div className="text-[10px] text-muted-foreground uppercase">EXPEDITION NAME</div>
+                <div className="font-semibold text-sm truncate text-foreground">{route.name}</div>
+              </div>
+              <div className="p-3 rounded-lg bg-background/50 border border-border/50">
+                <div className="text-[10px] text-muted-foreground uppercase">TOTAL DISTANCE</div>
+                <div className="font-semibold text-sm text-primary">{route.totalDistance.toFixed(1)} km</div>
+              </div>
+              <div className="p-3 rounded-lg bg-background/50 border border-border/50">
+                <div className="text-[10px] text-muted-foreground uppercase">ELEVATION GAIN</div>
+                <div className="font-semibold text-sm text-foreground">
+                  {route.totalElevationGain ? `+${Math.round(route.totalElevationGain)}m` : 'N/A'}
+                </div>
+              </div>
+              <div className="p-3 rounded-lg bg-background/50 border border-border/50">
+                <div className="text-[10px] text-muted-foreground uppercase">WAYPOINT NODES</div>
+                <div className="font-semibold text-sm text-foreground">{route.points.length} coords</div>
+              </div>
+            </div>
+          )}
+        </DossierFolder>
 
         {/* Progress Indicator for Large Routes */}
         {isGeneratingForecast && progress.total > 1 && (
-          <PerformanceIndicator
-            isProcessing={isGeneratingForecast}
-            progress={progress.percentage}
-            currentStep={`Loading weather... ${progress.current}/${progress.total}`}
-            totalSteps={progress.total}
-            currentStepIndex={progress.current - 1}
-          />
+          <div className="mb-8 max-w-2xl mx-auto">
+            <PerformanceIndicator
+              isProcessing={isGeneratingForecast}
+              progress={progress.percentage}
+              currentStep={`Synthesizing weather telemetry... ${progress.current}/${progress.total}`}
+              totalSteps={progress.total}
+              currentStepIndex={progress.current - 1}
+            />
+          </div>
         )}
 
-        {/* Weather Data Visualization */}
-        {hasData && (
-          <div className="space-y-6">
-            {/* Smart Suggestions - Compact */}
-            <SmartSuggestions
-              suggestions={generateWeatherSuggestions(forecasts)}
-              onApplySuggestion={(suggestion) => {
-                toast.info(`Applied: ${suggestion.title}`);
-              }}
-              onDismissSuggestion={() => {}}
-            />
-
-            {/* Weather Metrics - Clean Grid */}
-            <MetricGrid
-              metrics={[
-                {
-                  icon: <Thermometer className="h-6 w-6" />,
-                  label: "Temperature",
-                  value: `${Math.min(...forecasts.map(f => f.weather.temp)).toFixed(0)}° - ${Math.max(...forecasts.map(f => f.weather.temp)).toFixed(0)}°`,
-                  trend: `${(Math.max(...forecasts.map(f => f.weather.temp)) - Math.min(...forecasts.map(f => f.weather.temp))).toFixed(0)}° range`,
-                  trendDirection: 'neutral',
-                  color: 'red'
-                },
-                {
-                  icon: <Wind className="h-6 w-6" />,
-                  label: "Max Wind",
-                  value: `${Math.max(...forecasts.map(f => f.weather.wind_speed * 3.6)).toFixed(0)} km/h`,
-                  trend: "Peak wind speed",
-                  trendDirection: 'up',
-                  color: 'blue'
-                },
-                {
-                  icon: <CloudRain className="h-6 w-6" />,
-                  label: "Rain Points",
-                  value: `${forecasts.filter(f => (f.weather.rain?.['1h'] || 0) > 0).length}`,
-                  trend: `${Math.round((forecasts.filter(f => (f.weather.rain?.['1h'] || 0) > 0).length / forecasts.length) * 100)}% of route`,
-                  trendDirection: forecasts.filter(f => (f.weather.rain?.['1h'] || 0) > 0).length > 0 ? 'up' : 'neutral',
-                  color: 'purple'
-                },
-                {
-                  icon: <Sun className="h-6 w-6" />,
-                  label: "Data Points",
-                  value: `${forecasts.length}`,
-                  trend: "Analyzed",
-                trendDirection: 'neutral',
-                color: 'yellow'
-              }
-            ]}
-            className="mb-8"
-          />
-
-            {/* Weather Summary */}
-            <WeatherSummary
-              forecasts={forecasts}
+        {/* ========================================================== */}
+        {/* FILE // 02: MODEL ENSEMBLE & DIVERGENCE INTELLIGENCE       */}
+        {/* ========================================================== */}
+        <DossierFolder
+          id="dossier-ensemble"
+          fileNumber="02"
+          title="Model Ensemble & Divergence"
+          category="Cross-Model Meteorological Intelligence"
+          classification="ECMWF • GFS • ICON • METEO-FRANCE"
+          coordinateStamp="6 GLOBAL ENSEMBLE MODELS"
+          statusBadge={hasMultiSourceData ? "CONSENSUS COMPUTED" : "READY TO RUN"}
+          accentColor="blue"
+          defaultExpanded={true}
+        >
+          {!route ? (
+            <div className="py-12 text-center text-muted-foreground border-2 border-dashed border-border/50 rounded-xl">
+              <Layers className="h-10 w-10 mx-auto mb-3 opacity-40 text-blue-500" />
+              <p className="font-mono text-xs uppercase tracking-wider">
+                NO EXPEDITION ARMED. PLEASE LOAD A GPX ROUTE IN FILE // 01.
+              </p>
+            </div>
+          ) : !hasMultiSourceData && !isLoadingMultiSource ? (
+            <div className="py-10 text-center space-y-4 max-w-xl mx-auto">
+              <div className="h-12 w-12 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto text-blue-600 dark:text-blue-400">
+                <Layers className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-foreground">
+                  Cross-Analyze {weatherSourcePreferences.enabledSources.length} Meteorological Models
+                </h3>
+                <p className="font-sans text-xs text-muted-foreground mt-1">
+                  Compare predictions from European (ECMWF IFS), US (NOAA GFS), German (DWD ICON), French (Météo-France), and Canadian (GEM) global supercomputers along your exact coordinates.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleLoadComparison}
+                className="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-mono text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg active:scale-95"
+              >
+                Launch Model Comparison ({weatherSourcePreferences.enabledSources.length} Active Models)
+              </button>
+            </div>
+          ) : isLoadingMultiSource ? (
+            <div className="py-12 text-center space-y-4">
+              <div className="h-10 w-10 mx-auto border-3 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+              <p className="font-mono text-xs text-muted-foreground uppercase tracking-wider">
+                Cross-analyzing meteorological predictions across {weatherSourcePreferences.enabledSources.length} supercomputers...
+              </p>
+            </div>
+          ) : (
+            <WeatherSourceComparison
+              forecasts={multiSourceForecasts}
               units={settings.units}
-            />
-
-            {/* Weather Timeline */}
-            <WeatherTimeline
-              forecasts={forecasts}
-              units={settings.units}
+              selectedPointIndex={selectedPoint?.forecastIndex}
               onPointSelect={handlePointSelection}
-              selectedPoint={selectedPoint}
             />
+          )}
+        </DossierFolder>
 
-            {/* Map and Charts - Side by Side */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* ========================================================== */}
+        {/* FILE // 03: TACTICAL RADAR & TOPOGRAPHIC MAP               */}
+        {/* ========================================================== */}
+        <DossierFolder
+          id="dossier-radar"
+          fileNumber="03"
+          title="Tactical Satellite Radar & Topography"
+          category="Geospatial Topographic Tracking"
+          classification="OPENLAYERS SATELLITE ENGINE"
+          coordinateStamp="VECTOR WIND MAPPING"
+          statusBadge={route ? "TRACK RENDERED" : "AWAITING COORDINATES"}
+          accentColor="emerald"
+          defaultExpanded={true}
+        >
+          {!route ? (
+            <div className="py-12 text-center text-muted-foreground border-2 border-dashed border-border/50 rounded-xl">
+              <MapPin className="h-10 w-10 mx-auto mb-3 opacity-40 text-emerald-500" />
+              <p className="font-mono text-xs uppercase tracking-wider">
+                TOPOGRAPHIC RADAR IDLE. LOAD A ROUTE TO INITIALIZE MAPPING.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
               <WeatherMap
                 route={route}
                 forecasts={forecasts}
@@ -313,6 +377,95 @@ export default function Home() {
                 selectedPoint={selectedPoint}
                 onPointSelect={handlePointSelection}
               />
+            </div>
+          )}
+        </DossierFolder>
+
+        {/* ========================================================== */}
+        {/* FILE // 04: ATMOSPHERIC DYNAMICS & TIMELINE                */}
+        {/* ========================================================== */}
+        <DossierFolder
+          id="dossier-dynamics"
+          fileNumber="04"
+          title="Atmospheric Dynamics & Timeline"
+          category="Telemetry Curves & Conditions"
+          classification="BAROMETRIC & THERMAL PROFILES"
+          coordinateStamp="TIME SERIES RESOLUTION"
+          statusBadge={hasData ? "TELEMETRY SYNCED" : "PENDING FORECAST"}
+          accentColor="amber"
+          defaultExpanded={true}
+        >
+          {!hasData ? (
+            <div className="py-12 text-center text-muted-foreground border-2 border-dashed border-border/50 rounded-xl">
+              <Activity className="h-10 w-10 mx-auto mb-3 opacity-40 text-amber-500" />
+              <p className="font-mono text-xs uppercase tracking-wider">
+                NO ATMOSPHERIC READINGS. CLICK &quot;GENERATE WEATHER FORECAST&quot; IN FILE // 01.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Smart Weather Suggestions */}
+              <SmartSuggestions
+                suggestions={generateWeatherSuggestions(forecasts)}
+                onApplySuggestion={(suggestion) => {
+                  toast.info(`Applied recommendation: ${suggestion.title}`);
+                }}
+                onDismissSuggestion={() => {}}
+              />
+
+              {/* Weather Metrics Grid */}
+              <MetricGrid
+                metrics={[
+                  {
+                    icon: <Thermometer className="h-6 w-6" />,
+                    label: "Temperature",
+                    value: `${Math.min(...forecasts.map(f => f.weather.temp)).toFixed(0)}° - ${Math.max(...forecasts.map(f => f.weather.temp)).toFixed(0)}°`,
+                    trend: `${(Math.max(...forecasts.map(f => f.weather.temp)) - Math.min(...forecasts.map(f => f.weather.temp))).toFixed(0)}° range`,
+                    trendDirection: 'neutral',
+                    color: 'red'
+                  },
+                  {
+                    icon: <Wind className="h-6 w-6" />,
+                    label: "Max Wind",
+                    value: `${Math.max(...forecasts.map(f => f.weather.wind_speed * 3.6)).toFixed(0)} km/h`,
+                    trend: "Peak wind velocity",
+                    trendDirection: 'up',
+                    color: 'blue'
+                  },
+                  {
+                    icon: <CloudRain className="h-6 w-6" />,
+                    label: "Precipitation",
+                    value: `${forecasts.filter(f => (f.weather.rain?.['1h'] || 0) > 0).length} pts`,
+                    trend: `${Math.round((forecasts.filter(f => (f.weather.rain?.['1h'] || 0) > 0).length / forecasts.length) * 100)}% route rain exposure`,
+                    trendDirection: forecasts.filter(f => (f.weather.rain?.['1h'] || 0) > 0).length > 0 ? 'up' : 'neutral',
+                    color: 'purple'
+                  },
+                  {
+                    icon: <Sun className="h-6 w-6" />,
+                    label: "Data Density",
+                    value: `${forecasts.length} pts`,
+                    trend: "Analyzed waypoints",
+                    trendDirection: 'neutral',
+                    color: 'yellow'
+                  }
+                ]}
+              />
+
+              {/* Weather Summary */}
+              <WeatherSummary
+                forecasts={forecasts}
+                units={settings.units}
+              />
+
+              {/* Weather Timeline */}
+              <WeatherTimeline
+                forecasts={forecasts}
+                units={settings.units}
+                onPointSelect={handlePointSelection}
+                selectedPoint={selectedPoint}
+              />
+
+              {/* Detailed Elevation & Parameter Charts */}
               <WeatherCharts
                 forecasts={forecasts}
                 units={settings.units}
@@ -320,93 +473,39 @@ export default function Home() {
                 selectedPoint={selectedPoint}
               />
             </div>
+          )}
+        </DossierFolder>
 
-            {/* Source & Model Comparison - Show in comparison or consensus mode */}
-            {isComparisonMode && (
-              <div className="space-y-4">
-                {/* Show load button if no comparison data yet */}
-                {!hasMultiSourceData && !isLoadingMultiSource && (
-                  <Card className="border-dashed border-2 border-primary/30 bg-primary/5">
-                    <CardContent className="py-8">
-                      <div className="text-center space-y-4">
-                        <Layers className="h-12 w-12 mx-auto text-primary/70 animate-pulse" />
-                        <div>
-                          <h3 className="font-semibold text-lg">Multi-Model Comparison</h3>
-                          <p className="text-muted-foreground max-w-md mx-auto text-sm mt-1">
-                            Cross-analyze weather predictions from {weatherSourcePreferences.enabledSources.length} global meteorological models (ECMWF, GFS, ICON, Météo-France, GEM, Best Match) along your route
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handleLoadComparison}
-                          className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm shadow-sm cursor-pointer"
-                        >
-                          Load Model Comparison ({weatherSourcePreferences.enabledSources.length} Models)
-                        </button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Loading indicator */}
-                {isLoadingMultiSource && (
-                  <Card className="border-primary/30">
-                    <CardContent className="py-8">
-                      <div className="text-center space-y-4">
-                        <div className="h-12 w-12 mx-auto border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-                        <p className="text-muted-foreground text-sm">
-                          Cross-analyzing weather predictions across {weatherSourcePreferences.enabledSources.length} models...
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Comparison Chart with real data */}
-                {hasMultiSourceData && (
-                  <WeatherSourceComparison
-                    forecasts={multiSourceForecasts}
-                    units={settings.units}
-                    selectedPointIndex={selectedPoint?.forecastIndex}
-                    onPointSelect={handlePointSelection}
-                  />
-                )}
-              </div>
-            )}
-
-            {/* Export */}
+        {/* ========================================================== */}
+        {/* FILE // 05: EXPEDITION DISPATCH & ARCHIVE EXPORT           */}
+        {/* ========================================================== */}
+        <DossierFolder
+          id="dossier-dispatch"
+          fileNumber="05"
+          title="Expedition Dispatch & Archive"
+          category="Cryptographic PDF & GeoJSON Dispatch"
+          classification="VERIFIED WEATHER REPORT"
+          coordinateStamp="STANDARDIZED EXPORT"
+          statusBadge={hasData ? "EXPORT READY" : "AWAITING DATA"}
+          accentColor="purple"
+          defaultExpanded={true}
+        >
+          {!hasData || !route ? (
+            <div className="py-12 text-center text-muted-foreground border-2 border-dashed border-border/50 rounded-xl">
+              <ShieldCheck className="h-10 w-10 mx-auto mb-3 opacity-40 text-purple-500" />
+              <p className="font-mono text-xs uppercase tracking-wider">
+                DISPATCH GENERATOR ON STANDBY. GENERATE FORECAST TO ACTIVATE EXPORTS.
+              </p>
+            </div>
+          ) : (
             <UnifiedExport
               route={route}
               forecasts={forecasts}
               settings={settings}
             />
-          </div>
-        )}
-
-        {/* Route Summary - Show when route is loaded */}
-        {route && !hasData && (
-          <Card className="mt-6 border-dashed">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Layers className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">{route.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {route.totalDistance.toFixed(1)} km · {route.points.length} points
-                    </p>
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Configure settings and click &quot;Generate Weather Forecast&quot; to view weather data
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+          )}
+        </DossierFolder>
+      </main>
 
       <PWAInstallBanner />
     </>

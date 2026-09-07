@@ -16,11 +16,34 @@ test.describe('Forecaster Smoke Tests', () => {
     await expect(uploadText).toBeVisible();
   });
 
-  test('should render weather source comparison toggle or controls', async ({ page }) => {
+  test('should load sample expedition and render active dossier data', async ({ page }) => {
     await page.goto('/');
 
-    // Check that weather source selector or weather settings exist
-    const weatherSourceSection = page.getByText(/Weather Sources|Forecast Models|Compare/i).first();
-    await expect(weatherSourceSection).toBeVisible();
+    // Check dossier files exist
+    await expect(page.getByText(/FILE \/\/ 01/i).first()).toBeVisible();
+    await expect(page.getByText(/FILE \/\/ 02/i).first()).toBeVisible();
+    await expect(page.getByText(/FILE \/\/ 03/i).first()).toBeVisible();
+
+    // Click sample expedition preset button
+    const presetBtn = page.getByRole('button', { name: /Dolomites/i });
+    await presetBtn.click();
+
+    // Verify route telemetry strip is visible in File 01
+    await expect(page.getByText(/EXPEDITION NAME/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/28.5 km/i).first()).toBeVisible();
+
+    // Click Generate Weather Forecast
+    const generateBtn = page.getByRole('button', { name: /Generate Weather Forecast/i });
+    await expect(generateBtn).toBeEnabled();
+    await generateBtn.click();
+
+    // Wait for weather metrics to be rendered in File 04
+    await expect(page.getByText(/Peak wind velocity/i)).toBeVisible({ timeout: 15000 });
+
+    // Capture screenshot of fully populated active dossier
+    await page.screenshot({
+      path: '/Users/filippsh/.gemini/antigravity-ide/brain/8bd520e2-e567-497f-a4d3-e3ab959c2643/dossier_active_preview.png',
+      fullPage: true,
+    });
   });
 });

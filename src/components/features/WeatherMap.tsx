@@ -464,9 +464,10 @@ export function WeatherMap({
             </div>
           )}
 
-          {/* Popup */}
-          <div
-            ref={popupRef}
+          {/* Popup Wrapper (isolates OpenLayers DOM reparenting) */}
+          <div id="ol-popup-holder">
+            <div
+              ref={popupRef}
             className={cn(
               "absolute bg-background/95 backdrop-blur-sm border border-border/50 rounded-lg shadow-xl p-4 text-sm pointer-events-none z-50 transition-all duration-200",
               "before:content-[''] before:absolute before:top-full before:left-1/2 before:-translate-x-1/2",
@@ -565,6 +566,7 @@ export function WeatherMap({
               </div>
             )}
           </div>
+        </div>
 
           {/* No Route Message */}
           {!route && (

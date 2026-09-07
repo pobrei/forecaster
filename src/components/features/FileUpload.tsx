@@ -10,6 +10,9 @@ import { formatFileSize } from '@/lib/format';
 import { GPX_CONSTRAINTS } from '@/lib/constants';
 import { toast } from 'sonner';
 
+import { SAMPLE_EXPEDITIONS, SampleRoutePreset } from '@/lib/sample-routes';
+import { playTactileClick, playTelemetryChirp } from '@/lib/audio-fx';
+
 interface FileUploadProps {
   onRouteUploaded: (route: Route) => void;
   isLoading?: boolean;
@@ -23,6 +26,14 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [isMobile, setIsMobile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSelectPreset = (preset: SampleRoutePreset) => {
+    playTelemetryChirp();
+    toast.success(`Loaded archival expedition: ${preset.title}`, {
+      description: `${preset.distanceKm} km • ${preset.elevationGainM}m elevation • ${preset.region}`,
+    });
+    onRouteUploaded(preset.route);
+  };
 
   // Detect mobile device - simplified and cached
   useEffect(() => {
@@ -153,6 +164,7 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
 
   // File selection handler
   const handleFileSelect = useCallback(() => {
+    playTactileClick();
     try {
       if (fileInputRef.current) {
         fileInputRef.current.click();
@@ -303,9 +315,36 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
             <p className="text-xs text-muted-foreground mt-4">
               Supports GPX files up to 4 MB
             </p>
-            <p className="text-xs text-gray-500 mt-2">
-              Having trouble? Try refreshing the page or using a different browser.
-            </p>
+
+            {/* Quick Sample Expeditions */}
+            <div className="mt-5 pt-4 border-t border-border/40 text-left">
+              <div className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase mb-2 flex items-center justify-between">
+                <span>OR LOAD SAMPLE EXPEDITION</span>
+                <span className="text-primary font-semibold">ONE-CLICK DEMO</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {SAMPLE_EXPEDITIONS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => handleSelectPreset(preset)}
+                    disabled={isLoading}
+                    className="p-2 rounded-md border border-border/60 bg-background/50 hover:bg-primary/10 hover:border-primary/40 text-left transition-all group/preset cursor-pointer disabled:opacity-50"
+                  >
+                    <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground mb-0.5">
+                      <span className="truncate">{preset.title.split(' ')[0]}</span>
+                      <span className="font-bold text-primary">{preset.distanceKm}km</span>
+                    </div>
+                    <div className="font-medium text-[11px] text-foreground group-hover/preset:text-primary transition-colors truncate">
+                      {preset.title}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">
+                      +{preset.elevationGainM}m elev
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
