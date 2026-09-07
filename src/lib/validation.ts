@@ -93,7 +93,7 @@ export const secureFileValidationSchema = z.object({
       // Allow empty MIME type (common on iOS Safari)
       if (type === '') return true;
       // Check against known MIME types
-      return GPX_CONSTRAINTS.MIME_TYPES.includes(type as any);
+      return (GPX_CONSTRAINTS.MIME_TYPES as readonly string[]).includes(type);
     }, 'Invalid file type - please select a GPX file'),
   lastModified: z.number().optional()
 })
@@ -125,32 +125,44 @@ export const gpxContentValidationSchema = z.string()
 
 // Weather request validation with comprehensive checks and preprocessing
 export const weatherRequestValidationSchema = z.preprocess(
-  (data: any) => {
+  (data: unknown) => {
     // Transform the data before validation
     if (!data || typeof data !== 'object') return data;
 
-    const transformed = { ...data };
+    const transformed: Record<string, unknown> = { ...(data as Record<string, unknown>) };
 
     // Transform route.createdAt (add default if missing)
-    if (transformed.route) {
-      if (transformed.route.createdAt) {
-        transformed.route.createdAt = new Date(transformed.route.createdAt);
+    if (transformed.route && typeof transformed.route === 'object') {
+      const route = { ...(transformed.route as Record<string, unknown>) };
+      if (route.createdAt) {
+        route.createdAt = new Date(route.createdAt as string | number | Date);
       } else {
-        transformed.route.createdAt = new Date();
+        route.createdAt = new Date();
       }
 
       // Transform route points estimatedTime
-      if (transformed.route.points) {
-        transformed.route.points = transformed.route.points.map((point: any) => ({
-          ...point,
-          estimatedTime: point.estimatedTime ? new Date(point.estimatedTime) : undefined
-        }));
+      if (Array.isArray(route.points)) {
+        route.points = route.points.map((point: unknown) => {
+          if (point && typeof point === 'object') {
+            const p = { ...(point as Record<string, unknown>) };
+            return {
+              ...p,
+              estimatedTime: p.estimatedTime ? new Date(p.estimatedTime as string | number | Date) : undefined
+            };
+          }
+          return point;
+        });
       }
+      transformed.route = route;
     }
 
     // Transform settings.startTime
-    if (transformed.settings?.startTime) {
-      transformed.settings.startTime = new Date(transformed.settings.startTime);
+    if (transformed.settings && typeof transformed.settings === 'object') {
+      const settings = { ...(transformed.settings as Record<string, unknown>) };
+      if (settings.startTime) {
+        settings.startTime = new Date(settings.startTime as string | number | Date);
+        transformed.settings = settings;
+      }
     }
 
     return transformed;

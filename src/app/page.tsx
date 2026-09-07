@@ -31,13 +31,13 @@ import { toast } from 'sonner';
 
 export default function Home() {
   const [route, setRoute] = useState<Route | null>(null);
-  const [settings, setSettings] = useState<AppSettings>({
+  const [settings, setSettings] = useState<AppSettings>(() => ({
     startTime: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
     averageSpeed: ROUTE_CONFIG.DEFAULT_SPEED,
     forecastInterval: ROUTE_CONFIG.DEFAULT_INTERVAL,
     units: 'metric',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  });
+  }));
   const [selectedPoint, setSelectedPoint] = useState<SelectedWeatherPoint | null>(null);
 
   // Weather source preferences from store

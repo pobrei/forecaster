@@ -55,7 +55,7 @@ function validateGPXFile(file: File): void {
 
   // iOS Safari compatible MIME type check - be very lenient
   const hasValidMimeType = file.type === '' || // Empty MIME type (very common on iOS Safari)
-                          GPX_CONSTRAINTS.MIME_TYPES.includes(file.type as any);
+                          (GPX_CONSTRAINTS.MIME_TYPES as readonly string[]).includes(file.type);
 
   // Accept if it has .gpx extension OR if it's an XML-like file
   if (!hasGpxExtension && !hasValidMimeType && !fileName.includes('gpx')) {
@@ -334,11 +334,11 @@ export function sampleRoutePoints(route: Route, intervalKm: number = ROUTE_CONFI
 }
 
 async function readFileContent(file: File): Promise<string> {
-  if (typeof (file as any).text === 'function') {
-    return await (file as any).text();
+  if (typeof file.text === 'function') {
+    return await file.text();
   }
-  if (typeof (file as any).arrayBuffer === 'function') {
-    const buffer = await (file as any).arrayBuffer();
+  if (typeof file.arrayBuffer === 'function') {
+    const buffer = await file.arrayBuffer();
     return new TextDecoder().decode(buffer);
   }
   return new Promise((resolve, reject) => {

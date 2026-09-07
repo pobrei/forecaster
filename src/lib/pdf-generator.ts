@@ -10,7 +10,7 @@ export async function generatePDFReport(
   route: Route,
   forecasts: WeatherForecast[],
   settings: AppSettings,
-  options: ExportOptions = {
+  _options: ExportOptions = {
     includeMap: true,
     includeCharts: true,
     includeWeatherDetails: true,
@@ -25,7 +25,6 @@ export async function generatePDFReport(
   });
 
   const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
   const margin = EXPORT_CONFIG.PDF.MARGIN;
   let currentY = margin;
 
@@ -245,6 +244,7 @@ export function generateGeoJSONReport(
       name: route.name,
       totalDistanceKm: route.totalDistance,
       totalElevationGainM: route.totalElevationGain,
+      units: settings?.units || 'metric',
       generatedAt: new Date().toISOString(),
       generator: 'Forecaster Weather Planner'
     },

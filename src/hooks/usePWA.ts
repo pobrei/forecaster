@@ -15,19 +15,25 @@ interface PWAState {
 }
 
 export function usePWA() {
-  const [pwaState, setPWAState] = useState<PWAState>(() => {
-    const isInstalled = typeof window !== 'undefined' &&
-      (window.matchMedia('(display-mode: standalone)').matches ||
-       (window.navigator as { standalone?: boolean }).standalone === true);
-    return {
-      isInstallable: false,
-      isInstalled: !!isInstalled,
-      isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
-      installPrompt: null,
-    };
+  const [pwaState, setPWAState] = useState<PWAState>({
+    isInstallable: false,
+    isInstalled: false,
+    isOnline: true,
+    installPrompt: null,
   });
 
   useEffect(() => {
+    // Initial client check
+    const isInstalled = typeof window !== 'undefined' &&
+      (window.matchMedia('(display-mode: standalone)').matches ||
+       (window.navigator as { standalone?: boolean }).standalone === true);
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+    setPWAState(prev => ({
+      ...prev,
+      isInstalled: !!isInstalled,
+      isOnline,
+    }));
+
     // Listen for display mode changes
     const mediaQuery = window.matchMedia('(display-mode: standalone)');
     const handleDisplayModeChange = (e: MediaQueryListEvent) => {

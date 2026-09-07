@@ -16,7 +16,6 @@ const validateWeatherRequest = createValidationMiddleware<WeatherRequestData, We
 
 async function weatherHandler(
   validatedData: WeatherRequestData,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _request: NextRequest
 ): Promise<NextResponse<APIResponse<WeatherResponse>>> {
   const { route, settings } = validatedData;

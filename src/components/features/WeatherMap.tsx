@@ -284,10 +284,12 @@ export function WeatherMap({
 
     // Fit map to route
     const extent = routeSource.getExtent();
-    map.getView().fit(extent, {
-      padding: [50, 50, 50, 50],
-      maxZoom: 16,
-    });
+    if (extent) {
+      map.getView().fit(extent, {
+        padding: [50, 50, 50, 50],
+        maxZoom: 16,
+      });
+    }
   }, [route, forecasts, onPointSelect]);
 
   // Handle external point selection (from timeline or charts)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { X, Download, Smartphone, Zap, Wifi, WifiOff } from "lucide-react";
@@ -9,10 +9,15 @@ import { animations } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 
 export function PWAInstallBanner() {
+  const [isMounted, setIsMounted] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   const { isInstallable, isInstalled, isOnline, installApp } = usePWA();
 
-  if (isDismissed || isInstalled || !isInstallable) {
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted || isDismissed || isInstalled || !isInstallable) {
     return null;
   }
 
@@ -98,10 +103,15 @@ export function PWAInstallBanner() {
 }
 
 export function PWAOfflineBanner() {
+  const [isMounted, setIsMounted] = useState(false);
   const { isOnline } = usePWA();
   const [isDismissed, setIsDismissed] = useState(false);
 
-  if (isOnline || isDismissed) {
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted || isOnline || isDismissed) {
     return null;
   }
 

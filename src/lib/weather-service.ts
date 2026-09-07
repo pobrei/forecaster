@@ -9,6 +9,24 @@ export interface WeatherService {
   getApiLimits(): { requestsPerMinute: number; requestsPerDay: number };
 }
 
+interface OpenMeteoApiResponse {
+  current: {
+    time: string;
+    temperature_2m: number;
+    apparent_temperature: number;
+    pressure_msl: number;
+    relative_humidity_2m: number;
+    cloud_cover: number;
+    wind_speed_10m: number;
+    wind_direction_10m: number;
+    wind_gusts_10m?: number;
+    precipitation?: number;
+    weather_code: number;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
 // Open-Meteo Service Implementation
 class OpenMeteoService implements WeatherService {
   private readonly baseUrl = 'https://api.open-meteo.com/v1';
@@ -60,7 +78,7 @@ class OpenMeteoService implements WeatherService {
     }
   }
 
-  private transformToWeatherData(data: any, lat: number, lon: number): WeatherData {
+  private transformToWeatherData(data: OpenMeteoApiResponse, lat: number, lon: number): WeatherData {
     const current = data.current;
 
     return {
@@ -80,7 +98,7 @@ class OpenMeteoService implements WeatherService {
       wind_gust: current.wind_gusts_10m,
       weather: [this.mapWeatherCode(current.weather_code)],
       pop: undefined,
-      rain: current.precipitation > 0 ? { '1h': current.precipitation } : undefined,
+      rain: current.precipitation !== undefined && current.precipitation > 0 ? { '1h': current.precipitation } : undefined,
       snow: undefined // Open-Meteo doesn't separate rain/snow in current weather
     };
   }
