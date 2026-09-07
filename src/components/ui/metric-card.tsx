@@ -19,34 +19,34 @@ interface MetricCardProps {
 
 const colorVariants = {
   red: {
-    icon: 'text-red-500',
-    gradient: 'from-red-50 to-red-100 dark:from-red-950 dark:to-red-900',
-    border: 'border-red-200 dark:border-red-800'
+    icon: 'text-[#ff7b54]',
+    gradient: 'from-[#ff7b54]/10 to-transparent',
+    border: 'border-[#ff7b54]/30'
   },
   blue: {
-    icon: 'text-blue-500',
-    gradient: 'from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900',
-    border: 'border-blue-200 dark:border-blue-800'
+    icon: 'text-[#E5A93C]',
+    gradient: 'from-[#E5A93C]/10 to-transparent',
+    border: 'border-[#E5A93C]/30'
   },
   green: {
-    icon: 'text-green-500',
-    gradient: 'from-green-50 to-green-100 dark:from-green-950 dark:to-green-900',
-    border: 'border-green-200 dark:border-green-800'
+    icon: 'text-[#82937D]',
+    gradient: 'from-[#82937D]/10 to-transparent',
+    border: 'border-[#82937D]/30'
   },
   yellow: {
-    icon: 'text-yellow-500',
-    gradient: 'from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900',
-    border: 'border-yellow-200 dark:border-yellow-800'
+    icon: 'text-[#E5A93C]',
+    gradient: 'from-[#E5A93C]/15 to-transparent',
+    border: 'border-[#E5A93C]/40'
   },
   purple: {
-    icon: 'text-purple-500',
-    gradient: 'from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900',
-    border: 'border-purple-200 dark:border-purple-800'
+    icon: 'text-[#c678dd]',
+    gradient: 'from-[#c678dd]/10 to-transparent',
+    border: 'border-[#c678dd]/30'
   },
   gray: {
-    icon: 'text-gray-500',
-    gradient: 'from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900',
-    border: 'border-gray-200 dark:border-gray-800'
+    icon: 'text-[#A89F91]',
+    gradient: 'from-[#453A2E]/20 to-transparent',
+    border: 'border-[#453A2E]'
   }
 };
 
@@ -57,9 +57,9 @@ const trendIcons = {
 };
 
 const trendColors = {
-  up: 'text-green-600 dark:text-green-400',
-  down: 'text-red-600 dark:text-red-400',
-  neutral: 'text-gray-600 dark:text-gray-400'
+  up: 'text-[#82937D]',
+  down: 'text-[#ff7b54]',
+  neutral: 'text-[#A89F91]'
 };
 
 export function MetricCard({
@@ -76,11 +76,11 @@ export function MetricCard({
   const colorConfig = colorVariants[color];
   
   return (
-    <Card
+    <div
       className={cn(
-        "relative overflow-hidden transition-all duration-300",
+        "relative overflow-hidden rounded-xl border bg-[#1C1814] transition-all duration-300 font-mono",
         colorConfig.border,
-        onClick && "cursor-pointer hover:shadow-md hover:-translate-y-0.5",
+        onClick && "cursor-pointer hover:border-[#E5A93C] hover:shadow-[0_0_15px_rgba(229,169,60,0.15)]",
         className
       )}
       onClick={onClick}
@@ -88,21 +88,21 @@ export function MetricCard({
     >
       {/* Gradient Background */}
       <div className={cn(
-        "absolute inset-0 bg-gradient-to-br opacity-50",
+        "absolute inset-0 bg-gradient-to-br opacity-60 pointer-events-none",
         colorConfig.gradient
       )} />
       
-      <CardContent className="relative p-4">
+      <div className="relative p-4">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
-            <div className={cn("flex-shrink-0", colorConfig.icon)}>
+            <div className={cn("shrink-0", colorConfig.icon)}>
               {icon}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-muted-foreground truncate">
+              <p className="text-[11px] uppercase tracking-wider text-[#A89F91] truncate">
                 {label}
               </p>
-              <p className="text-2xl font-bold text-foreground">
+              <p className="text-xl font-bold text-[#F5F2EB] mt-0.5">
                 {value}
               </p>
             </div>
@@ -110,9 +110,9 @@ export function MetricCard({
         </div>
         
         {trend && (
-          <div className="mt-3 flex items-center justify-between">
+          <div className="mt-2.5 flex items-center justify-between text-[10px]">
             <div className={cn(
-              "flex items-center space-x-1 text-xs",
+              "flex items-center space-x-1",
               trendColors[trendDirection]
             )}>
               {trendIcons[trendDirection]}
@@ -120,8 +120,8 @@ export function MetricCard({
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 

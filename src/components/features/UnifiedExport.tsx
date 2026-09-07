@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
+import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -786,40 +787,57 @@ export function UnifiedExport({ route, forecasts, settings, className }: Unified
   };
 
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Download className="h-5 w-5" />
-          Export Weather Data
-        </CardTitle>
-        <CardDescription>
-          Export your weather forecast in multiple formats
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div className={cn("rounded-2xl border border-[#453A2E] bg-[#16120F]/90 p-5 font-mono text-xs text-[#F5F2EB] shadow-2xl", className)}>
+      <div className="flex items-center justify-between mb-4 border-b border-[#453A2E]/70 pb-3">
+        <div>
+          <div className="flex items-center gap-2 font-bold text-sm tracking-wider text-[#F5F2EB]">
+            <Download className="h-4 w-4 text-[#E5A93C]" />
+            <span>EXPEDITION DOSSIER EXPORT</span>
+          </div>
+          <p className="text-[11px] text-[#A89F91] mt-1">
+            Export synoptic meteorological packages in multiple secure formats
+          </p>
+        </div>
+      </div>
+
+      <div>
         <Tabs defaultValue="reports" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="reports">Reports</TabsTrigger>
-            <TabsTrigger value="data">Data</TabsTrigger>
-            <TabsTrigger value="options">Options</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 h-auto p-1 bg-[#1C1814] border border-[#453A2E] rounded-xl mb-4">
+            <TabsTrigger
+              value="reports"
+              className="py-1.5 text-xs text-[#A89F91] data-[state=active]:bg-[#E5A93C]/20 data-[state=active]:text-[#E5A93C] data-[state=active]:border data-[state=active]:border-[#E5A93C]/50 rounded-lg transition-all"
+            >
+              Reports
+            </TabsTrigger>
+            <TabsTrigger
+              value="data"
+              className="py-1.5 text-xs text-[#A89F91] data-[state=active]:bg-[#E5A93C]/20 data-[state=active]:text-[#E5A93C] data-[state=active]:border data-[state=active]:border-[#E5A93C]/50 rounded-lg transition-all"
+            >
+              Data
+            </TabsTrigger>
+            <TabsTrigger
+              value="options"
+              className="py-1.5 text-xs text-[#A89F91] data-[state=active]:bg-[#E5A93C]/20 data-[state=active]:text-[#E5A93C] data-[state=active]:border data-[state=active]:border-[#E5A93C]/50 rounded-lg transition-all"
+            >
+              Options
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="reports" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <Button
                 onClick={handleExportHTML}
                 disabled={isExporting}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                className="flex items-center justify-center gap-2 bg-[#82937D]/20 hover:bg-[#82937D]/30 border border-[#82937D]/50 text-[#82937D] rounded-xl font-mono text-xs py-2.5 transition-all cursor-pointer"
               >
                 <FileText className="h-4 w-4" />
-                Export HTML Report
+                Export HTML Dossier
               </Button>
 
               <Button
                 onClick={handleExportPDF}
                 disabled={isExporting}
-                className="flex items-center gap-2"
-                variant="default"
+                className="flex items-center justify-center gap-2 bg-[#E5A93C] hover:bg-[#d4972e] text-[#12100E] font-bold rounded-xl font-mono text-xs py-2.5 shadow-[0_0_15px_rgba(229,169,60,0.25)] transition-all cursor-pointer"
               >
                 <FileText className="h-4 w-4" />
                 {isExporting ? 'Generating...' : 'Export PDF Report'}
@@ -828,106 +846,100 @@ export function UnifiedExport({ route, forecasts, settings, className }: Unified
               <Button
                 onClick={handleExportPNG}
                 disabled={isExporting}
-                className="flex items-center gap-2"
-                variant="outline"
+                className="flex items-center justify-center gap-2 bg-[#1C1814] hover:bg-[#251F19] border border-[#453A2E] text-[#F5F2EB] rounded-xl font-mono text-xs py-2.5 transition-all cursor-pointer col-span-1 md:col-span-2"
               >
-                <ImageIcon className="h-4 w-4" />
-                Export PNG Image
+                <ImageIcon className="h-4 w-4 text-[#E5A93C]" />
+                Export 2400px High-Res Image Dossier
               </Button>
-
-
             </div>
 
             {isExporting && exportProgress > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="space-y-2 p-3 rounded-xl bg-[#1C1814] border border-[#453A2E]">
+                <div className="flex items-center gap-2 text-xs text-[#E5A93C]">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Generating export...
+                  Compiling expedition dossier: {exportProgress}%
                 </div>
-                <Progress value={exportProgress} className="w-full" />
+                <Progress value={exportProgress} className="w-full bg-[#12100E]" />
               </div>
             )}
           </TabsContent>
 
           <TabsContent value="data" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <Button
                 onClick={handleExportCSV}
                 disabled={isExporting}
-                className="flex items-center gap-2"
-                variant="outline"
+                className="flex items-center justify-center gap-2 bg-[#1C1814] hover:bg-[#251F19] border border-[#453A2E] text-[#F5F2EB] rounded-xl font-mono text-xs py-2.5 transition-all cursor-pointer"
               >
-                <FileSpreadsheet className="h-4 w-4" />
-                Export CSV Data
+                <FileSpreadsheet className="h-4 w-4 text-[#82937D]" />
+                CSV Data
               </Button>
 
               <Button
                 onClick={handleExportJSON}
                 disabled={isExporting}
-                className="flex items-center gap-2"
-                variant="outline"
+                className="flex items-center justify-center gap-2 bg-[#1C1814] hover:bg-[#251F19] border border-[#453A2E] text-[#F5F2EB] rounded-xl font-mono text-xs py-2.5 transition-all cursor-pointer"
               >
-                <FileCode className="h-4 w-4" />
-                Export JSON Data
+                <FileCode className="h-4 w-4 text-[#E5A93C]" />
+                JSON Payload
               </Button>
 
               <Button
                 onClick={handleExportGeoJSON}
                 disabled={isExporting}
-                className="flex items-center gap-2"
-                variant="outline"
+                className="flex items-center justify-center gap-2 bg-[#1C1814] hover:bg-[#251F19] border border-[#453A2E] text-[#F5F2EB] rounded-xl font-mono text-xs py-2.5 transition-all cursor-pointer"
               >
-                <FileCode className="h-4 w-4" />
-                Export GeoJSON Route
+                <FileCode className="h-4 w-4 text-[#82937D]" />
+                GeoJSON Track
               </Button>
             </div>
           </TabsContent>
 
-          <TabsContent value="options" className="space-y-4">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
+          <TabsContent value="options" className="space-y-3">
+            <div className="space-y-2.5 p-3 rounded-xl bg-[#1C1814] border border-[#453A2E]/70">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="include-charts" className="text-xs text-[#F5F2EB] cursor-pointer">Include Elevation & Weather Curves</Label>
                 <Switch
                   id="include-charts"
                   checked={exportOptions.includeCharts}
                   onCheckedChange={(checked) => handleExportOptionChange('includeCharts', checked)}
                 />
-                <Label htmlFor="include-charts">Include Charts</Label>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="include-map" className="text-xs text-[#F5F2EB] cursor-pointer">Include Map Geometry</Label>
                 <Switch
                   id="include-map"
                   checked={exportOptions.includeMap}
                   onCheckedChange={(checked) => handleExportOptionChange('includeMap', checked)}
                 />
-                <Label htmlFor="include-map">Include Map</Label>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="include-details" className="text-xs text-[#F5F2EB] cursor-pointer">Include Waypoint Telemetry Table</Label>
                 <Switch
                   id="include-details"
                   checked={exportOptions.includeWeatherDetails}
                   onCheckedChange={(checked) => handleExportOptionChange('includeWeatherDetails', checked)}
                 />
-                <Label htmlFor="include-details">Include Weather Details</Label>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="include-alerts" className="text-xs text-[#F5F2EB] cursor-pointer">Include Synoptic Alerts</Label>
                 <Switch
                   id="include-alerts"
                   checked={exportOptions.includeAlerts}
                   onCheckedChange={(checked) => handleExportOptionChange('includeAlerts', checked)}
                 />
-                <Label htmlFor="include-alerts">Include Weather Alerts</Label>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="include-statistics" className="text-xs text-[#F5F2EB] cursor-pointer">Include Aggregate Statistics</Label>
                 <Switch
                   id="include-statistics"
                   checked={exportOptions.includeStatistics}
                   onCheckedChange={(checked) => handleExportOptionChange('includeStatistics', checked)}
                 />
-                <Label htmlFor="include-statistics">Include Statistics</Label>
               </div>
             </div>
           </TabsContent>
@@ -940,21 +952,16 @@ export function UnifiedExport({ route, forecasts, settings, className }: Unified
           aria-hidden="true"
         />
 
-        <div className="mt-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCircle className="h-4 w-4 text-green-500" />
-            <span className="font-medium">Available Formats:</span>
+        <div className="mt-4 pt-3 border-t border-[#453A2E]/70 text-[11px] text-[#A89F91]">
+          <div className="flex items-center gap-1.5 mb-1.5 text-[#82937D]">
+            <CheckCircle className="h-3.5 w-3.5" />
+            <span className="font-bold uppercase">Supported Formats:</span>
           </div>
-          <ul className="space-y-1 ml-6">
-            <li>• <strong>HTML:</strong> Interactive web report (recommended)</li>
-            <li>• <strong>PDF:</strong> Printable document</li>
-            <li>• <strong>PNG:</strong> Ultra-high-resolution dossier (2400px, 300 DPI ready)</li>
-            <li>• <strong>CSV:</strong> Spreadsheet data</li>
-            <li>• <strong>JSON:</strong> Raw data for developers</li>
-
-          </ul>
+          <p className="leading-relaxed">
+            HTML (interactive standalone), PDF (briefing ready), PNG (2400px ultra-high resolution @ 300 DPI), CSV, JSON, and GeoJSON.
+          </p>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

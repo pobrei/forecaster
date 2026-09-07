@@ -119,26 +119,22 @@ function getSeverityColor(severity: string): string {
 export function WeatherSummary({ forecasts, units = 'metric', className }: WeatherSummaryProps) {
   if (!forecasts || forecasts.length === 0) {
     return (
-      <Card className={className}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
-            Weather Summary
-          </CardTitle>
-          <CardDescription>
-            Weather statistics and overview will appear here after generating forecasts
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-32 text-muted-foreground">
-            <div className="text-center">
-              <BarChart3 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No weather data available</p>
-              <p className="text-xs">Generate forecasts to see the summary</p>
-            </div>
+      <div className={cn("rounded-2xl border border-[#453A2E] bg-[#16120F]/90 p-6 font-mono text-xs text-[#F5F2EB] shadow-2xl", className)}>
+        <div className="flex items-center gap-2 mb-2 font-bold text-sm text-[#F5F2EB]">
+          <BarChart3 className="h-4 w-4 text-[#E5A93C]" />
+          <span>EXPEDITION WEATHER SUMMARY</span>
+        </div>
+        <p className="text-[#A89F91] text-xs mb-6">
+          Atmospheric synthesis will appear here after generating forecasts
+        </p>
+        <div className="flex items-center justify-center h-28 text-[#A89F91] border border-dashed border-[#453A2E] rounded-xl">
+          <div className="text-center">
+            <BarChart3 className="h-6 w-6 mx-auto mb-2 opacity-40 text-[#E5A93C]" />
+            <p className="text-xs">NO SUMMARY TELEMETRY AVAILABLE</p>
+            <p className="text-[10px] text-[#A89F91]/70">Arm route and generate forecast</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
@@ -146,165 +142,167 @@ export function WeatherSummary({ forecasts, units = 'metric', className }: Weath
   const routeDistance = forecasts[forecasts.length - 1]?.routePoint.distance || 0;
 
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <BarChart3 className="h-5 w-5" />
-          Weather Summary
-        </CardTitle>
-        <CardDescription>
-          Overview of weather conditions along your {formatDistance(routeDistance, units)} route
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Temperature Summary */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Thermometer className="h-4 w-4 text-red-500" />
-              Temperature
+    <div className={cn("rounded-2xl border border-[#453A2E] bg-[#16120F]/90 p-5 font-mono text-xs text-[#F5F2EB] shadow-2xl", className)}>
+      <div className="flex items-center justify-between mb-4 border-b border-[#453A2E]/70 pb-3">
+        <div>
+          <div className="flex items-center gap-2 font-bold text-sm tracking-wider text-[#F5F2EB]">
+            <BarChart3 className="h-4 w-4 text-[#E5A93C]" />
+            <span>EXPEDITION WEATHER SYNTHESIS</span>
+          </div>
+          <p className="text-[11px] text-[#A89F91] mt-1">
+            Aggregated metrics along your {formatDistance(routeDistance, units)} route
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Temperature Summary */}
+        <div className="p-3.5 rounded-xl bg-[#1C1814] border border-[#453A2E]/70 space-y-2.5">
+          <div className="flex items-center gap-2 text-xs font-bold text-[#E5A93C] uppercase">
+            <Thermometer className="h-4 w-4" />
+            Temperature
+          </div>
+          <div className="space-y-1.5 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-[#A89F91]">Range:</span>
+              <span className="font-bold text-[#F5F2EB]">
+                {formatTemperature(stats.temperature.min, units)} - {formatTemperature(stats.temperature.max, units)}
+              </span>
             </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Range:</span>
-                <span className="text-sm font-medium">
-                  {formatTemperature(stats.temperature.min, units)} - {formatTemperature(stats.temperature.max, units)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Average:</span>
-                <span className="text-sm font-medium">
-                  {formatTemperature(stats.temperature.avg, units)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Variation:</span>
-                <span className="text-sm font-medium">
-                  {stats.temperature.range.toFixed(1)}°
-                </span>
-              </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-[#A89F91]">Average:</span>
+              <span className="font-bold text-[#E5A93C]">
+                {formatTemperature(stats.temperature.avg, units)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-[#A89F91]">Variation:</span>
+              <span className="font-bold text-[#82937D]">
+                {stats.temperature.range.toFixed(1)}°
+              </span>
             </div>
           </div>
+        </div>
 
-          {/* Wind Summary */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Wind className="h-4 w-4 text-blue-500" />
-              Wind
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Range:</span>
-                <span className="text-sm font-medium">
-                  {formatWindSpeed(stats.wind.min, units)} - {formatWindSpeed(stats.wind.max, units)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Average:</span>
-                <span className="text-sm font-medium">
-                  {formatWindSpeed(stats.wind.avg, units)}
-                </span>
-              </div>
-              {stats.wind.maxGust && stats.wind.maxGust > 0 && (
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Max Gust:</span>
-                  <span className="text-sm font-medium">
-                    {formatWindSpeed(stats.wind.maxGust, units)}
-                  </span>
-                </div>
-              )}
-            </div>
+        {/* Wind Summary */}
+        <div className="p-3.5 rounded-xl bg-[#1C1814] border border-[#453A2E]/70 space-y-2.5">
+          <div className="flex items-center gap-2 text-xs font-bold text-[#82937D] uppercase">
+            <Wind className="h-4 w-4" />
+            Wind Profile
           </div>
-
-          {/* Precipitation Summary */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Droplets className="h-4 w-4 text-blue-600" />
-              Precipitation
+          <div className="space-y-1.5 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-[#A89F91]">Range:</span>
+              <span className="font-bold text-[#F5F2EB]">
+                {formatWindSpeed(stats.wind.min, units)} - {formatWindSpeed(stats.wind.max, units)}
+              </span>
             </div>
-            <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-[#A89F91]">Average:</span>
+              <span className="font-bold text-[#82937D]">
+                {formatWindSpeed(stats.wind.avg, units)}
+              </span>
+            </div>
+            {stats.wind.maxGust && stats.wind.maxGust > 0 && (
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Total:</span>
-                <span className="text-sm font-medium">
-                  {formatPrecipitation(stats.precipitation.total, units)}
+                <span className="text-[10px] text-[#A89F91]">Max Gust:</span>
+                <span className="font-bold text-[#E5A93C]">
+                  {formatWindSpeed(stats.wind.maxGust, units)}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Max/hour:</span>
-                <span className="text-sm font-medium">
-                  {formatPrecipitation(stats.precipitation.maxHourly, units)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Rainy points:</span>
-                <span className="text-sm font-medium">
-                  {stats.precipitation.rainyPoints}/{stats.precipitation.totalPoints}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Alerts Summary */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <AlertTriangle className="h-4 w-4 text-orange-500" />
-              Alerts
-            </div>
-            {stats.alerts.total > 0 ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Total:</span>
-                  <span className="text-sm font-medium">{stats.alerts.total}</span>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {Object.entries(stats.alerts.bySeverity).map(([severity, count]) => (
-                    <Badge 
-                      key={severity} 
-                      variant="secondary" 
-                      className={cn("text-xs", getSeverityColor(severity), "text-white")}
-                    >
-                      {severity}: {count}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground">No alerts</div>
             )}
           </div>
         </div>
 
-        {/* Additional Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6 pt-6 border-t">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
-              <Gauge className="h-3 w-3" />
-              Humidity Range
-            </div>
-            <div className="text-sm font-medium">
-              {formatPercentage(stats.atmospheric.humidity.min)} - {formatPercentage(stats.atmospheric.humidity.max)}
-            </div>
+        {/* Precipitation Summary */}
+        <div className="p-3.5 rounded-xl bg-[#1C1814] border border-[#453A2E]/70 space-y-2.5">
+          <div className="flex items-center gap-2 text-xs font-bold text-[#82937D] uppercase">
+            <Droplets className="h-4 w-4" />
+            Precipitation
           </div>
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
-              <Gauge className="h-3 w-3" />
-              Pressure Range
+          <div className="space-y-1.5 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-[#A89F91]">Total:</span>
+              <span className="font-bold text-[#82937D]">
+                {formatPrecipitation(stats.precipitation.total, units)}
+              </span>
             </div>
-            <div className="text-sm font-medium">
-              {formatPressure(stats.atmospheric.pressure.min, units)} - {formatPressure(stats.atmospheric.pressure.max, units)}
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-[#A89F91]">Max/hour:</span>
+              <span className="font-bold text-[#E5A93C]">
+                {formatPrecipitation(stats.precipitation.maxHourly, units)}
+              </span>
             </div>
-          </div>
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
-              <Eye className="h-3 w-3" />
-              Visibility Range
-            </div>
-            <div className="text-sm font-medium">
-              {(stats.atmospheric.visibility.min / 1000).toFixed(1)}km - {(stats.atmospheric.visibility.max / 1000).toFixed(1)}km
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-[#A89F91]">Rainy points:</span>
+              <span className="font-bold text-[#F5F2EB]">
+                {stats.precipitation.rainyPoints}/{stats.precipitation.totalPoints}
+              </span>
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Alerts Summary */}
+        <div className="p-3.5 rounded-xl bg-[#1C1814] border border-[#453A2E]/70 space-y-2.5">
+          <div className="flex items-center gap-2 text-xs font-bold text-[#E5A93C] uppercase">
+            <AlertTriangle className="h-4 w-4" />
+            Expedition Alerts
+          </div>
+          {stats.alerts.total > 0 ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-[#A89F91]">Total:</span>
+                <span className="font-bold text-[#E5A93C]">{stats.alerts.total}</span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {Object.entries(stats.alerts.bySeverity).map(([severity, count]) => (
+                  <span 
+                    key={severity} 
+                    className="text-[10px] px-2 py-0.5 rounded-full bg-[#E5A93C]/20 border border-[#E5A93C]/50 text-[#E5A93C] font-bold"
+                  >
+                    {severity}: {count}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs text-[#82937D] py-2 flex items-center gap-1.5">
+              <span>✓ All track segments nominal</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Additional Stats Row */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4 pt-4 border-t border-[#453A2E]/70 text-xs">
+        <div className="p-2.5 rounded-xl bg-[#1C1814] border border-[#453A2E]/60 text-center">
+          <div className="flex items-center justify-center gap-1 text-[10px] text-[#A89F91] uppercase mb-0.5">
+            <Gauge className="h-3 w-3 text-[#A89F91]" />
+            Humidity Range
+          </div>
+          <div className="font-bold text-[#F5F2EB]">
+            {formatPercentage(stats.atmospheric.humidity.min)} - {formatPercentage(stats.atmospheric.humidity.max)}
+          </div>
+        </div>
+        <div className="p-2.5 rounded-xl bg-[#1C1814] border border-[#453A2E]/60 text-center">
+          <div className="flex items-center justify-center gap-1 text-[10px] text-[#A89F91] uppercase mb-0.5">
+            <Gauge className="h-3 w-3 text-[#E5A93C]" />
+            Pressure Range
+          </div>
+          <div className="font-bold text-[#E5A93C]">
+            {formatPressure(stats.atmospheric.pressure.min, units)} - {formatPressure(stats.atmospheric.pressure.max, units)}
+          </div>
+        </div>
+        <div className="p-2.5 rounded-xl bg-[#1C1814] border border-[#453A2E]/60 text-center col-span-2 md:col-span-1">
+          <div className="flex items-center justify-center gap-1 text-[10px] text-[#A89F91] uppercase mb-0.5">
+            <Eye className="h-3 w-3 text-[#82937D]" />
+            Visibility Range
+          </div>
+          <div className="font-bold text-[#82937D]">
+            {(stats.atmospheric.visibility.min / 1000).toFixed(1)}km - {(stats.atmospheric.visibility.max / 1000).toFixed(1)}km
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

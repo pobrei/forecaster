@@ -34,26 +34,22 @@ export function WeatherTimeline({
 
   if (!forecasts || forecasts.length === 0) {
     return (
-      <Card className={className}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Weather Timeline
-          </CardTitle>
-          <CardDescription>
-            Timeline view of weather conditions along your route
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-32 text-muted-foreground">
-            <div className="text-center">
-              <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No weather timeline available</p>
-              <p className="text-xs">Generate forecasts to see the timeline</p>
-            </div>
+      <div className={cn("rounded-2xl border border-[#453A2E] bg-[#16120F]/90 p-6 font-mono text-xs text-[#F5F2EB] shadow-2xl", className)}>
+        <div className="flex items-center gap-2 mb-2 font-bold text-sm text-[#F5F2EB]">
+          <Clock className="h-4 w-4 text-[#E5A93C]" />
+          <span>WEATHER TIMELINE</span>
+        </div>
+        <p className="text-[#A89F91] text-xs mb-6">
+          Timeline view of atmospheric conditions along expedition track
+        </p>
+        <div className="flex items-center justify-center h-28 text-[#A89F91] border border-dashed border-[#453A2E] rounded-xl">
+          <div className="text-center">
+            <Clock className="h-6 w-6 mx-auto mb-2 opacity-40 text-[#E5A93C]" />
+            <p className="text-xs">NO SYNTHESIZED TIMELINE FIXES</p>
+            <p className="text-[10px] text-[#A89F91]/70">Arm route and generate forecast to inspect intervals</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
@@ -73,176 +69,138 @@ export function WeatherTimeline({
   };
 
   const getTemperatureColor = (temp: number) => {
-    if (temp < 0) return 'text-blue-600 dark:text-blue-400';
-    if (temp < 10) return 'text-cyan-600 dark:text-cyan-400';
-    if (temp > 25) return 'text-orange-600 dark:text-orange-400';
-    if (temp > 35) return 'text-red-600 dark:text-red-400';
-    return 'text-green-600 dark:text-green-400';
-  };
-
-  const getAlertSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'extreme': return 'bg-red-500';
-      case 'high': return 'bg-orange-500';
-      case 'medium': return 'bg-yellow-500';
-      case 'low': return 'bg-blue-500';
-      default: return 'bg-gray-500';
-    }
+    if (temp < 0) return 'text-[#82937D]';
+    if (temp < 10) return 'text-[#A89F91]';
+    if (temp > 25) return 'text-[#E5A93C]';
+    if (temp > 35) return 'text-[#ff7b54]';
+    return 'text-[#F5F2EB]';
   };
 
   const totalAlerts = forecasts.reduce((sum, forecast) => sum + (forecast.alerts?.length || 0), 0);
 
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
-          Weather Timeline
-          {totalAlerts > 0 && (
-            <Badge variant="destructive" className="ml-2">
-              {totalAlerts} Alert{totalAlerts > 1 ? 's' : ''}
-            </Badge>
-          )}
-        </CardTitle>
-        <CardDescription>
-          Scroll horizontally to explore weather conditions along your {formatDistance(forecasts[forecasts.length - 1]?.routePoint.distance || 0, units)} route
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div
-          ref={scrollRef}
-          className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent"
-          style={{ scrollbarWidth: 'thin' }}
-        >
-          {forecasts.map((forecast, index) => {
-            const hasAlerts = forecast.alerts && forecast.alerts.length > 0;
-            const highSeverityAlerts = forecast.alerts?.filter(alert => 
-              alert.severity === 'extreme' || alert.severity === 'high'
-            ) || [];
+    <div className={cn("rounded-2xl border border-[#453A2E] bg-[#16120F]/90 p-5 font-mono text-xs text-[#F5F2EB] shadow-2xl", className)}>
+      <div className="flex items-center justify-between mb-4 border-b border-[#453A2E]/70 pb-3">
+        <div>
+          <div className="flex items-center gap-2 font-bold text-sm tracking-wider text-[#F5F2EB]">
+            <Clock className="h-4 w-4 text-[#E5A93C]" />
+            <span>EXPEDITION TIMELINE</span>
+            {totalAlerts > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-[#E5A93C]/20 border border-[#E5A93C]/50 text-[#E5A93C] text-[10px] font-bold">
+                {totalAlerts} ALERT{totalAlerts > 1 ? 'S' : ''}
+              </span>
+            )}
+          </div>
+          <p className="text-[11px] text-[#A89F91] mt-1">
+            Horizontal chronologic scroll along {formatDistance(forecasts[forecasts.length - 1]?.routePoint.distance || 0, units)} route
+          </p>
+        </div>
+      </div>
 
-            const isSelected = selectedPoint?.forecastIndex === index;
+      <div
+        ref={scrollRef}
+        className="flex gap-3 overflow-x-auto pb-3 custom-scrollbar"
+      >
+        {forecasts.map((forecast, index) => {
+          const hasAlerts = forecast.alerts && forecast.alerts.length > 0;
+          const isSelected = selectedPoint?.forecastIndex === index;
 
-            return (
-              <div
-                key={index}
-                className={cn(
-                  "flex-shrink-0 w-48 p-4 border rounded-lg bg-card transition-all hover:shadow-md cursor-pointer",
-                  hasAlerts && "border-orange-200 dark:border-orange-800",
-                  highSeverityAlerts.length > 0 && "border-red-200 dark:border-red-800",
-                  isSelected && "ring-2 ring-blue-500 border-blue-300 dark:border-blue-700"
-                )}
-                onClick={() => onPointSelect?.(index, 'timeline')}
-              >
-                {/* Header */}
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-sm font-medium">
-                    {formatDistance(forecast.routePoint.distance, units)}
-                  </div>
-                  {forecast.routePoint.estimatedTime && (
-                    <div className="text-xs text-muted-foreground">
-                      {formatTime(forecast.routePoint.estimatedTime)}
-                    </div>
-                  )}
-                </div>
-
-                {/* Weather Icon and Condition */}
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-2xl">{getWeatherIcon(forecast.weather)}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">
-                      {forecast.weather.weather[0]?.description}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Temperature */}
-                <div className="flex items-center gap-2 mb-2">
-                  <Thermometer className="h-4 w-4 text-muted-foreground" />
-                  <span className={cn("font-semibold", getTemperatureColor(forecast.weather.temp))}>
-                    {formatTemperature(forecast.weather.temp, units)}
+          return (
+            <div
+              key={index}
+              className={cn(
+                "shrink-0 w-48 p-3 rounded-xl border transition-all cursor-pointer bg-[#1C1814] hover:bg-[#251F19]",
+                isSelected
+                  ? "border-[#E5A93C] ring-2 ring-[#E5A93C]/40 shadow-[0_0_15px_rgba(229,169,60,0.2)]"
+                  : hasAlerts
+                  ? "border-[#E5A93C]/60"
+                  : "border-[#453A2E]"
+              )}
+              onClick={() => onPointSelect?.(index, 'timeline')}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-[#453A2E]/60 text-[11px]">
+                <span className="font-bold text-[#E5A93C]">
+                  {formatDistance(forecast.routePoint.distance, units)}
+                </span>
+                {forecast.routePoint.estimatedTime && (
+                  <span className="text-[#A89F91] text-[10px]">
+                    {formatTime(forecast.routePoint.estimatedTime)}
                   </span>
-                  <span className="text-xs text-muted-foreground">
-                    feels {formatTemperature(forecast.weather.feels_like, units)}
-                  </span>
-                </div>
-
-                {/* Wind */}
-                <div className="flex items-center gap-2 mb-2">
-                  <Wind className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">
-                    {formatWindSpeed(forecast.weather.wind_speed, units)}
-                  </span>
-                </div>
-
-                {/* Precipitation */}
-                {(forecast.weather.rain?.['1h'] || forecast.weather.snow?.['1h']) && (
-                  <div className="flex items-center gap-2 mb-2">
-                    <Droplets className="h-4 w-4 text-blue-500" />
-                    <span className="text-sm">
-                      {forecast.weather.rain?.['1h'] || forecast.weather.snow?.['1h']}mm/h
-                    </span>
-                  </div>
-                )}
-
-                {/* Additional Info */}
-                <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mb-3">
-                  <div>
-                    <span>Humidity</span>
-                    <div className="font-medium">{forecast.weather.humidity}%</div>
-                  </div>
-                  <div>
-                    <span>Clouds</span>
-                    <div className="font-medium">{forecast.weather.clouds}%</div>
-                  </div>
-                </div>
-
-                {/* Alerts */}
-                {hasAlerts && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-1 text-xs font-medium text-orange-600 dark:text-orange-400">
-                      <AlertTriangle className="h-3 w-3" />
-                      {forecast.alerts!.length} Alert{forecast.alerts!.length > 1 ? 's' : ''}
-                    </div>
-                    <div className="space-y-1">
-                      {forecast.alerts!.slice(0, 2).map((alert, alertIndex) => (
-                        <div
-                          key={alertIndex}
-                          className="text-xs p-2 rounded border-l-2 bg-muted/50"
-                          style={{ borderLeftColor: `var(--${getAlertSeverityColor(alert.severity).replace('bg-', '')}-500)` }}
-                        >
-                          <div className="font-medium">{alert.title}</div>
-                          <div className="text-muted-foreground truncate">
-                            {alert.description}
-                          </div>
-                        </div>
-                      ))}
-                      {forecast.alerts!.length > 2 && (
-                        <div className="text-xs text-muted-foreground text-center">
-                          +{forecast.alerts!.length - 2} more
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Elevation */}
-                {forecast.routePoint.elevation !== undefined && (
-                  <div className="text-xs text-muted-foreground mt-2 pt-2 border-t">
-                    Elevation: {Math.round(forecast.routePoint.elevation)}m
-                  </div>
                 )}
               </div>
-            );
-          })}
-        </div>
 
-        {/* Scroll Hint */}
-        {forecasts.length > 3 && (
-          <div className="text-xs text-muted-foreground text-center mt-2">
-            {'\u2190'} Scroll horizontally to see all {forecasts.length} weather points {'\u2192'}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              {/* Weather Icon and Condition */}
+              <div className="flex items-center gap-2 mb-2.5">
+                <span className="text-xl">{getWeatherIcon(forecast.weather)}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-semibold text-[#F5F2EB] capitalize truncate">
+                    {forecast.weather.weather[0]?.description}
+                  </div>
+                </div>
+              </div>
+
+              {/* Temperature */}
+              <div className="flex items-center justify-between mb-1.5 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <Thermometer className="h-3.5 w-3.5 text-[#A89F91]" />
+                  <span className={cn("font-bold", getTemperatureColor(forecast.weather.temp))}>
+                    {formatTemperature(forecast.weather.temp, units)}
+                  </span>
+                </div>
+                <span className="text-[10px] text-[#E5A93C]/90 font-mono">
+                  FEELS {formatTemperature(forecast.weather.feels_like, units)}
+                </span>
+              </div>
+
+              {/* Wind */}
+              <div className="flex items-center gap-1.5 mb-1.5 text-xs">
+                <Wind className="h-3.5 w-3.5 text-[#82937D]" />
+                <span className="text-[#82937D] font-bold">
+                  {formatWindSpeed(forecast.weather.wind_speed, units)}
+                </span>
+              </div>
+
+              {/* Precipitation */}
+              {(forecast.weather.rain?.['1h'] || forecast.weather.snow?.['1h']) && (
+                <div className="flex items-center gap-1.5 mb-1.5 text-xs text-[#82937D]">
+                  <Droplets className="h-3.5 w-3.5" />
+                  <span>
+                    {forecast.weather.rain?.['1h'] || forecast.weather.snow?.['1h']}mm/h
+                  </span>
+                </div>
+              )}
+
+              {/* Atmospheric Details */}
+              <div className="grid grid-cols-2 gap-1 text-[10px] text-[#A89F91] pt-1.5 border-t border-[#453A2E]/60">
+                <div>
+                  <span className="block text-[9px] uppercase text-[#A89F91]/70">HUMID</span>
+                  <span className="text-[#F5F2EB] font-bold">{forecast.weather.humidity}%</span>
+                </div>
+                <div>
+                  <span className="block text-[9px] uppercase text-[#A89F91]/70">CLOUD</span>
+                  <span className="text-[#F5F2EB] font-bold">{forecast.weather.clouds}%</span>
+                </div>
+              </div>
+
+              {/* Elevation */}
+              {forecast.routePoint.elevation !== undefined && (
+                <div className="text-[10px] text-[#A89F91] mt-1.5 pt-1.5 border-t border-[#453A2E]/60 flex justify-between">
+                  <span className="text-[9px] uppercase text-[#A89F91]/70">ALTITUDE</span>
+                  <span className="text-[#F5F2EB] font-mono">{Math.round(forecast.routePoint.elevation)}m</span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Scroll Hint */}
+      {forecasts.length > 3 && (
+        <div className="text-[10px] text-[#A89F91] text-center mt-2">
+          ← HORIZONTALLY SCROLL THROUGH {forecasts.length} TRACK WAYPOINTS →
+        </div>
+      )}
+    </div>
   );
 }

@@ -87,15 +87,15 @@ const BASEMAP_SOURCES: Record<BasemapMode, { name: string; label: string; url: s
  * Generate a clean SVG Data URL for a directional wind vector arrow
  */
 function createWindVectorSvg(angleDeg: number, speedMs: number): string {
-  // Arrow color based on speed (m/s)
-  let color = '#10b981'; // Green: calm to gentle (< 6 m/s)
-  if (speedMs >= 6 && speedMs < 12) color = '#f59e0b'; // Amber: moderate (6-12 m/s)
-  else if (speedMs >= 12) color = '#ef4444'; // Red: gale / severe (> 12 m/s)
+  // Arid Field Dossier arrow color based on speed (m/s)
+  let color = '#82937D'; // Sage Haze: calm to gentle (< 6 m/s)
+  if (speedMs >= 6 && speedMs < 12) color = '#C4A482'; // Windblown Sand: moderate (6-12 m/s)
+  else if (speedMs >= 12) color = '#E5A93C'; // Phosphor Ochre: gale / severe (> 12 m/s)
 
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
       <g transform="rotate(${angleDeg} 14 14)">
-        <circle cx="14" cy="14" r="11" fill="#0f172a" fill-opacity="0.75" stroke="${color}" stroke-width="1.5" />
+        <circle cx="14" cy="14" r="11" fill="#16120F" fill-opacity="0.85" stroke="${color}" stroke-width="1.5" />
         <path d="M14 5 L18 13 L14 11 L10 13 Z" fill="${color}" />
         <line x1="14" y1="11" x2="14" y2="21" stroke="${color}" stroke-width="2" stroke-linecap="round" />
       </g>
@@ -247,7 +247,7 @@ export function WeatherMap({
     routeFeature.setStyle([
       new Style({
         stroke: new Stroke({
-          color: 'rgba(14, 165, 233, 0.35)', // Cyan ambient glow buffer
+          color: 'rgba(229, 169, 60, 0.35)', // Phosphor Ochre ambient glow buffer
           width: 8,
           lineCap: 'round',
           lineJoin: 'round',
@@ -255,7 +255,7 @@ export function WeatherMap({
       }),
       new Style({
         stroke: new Stroke({
-          color: '#38bdf8', // Crisp sky cyan
+          color: '#E5A93C', // Phosphor Ochre main vector
           width: 3.5,
           lineCap: 'round',
           lineJoin: 'round',
@@ -275,14 +275,14 @@ export function WeatherMap({
         new Style({
           image: new Circle({
             radius: 6,
-            fill: new Fill({ color: '#10b981' }),
-            stroke: new Stroke({ color: '#ffffff', width: 2 }),
+            fill: new Fill({ color: '#82937D' }),
+            stroke: new Stroke({ color: '#F5F2EB', width: 2 }),
           }),
           text: new Text({
             text: 'START',
             font: 'bold 10px monospace',
-            fill: new Fill({ color: '#10b981' }),
-            stroke: new Stroke({ color: '#0f172a', width: 3 }),
+            fill: new Fill({ color: '#82937D' }),
+            stroke: new Stroke({ color: '#12100E', width: 3 }),
             offsetY: -14,
           }),
         })
@@ -308,14 +308,14 @@ export function WeatherMap({
           new Style({
             image: new Circle({
               radius: 6,
-              fill: new Fill({ color: '#f59e0b' }),
-              stroke: new Stroke({ color: '#ffffff', width: 2 }),
+              fill: new Fill({ color: '#E5A93C' }),
+              stroke: new Stroke({ color: '#F5F2EB', width: 2 }),
             }),
             text: new Text({
               text: `▲ SUMMIT ${Math.round(maxElev)}m`,
               font: 'bold 10px monospace',
-              fill: new Fill({ color: '#f59e0b' }),
-              stroke: new Stroke({ color: '#0f172a', width: 3 }),
+              fill: new Fill({ color: '#E5A93C' }),
+              stroke: new Stroke({ color: '#12100E', width: 3 }),
               offsetY: -14,
             }),
           })
@@ -332,14 +332,14 @@ export function WeatherMap({
         new Style({
           image: new Circle({
             radius: 6,
-            fill: new Fill({ color: '#06b6d4' }),
-            stroke: new Stroke({ color: '#ffffff', width: 2 }),
+            fill: new Fill({ color: '#F5F2EB' }),
+            stroke: new Stroke({ color: '#453A2E', width: 2 }),
           }),
           text: new Text({
             text: `FINISH ${route.totalDistance.toFixed(1)}k`,
             font: 'bold 10px monospace',
-            fill: new Fill({ color: '#06b6d4' }),
-            stroke: new Stroke({ color: '#0f172a', width: 3 }),
+            fill: new Fill({ color: '#F5F2EB' }),
+            stroke: new Stroke({ color: '#12100E', width: 3 }),
             offsetY: -14,
           }),
         })
@@ -374,24 +374,24 @@ export function WeatherMap({
         });
 
         const temp = forecast.weather.temp;
-        let tempColor = '#10b981';
-        if (temp < 0) tempColor = '#38bdf8';
-        else if (temp < 10) tempColor = '#06b6d4';
-        else if (temp > 22) tempColor = '#f59e0b';
-        else if (temp > 30) tempColor = '#ef4444';
+        let tempColor = '#82937D'; // Sage Haze
+        if (temp < 0) tempColor = '#A89F91';
+        else if (temp < 10) tempColor = '#C4A482';
+        else if (temp > 22) tempColor = '#E5A93C';
+        else if (temp > 30) tempColor = '#D4962B';
 
         weatherFeature.setStyle(
           new Style({
             image: new Circle({
               radius: 7,
               fill: new Fill({ color: tempColor }),
-              stroke: new Stroke({ color: '#ffffff', width: 1.5 }),
+              stroke: new Stroke({ color: '#F5F2EB', width: 1.5 }),
             }),
             text: new Text({
               text: `${Math.round(temp)}°`,
               font: 'bold 11px monospace',
-              fill: new Fill({ color: '#ffffff' }),
-              stroke: new Stroke({ color: '#0f172a', width: 3 }),
+              fill: new Fill({ color: '#F5F2EB' }),
+              stroke: new Stroke({ color: '#12100E', width: 3 }),
               offsetY: -14,
             }),
           })
@@ -483,16 +483,16 @@ export function WeatherMap({
       new Style({
         image: new Circle({
           radius: 14,
-          fill: new Fill({ color: 'rgba(244, 63, 94, 0.2)' }),
-          stroke: new Stroke({ color: '#f43f5e', width: 2, lineDash: [4, 4] }),
+          fill: new Fill({ color: 'rgba(229, 169, 60, 0.25)' }),
+          stroke: new Stroke({ color: '#E5A93C', width: 2, lineDash: [4, 4] }),
         }),
       }),
       // Inner Beacon Core
       new Style({
         image: new Circle({
           radius: 5,
-          fill: new Fill({ color: '#f43f5e' }),
-          stroke: new Stroke({ color: '#ffffff', width: 2 }),
+          fill: new Fill({ color: '#E5A93C' }),
+          stroke: new Stroke({ color: '#F5F2EB', width: 2 }),
         }),
       }),
     ]);
@@ -543,12 +543,12 @@ export function WeatherMap({
   };
 
   return (
-    <div className={cn("relative w-full h-full overflow-hidden select-none", className)}>
+    <div className={cn("relative w-full h-full overflow-hidden select-none bg-[#12100E]", className)}>
       {/* Map Canvas Mount */}
-      <div ref={mapRef} className="w-full h-full bg-slate-950" />
+      <div ref={mapRef} className="w-full h-full bg-[#12100E]" />
 
       {/* Floating Tactical Basemap Switcher (Top Left) */}
-      <div className="absolute top-3 left-3 z-30 flex items-center gap-1 p-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-800/80 shadow-2xl font-mono text-[10px]">
+      <div className="absolute top-3 left-3 z-30 flex items-center gap-1 p-1 rounded-xl bg-[#16120F]/90 backdrop-blur-md border border-[#453A2E]/80 shadow-2xl font-mono text-[10px]">
         {(['satellite', 'dark', 'mono', 'terrain', 'topo'] as BasemapMode[]).map((mode) => (
           <button
             key={mode}
@@ -557,8 +557,8 @@ export function WeatherMap({
             className={cn(
               "px-2 py-1 rounded-lg uppercase tracking-wider transition-all cursor-pointer",
               currentBasemap === mode
-                ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold shadow-xs"
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+                ? "bg-[#E5A93C]/20 text-[#E5A93C] border border-[#E5A93C]/60 font-bold shadow-xs"
+                : "text-[#A89F91] hover:text-[#F5F2EB] hover:bg-[#251F19]"
             )}
           >
             {BASEMAP_SOURCES[mode].label}
@@ -567,12 +567,12 @@ export function WeatherMap({
       </div>
 
       {/* Floating Navigation Controls (Top Right) */}
-      <div className="absolute top-3 right-3 z-30 flex flex-col gap-1 p-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-800/80 shadow-2xl">
+      <div className="absolute top-3 right-3 z-30 flex flex-col gap-1 p-1 rounded-xl bg-[#16120F]/90 backdrop-blur-md border border-[#453A2E]/80 shadow-2xl">
         <button
           type="button"
           onClick={handleZoomIn}
           title="Zoom In"
-          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-900 transition-colors cursor-pointer"
+          className="p-1.5 rounded-lg text-[#A89F91] hover:text-[#F5F2EB] hover:bg-[#251F19] transition-colors cursor-pointer"
         >
           <ZoomIn className="h-3.5 w-3.5" />
         </button>
@@ -580,7 +580,7 @@ export function WeatherMap({
           type="button"
           onClick={handleZoomOut}
           title="Zoom Out"
-          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-900 transition-colors cursor-pointer"
+          className="p-1.5 rounded-lg text-[#A89F91] hover:text-[#F5F2EB] hover:bg-[#251F19] transition-colors cursor-pointer"
         >
           <ZoomOut className="h-3.5 w-3.5" />
         </button>
@@ -589,7 +589,7 @@ export function WeatherMap({
             type="button"
             onClick={handleResetView}
             title="Recenter Route"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-900 transition-colors cursor-pointer border-t border-slate-800/80"
+            className="p-1.5 rounded-lg text-[#A89F91] hover:text-[#E5A93C] hover:bg-[#251F19] transition-colors cursor-pointer border-t border-[#453A2E]/80"
           >
             <RotateCcw className="h-3.5 w-3.5" />
           </button>
@@ -600,51 +600,51 @@ export function WeatherMap({
       <div
         ref={popupRef}
         className={cn(
-          "rounded-xl border border-slate-700/80 bg-slate-950/95 backdrop-blur-md p-3 shadow-2xl font-mono text-xs text-slate-200 min-w-[200px] pointer-events-auto",
+          "rounded-xl border border-[#453A2E] bg-[#16120F]/95 backdrop-blur-md p-3 shadow-2xl font-mono text-xs text-[#F5F2EB] min-w-[200px] pointer-events-auto",
           !localSelectedPoint && "hidden"
         )}
       >
         {localSelectedPoint && (
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-1 text-[11px]">
-              <span className="text-cyan-400 font-bold">
+            <div className="flex items-center justify-between border-b border-[#453A2E]/80 pb-1 text-[11px]">
+              <span className="text-[#E5A93C] font-bold">
                 {localSelectedPoint.routePoint.distance.toFixed(1)} km
               </span>
-              <span className="text-slate-400">
+              <span className="text-[#A89F91]">
                 ALT: {Math.round(localSelectedPoint.routePoint.elevation ?? 0)}m
               </span>
             </div>
 
             <div className="grid grid-cols-3 gap-2 text-[10px] pt-0.5">
               <div>
-                <span className="text-slate-500 block uppercase">AIR TEMP</span>
-                <span className="font-bold text-slate-100 text-xs">
+                <span className="text-[#A89F91] block uppercase">AIR TEMP</span>
+                <span className="font-bold text-[#F5F2EB] text-xs">
                   {formatTemperature(localSelectedPoint.weather.temp, units)}
                 </span>
               </div>
               <div>
-                <span className="text-amber-400/80 block uppercase">FEELS LIKE</span>
-                <span className="font-bold text-amber-300 text-xs">
+                <span className="text-[#E5A93C]/80 block uppercase">FEELS LIKE</span>
+                <span className="font-bold text-[#E5A93C] text-xs">
                   {formatTemperature(localSelectedPoint.weather.feels_like, units)}
                 </span>
               </div>
               <div>
-                <span className="text-slate-500 block uppercase">WIND</span>
-                <span className="font-bold text-emerald-400 text-xs">
+                <span className="text-[#A89F91] block uppercase">WIND</span>
+                <span className="font-bold text-[#82937D] text-xs">
                   {formatWindSpeed(localSelectedPoint.weather.wind_speed, units)}
                 </span>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2 text-[10px] pt-1 border-t border-slate-800/80">
+            <div className="grid grid-cols-2 gap-2 text-[10px] pt-1 border-t border-[#453A2E]/80">
               <div>
-                <span className="text-slate-500 block uppercase">WIND DIR</span>
-                <span className="font-bold text-slate-300">
+                <span className="text-[#A89F91] block uppercase">WIND DIR</span>
+                <span className="font-bold text-[#F5F2EB]">
                   {Math.round(localSelectedPoint.weather.wind_deg)}°
                 </span>
               </div>
               <div>
-                <span className="text-slate-500 block uppercase">PRECIP PROB</span>
-                <span className="font-bold text-cyan-300">
+                <span className="text-[#A89F91] block uppercase">PRECIP PROB</span>
+                <span className="font-bold text-[#82937D]">
                   {Math.round((localSelectedPoint.weather.pop ?? 0) * 100)}%
                 </span>
               </div>

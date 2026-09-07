@@ -60,15 +60,16 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
       <body
-        className={`${inter.variable} font-sans antialiased min-h-screen bg-background`}
+        className={`${inter.variable} font-sans antialiased min-h-screen bg-[#12100E] text-[#F5F2EB]`}
       >
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="dark"
+          enableSystem={false}
+          forcedTheme="dark"
           disableTransitionOnChange
         >
-          <div className="relative flex min-h-screen flex-col">
+          <div className="relative flex min-h-screen flex-col bg-[#12100E]">
             <main className="flex-1">{children}</main>
           </div>
           <Toaster />

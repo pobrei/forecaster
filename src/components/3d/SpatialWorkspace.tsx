@@ -180,9 +180,87 @@ export function SpatialWorkspace({
   return (
     <div className="w-screen h-screen relative overflow-hidden bg-[#12100E] select-none">
       {/* ========================================================================= */}
-      {/* 1. TOP TACTICAL NAVIGATION OVERLAY (DOM)                                  */}
+      {/* 1. FULL-SCREEN R3F WEBGL CANVAS (FOV: 50, POSITION: [0, 0, 7.2])          */}
       {/* ========================================================================= */}
-      <header className="absolute top-0 inset-x-0 z-30 h-12 px-4 bg-[#12100E]/90 backdrop-blur-xl border-b border-[#453A2E] flex items-center justify-between font-mono text-xs text-[#F5F2EB] pointer-events-auto">
+      <Canvas
+        camera={{ fov: 50, position: [0, 0, 7.2], near: 0.1, far: 100 }}
+        dpr={[1, 1.5]}
+        gl={{
+          antialias: true,
+          powerPreference: 'high-performance',
+          alpha: false,
+        }}
+        className="w-full h-full bg-[#12100E]"
+      >
+        {/* Cinematic Warm Lighting:
+            - Warm ambient light (#2C251F)
+            - Angled directional key light catching glass top rims (#F5F2EB)
+            - Warm point light behind panels (#E5A93C)
+        */}
+        <ambientLight color="#2C251F" intensity={0.95} />
+
+        {/* Angled directional key light catching glass top rims */}
+        <directionalLight position={[0, 6, 7]} intensity={1.2} color="#F5F2EB" />
+
+        {/* Warm point light behind panels */}
+        <pointLight position={[0, 0, -2.5]} intensity={1.6} color="#E5A93C" distance={18} />
+
+        {/* Rim spots catching left and right glass edges */}
+        <spotLight
+          position={[-6, 7, 5]}
+          angle={0.6}
+          penumbra={1}
+          intensity={1.3}
+          color="#F5F2EB"
+        />
+        <spotLight
+          position={[6, 7, 5]}
+          angle={0.6}
+          penumbra={1}
+          intensity={1.3}
+          color="#E5A93C"
+        />
+
+        {/* Atmospheric Boundary Sphere */}
+        <AtmosphericSphere />
+
+        {/* Animated Wind-Blown Dust & Silt Physics */}
+        <DustAtmosphere />
+
+        {/* 3 Curved Floating Glass HUD Panels */}
+        <FloatingWindowArray
+          route={route}
+          forecasts={forecasts}
+          settings={settings}
+          preferences={preferences}
+          selectedPoint={selectedPoint}
+          isLoading={isLoading}
+          onRouteLoaded={onRouteLoaded}
+          onResetRoute={onResetRoute}
+          onSettingsChange={onSettingsChange}
+          onPreferencesChange={onPreferencesChange}
+          onGenerateForecast={onGenerateForecast}
+          onPointSelect={onPointSelect}
+          onSaveExpedition={onSaveExpedition}
+          isSavingExpedition={isSavingExpedition}
+          onFocusCamera={handleSelectCamera}
+          activeCameraMode={cameraMode}
+          onHoverHUDChange={setIsHoveringHUD}
+        />
+
+        {/* Dynamic Camera Parallax & Smooth Lerp Rig with Zoom */}
+        <CameraRig 
+          targetMode={cameraMode} 
+          zoomOffset={zoomOffset} 
+          isHoveringHUD={isHoveringHUD} 
+        />
+      </Canvas>
+
+      {/* ========================================================================= */}
+      <header 
+        style={{ zIndex: 2147483647 }}
+        className="fixed top-0 inset-x-0 h-12 px-4 bg-[#12100E]/95 backdrop-blur-xl border-b border-[#453A2E] flex items-center justify-between font-mono text-xs text-[#F5F2EB] pointer-events-auto shadow-[0_4px_25px_rgba(0,0,0,0.7)]"
+      >
         {/* Brand & Mission Status */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
@@ -321,83 +399,6 @@ export function SpatialWorkspace({
           </button>
         </div>
       </header>
-
-      {/* ========================================================================= */}
-      {/* 2. FULL-SCREEN R3F WEBGL CANVAS (FOV: 50, POSITION: [0, 0, 7.2])          */}
-      {/* ========================================================================= */}
-      <Canvas
-        camera={{ fov: 50, position: [0, 0, 7.2], near: 0.1, far: 100 }}
-        dpr={[1, 1.5]}
-        gl={{
-          antialias: true,
-          powerPreference: 'high-performance',
-          alpha: false,
-        }}
-        className="w-full h-full bg-[#12100E]"
-      >
-        {/* Cinematic Warm Lighting:
-            - Warm ambient light (#2C251F)
-            - Angled directional key light catching glass top rims (#F5F2EB)
-            - Warm point light behind panels (#E5A93C)
-        */}
-        <ambientLight color="#2C251F" intensity={0.95} />
-
-        {/* Angled directional key light catching glass top rims */}
-        <directionalLight position={[0, 6, 7]} intensity={1.2} color="#F5F2EB" />
-
-        {/* Warm point light behind panels */}
-        <pointLight position={[0, 0, -2.5]} intensity={1.6} color="#E5A93C" distance={18} />
-
-        {/* Rim spots catching left and right glass edges */}
-        <spotLight
-          position={[-6, 7, 5]}
-          angle={0.6}
-          penumbra={1}
-          intensity={1.3}
-          color="#F5F2EB"
-        />
-        <spotLight
-          position={[6, 7, 5]}
-          angle={0.6}
-          penumbra={1}
-          intensity={1.3}
-          color="#E5A93C"
-        />
-
-        {/* Atmospheric Boundary Sphere */}
-        <AtmosphericSphere />
-
-        {/* Animated Wind-Blown Dust & Silt Physics */}
-        <DustAtmosphere />
-
-        {/* 3 Curved Floating Glass HUD Panels */}
-        <FloatingWindowArray
-          route={route}
-          forecasts={forecasts}
-          settings={settings}
-          preferences={preferences}
-          selectedPoint={selectedPoint}
-          isLoading={isLoading}
-          onRouteLoaded={onRouteLoaded}
-          onResetRoute={onResetRoute}
-          onSettingsChange={onSettingsChange}
-          onPreferencesChange={onPreferencesChange}
-          onGenerateForecast={onGenerateForecast}
-          onPointSelect={onPointSelect}
-          onSaveExpedition={onSaveExpedition}
-          isSavingExpedition={isSavingExpedition}
-          onFocusCamera={handleSelectCamera}
-          activeCameraMode={cameraMode}
-          onHoverHUDChange={setIsHoveringHUD}
-        />
-
-        {/* Dynamic Camera Parallax & Smooth Lerp Rig with Zoom */}
-        <CameraRig 
-          targetMode={cameraMode} 
-          zoomOffset={zoomOffset} 
-          isHoveringHUD={isHoveringHUD} 
-        />
-      </Canvas>
     </div>
   );
 }

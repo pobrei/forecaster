@@ -271,8 +271,8 @@ export function ElevationWeatherSync({
 
   if (!route) {
     return (
-      <div className="h-full flex items-center justify-center p-4 text-slate-500 font-mono text-xs select-none">
-        <Activity className="h-4 w-4 mr-2 opacity-50 text-cyan-400" />
+      <div className="h-full flex items-center justify-center p-4 text-[#A89F91] font-mono text-xs select-none">
+        <Activity className="h-4 w-4 mr-2 opacity-60 text-[#E5A93C]" />
         <span>ELEVATION & TELEMETRY STANDBY • INGEST GPX TRACK</span>
       </div>
     );
@@ -287,9 +287,9 @@ export function ElevationWeatherSync({
       {/* ========================================================================= */}
       {/* 1. TOP CONTROL BAR: GRAPH METRIC TABS & EXPAND TOGGLE                     */}
       {/* ========================================================================= */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pb-1.5 border-b border-slate-800/80">
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-1.5 border-b border-[#453A2E]">
         {/* Metric Mode Switcher Tabs */}
-        <div className="flex items-center gap-1 bg-slate-900/90 p-0.5 rounded-lg border border-slate-800 text-[10px]">
+        <div className="flex items-center gap-1 bg-[#16120F] p-0.5 rounded-lg border border-[#453A2E] text-[10px]">
           <button
             type="button"
             onClick={() => {
@@ -299,8 +299,8 @@ export function ElevationWeatherSync({
             className={cn(
               "px-2 py-1 rounded flex items-center gap-1 transition-colors cursor-pointer",
               internalMetric === 'elevation'
-                ? "bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-[#E5A93C]/20 text-[#E5A93C] font-bold border border-[#E5A93C]/50 shadow-xs"
+                : "text-[#A89F91] hover:text-[#F5F2EB]"
             )}
           >
             <Mountain className="h-3 w-3" />
@@ -316,8 +316,8 @@ export function ElevationWeatherSync({
             className={cn(
               "px-2 py-1 rounded flex items-center gap-1 transition-colors cursor-pointer",
               internalMetric === 'temperature'
-                ? "bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-[#E5A93C] text-[#12100E] font-bold shadow-xs"
+                : "text-[#A89F91] hover:text-[#F5F2EB]"
             )}
           >
             <Thermometer className="h-3 w-3" />
@@ -333,8 +333,8 @@ export function ElevationWeatherSync({
             className={cn(
               "px-2 py-1 rounded flex items-center gap-1 transition-colors cursor-pointer",
               internalMetric === 'rain'
-                ? "bg-blue-500/20 text-blue-300 font-bold border border-blue-500/40"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-[#82937D] text-[#12100E] font-bold shadow-xs"
+                : "text-[#A89F91] hover:text-[#F5F2EB]"
             )}
           >
             <CloudRain className="h-3 w-3" />
@@ -350,8 +350,8 @@ export function ElevationWeatherSync({
             className={cn(
               "px-2 py-1 rounded flex items-center gap-1 transition-colors cursor-pointer",
               internalMetric === 'wind'
-                ? "bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-[#C4A482] text-[#12100E] font-bold shadow-xs"
+                : "text-[#A89F91] hover:text-[#F5F2EB]"
             )}
           >
             <Wind className="h-3 w-3" />
@@ -360,25 +360,25 @@ export function ElevationWeatherSync({
         </div>
 
         {/* Right: Active Telemetry Values & Drawer Height Toggle */}
-        <div className="flex items-center gap-3 text-[11px] tabular-nums">
+        <div className="flex items-center gap-2.5 text-[11px] tabular-nums">
           {activeForecast && (
-            <div className="flex items-center gap-2.5">
-              <span className="text-cyan-400 font-bold">{activeForecast.routePoint.distance.toFixed(1)} km</span>
-              <span className="text-slate-500">•</span>
-              <span className="text-slate-200">ALT: {Math.round(activeForecast.routePoint.elevation ?? 0)}m</span>
-              <span className="text-slate-500">•</span>
-              <span className="text-amber-400 font-bold">
+            <div className="flex items-center gap-2">
+              <span className="text-[#E5A93C] font-bold">{activeForecast.routePoint.distance.toFixed(1)} km</span>
+              <span className="text-[#453A2E]">•</span>
+              <span className="text-[#F5F2EB]">ALT: {Math.round(activeForecast.routePoint.elevation ?? 0)}m</span>
+              <span className="text-[#453A2E]">•</span>
+              <span className="text-[#E5A93C] font-bold">
                 {formatTemperature(activeForecast.weather.temp, units)}
               </span>
-              <span className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/40 text-amber-300 font-bold text-[10px] uppercase">
-                FEELS LIKE {formatTemperature(activeForecast.weather.feels_like, units)}
+              <span className="px-1.5 py-0.5 rounded bg-[#E5A93C]/15 border border-[#E5A93C]/40 text-[#E5A93C] font-bold text-[10px] uppercase">
+                FEELS {formatTemperature(activeForecast.weather.feels_like, units)}
               </span>
-              <span className="text-slate-500">•</span>
-              <span className="text-emerald-400 font-semibold">
+              <span className="text-[#453A2E]">•</span>
+              <span className="text-[#F5F2EB] font-semibold">
                 {Math.round(activeForecast.weather.wind_speed * 3.6)} km/h
               </span>
-              <span className="text-slate-500">•</span>
-              <span className="text-blue-400">
+              <span className="text-[#453A2E]">•</span>
+              <span className="text-[#82937D] font-semibold">
                 {Math.round((activeForecast.weather.pop ?? 0) * 100)}% rain
               </span>
             </div>
@@ -391,7 +391,7 @@ export function ElevationWeatherSync({
               toggleExpand();
             }}
             title={isExpanded ? "Collapse graph height" : "Expand graph height"}
-            className="p-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800 transition-colors cursor-pointer"
+            className="p-1 rounded bg-[#16120F] hover:bg-[#28221B] text-[#A89F91] hover:text-[#F5F2EB] border border-[#453A2E] transition-colors cursor-pointer"
           >
             {isExpanded ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
           </button>
@@ -413,30 +413,30 @@ export function ElevationWeatherSync({
         >
           <defs>
             <linearGradient id="elevRamp" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="#0f172a" stopOpacity="0.05" />
+              <stop offset="0%" stopColor="#E5A93C" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#12100E" stopOpacity="0.05" />
             </linearGradient>
 
             <linearGradient id="tempRamp" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#0f172a" stopOpacity="0.0" />
+              <stop offset="0%" stopColor="#E5A93C" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="#12100E" stopOpacity="0.0" />
             </linearGradient>
 
             <linearGradient id="windGustRamp" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#ef4444" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="#0f172a" stopOpacity="0.0" />
+              <stop offset="0%" stopColor="#C4A482" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#12100E" stopOpacity="0.0" />
             </linearGradient>
 
             <linearGradient id="rainBarRamp" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.9" />
-              <stop offset="100%" stopColor="#0284c7" stopOpacity="0.3" />
+              <stop offset="0%" stopColor="#82937D" stopOpacity="0.9" />
+              <stop offset="100%" stopColor="#453A2E" stopOpacity="0.3" />
             </linearGradient>
           </defs>
 
           {/* Background Grid Lines */}
-          <line x1={0} y1={padTop} x2={svgWidth} y2={padTop} stroke="#1e293b" strokeDasharray="3,3" strokeWidth="1" />
-          <line x1={0} y1={padTop + usableHeight / 2} x2={svgWidth} y2={padTop + usableHeight / 2} stroke="#1e293b" strokeDasharray="3,3" strokeWidth="1" />
-          <line x1={0} y1={svgHeight - padBottom} x2={svgWidth} y2={svgHeight - padBottom} stroke="#334155" strokeWidth="1" />
+          <line x1={0} y1={padTop} x2={svgWidth} y2={padTop} stroke="#453A2E" strokeDasharray="3,3" strokeWidth="0.8" opacity="0.6" />
+          <line x1={0} y1={padTop + usableHeight / 2} x2={svgWidth} y2={padTop + usableHeight / 2} stroke="#453A2E" strokeDasharray="3,3" strokeWidth="0.8" opacity="0.6" />
+          <line x1={0} y1={svgHeight - padBottom} x2={svgWidth} y2={svgHeight - padBottom} stroke="#453A2E" strokeWidth="1" />
 
           {/* --------------------------------------------------------------------- */}
           {/* MODE A: ELEVATION PROFILE                                             */}
@@ -445,13 +445,13 @@ export function ElevationWeatherSync({
             <>
               {elevationPathD && <path d={elevationPathD} fill="url(#elevRamp)" />}
               {elevationLineD && (
-                <path d={elevationLineD} fill="none" stroke="#38bdf8" strokeWidth="2.2" strokeLinecap="round" />
+                <path d={elevationLineD} fill="none" stroke="#E5A93C" strokeWidth="2.2" strokeLinecap="round" />
               )}
               {/* Y-Axis Label */}
-              <text x={4} y={padTop + 10} fill="#64748b" fontSize="9" fontFamily="monospace">
+              <text x={4} y={padTop + 10} fill="#A89F91" fontSize="9" fontFamily="monospace">
                 MAX: {Math.round(maxElev)}m
               </text>
-              <text x={4} y={svgHeight - padBottom - 4} fill="#64748b" fontSize="9" fontFamily="monospace">
+              <text x={4} y={svgHeight - padBottom - 4} fill="#A89F91" fontSize="9" fontFamily="monospace">
                 MIN: {Math.round(minElev)}m
               </text>
             </>
@@ -465,8 +465,8 @@ export function ElevationWeatherSync({
               {/* Freezing 0°C Line */}
               {freezingTempY !== null && (
                 <g>
-                  <line x1={0} y1={freezingTempY} x2={svgWidth} y2={freezingTempY} stroke="#38bdf8" strokeWidth="1" strokeDasharray="4,4" />
-                  <text x={svgWidth - 6} y={freezingTempY - 3} fill="#38bdf8" fontSize="8" fontFamily="monospace" textAnchor="end">
+                  <line x1={0} y1={freezingTempY} x2={svgWidth} y2={freezingTempY} stroke="#82937D" strokeWidth="1" strokeDasharray="4,4" opacity="0.8" />
+                  <text x={svgWidth - 6} y={freezingTempY - 3} fill="#82937D" fontSize="8" fontFamily="monospace" textAnchor="end">
                     0°C FREEZING LEVEL
                   </text>
                 </g>
@@ -474,28 +474,28 @@ export function ElevationWeatherSync({
 
               {/* Feels Like Dashed Line */}
               {feelsLikeLineD && (
-                <path d={feelsLikeLineD} fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="4,4" opacity={0.65} />
+                <path d={feelsLikeLineD} fill="none" stroke="#F5F2EB" strokeWidth="1.5" strokeDasharray="4,4" opacity={0.65} />
               )}
 
               {/* Ambient Temp Solid Curve */}
               {tempLineD && (
-                <path d={tempLineD} fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" />
+                <path d={tempLineD} fill="none" stroke="#E5A93C" strokeWidth="2.5" strokeLinecap="round" />
               )}
 
               {/* Legend for Temp vs Feels Like */}
               <g>
-                <line x1={svgWidth - 210} y1={padTop + 6} x2={svgWidth - 190} y2={padTop + 6} stroke="#f59e0b" strokeWidth="2.5" />
-                <text x={svgWidth - 185} y={padTop + 9} fill="#f59e0b" fontSize="8" fontFamily="monospace">AIR TEMP</text>
+                <line x1={svgWidth - 210} y1={padTop + 6} x2={svgWidth - 190} y2={padTop + 6} stroke="#E5A93C" strokeWidth="2.5" />
+                <text x={svgWidth - 185} y={padTop + 9} fill="#E5A93C" fontSize="8" fontFamily="monospace">AIR TEMP</text>
                 
-                <line x1={svgWidth - 120} y1={padTop + 6} x2={svgWidth - 100} y2={padTop + 6} stroke="#fcd34d" strokeWidth="1.5" strokeDasharray="3,3" />
-                <text x={svgWidth - 95} y={padTop + 9} fill="#fcd34d" fontSize="8" fontFamily="monospace">FEELS LIKE</text>
+                <line x1={svgWidth - 120} y1={padTop + 6} x2={svgWidth - 100} y2={padTop + 6} stroke="#F5F2EB" strokeWidth="1.5" strokeDasharray="3,3" />
+                <text x={svgWidth - 95} y={padTop + 9} fill="#F5F2EB" fontSize="8" fontFamily="monospace">FEELS LIKE</text>
               </g>
 
               {/* Y-Axis Ticks */}
-              <text x={4} y={padTop + 10} fill="#f59e0b" fontSize="9" fontFamily="monospace">
+              <text x={4} y={padTop + 10} fill="#E5A93C" fontSize="9" fontFamily="monospace">
                 HIGH: {maxTemp}°C
               </text>
-              <text x={4} y={svgHeight - padBottom - 4} fill="#38bdf8" fontSize="9" fontFamily="monospace">
+              <text x={4} y={svgHeight - padBottom - 4} fill="#82937D" fontSize="9" fontFamily="monospace">
                 LOW: {minTemp}°C
               </text>
 
@@ -508,15 +508,15 @@ export function ElevationWeatherSync({
                     width="120"
                     height="18"
                     rx="4"
-                    fill="#0f172a"
-                    stroke="#f59e0b"
+                    fill="#16120F"
+                    stroke="#E5A93C"
                     strokeWidth="1"
                     opacity="0.95"
                   />
                   <text
                     x={Math.max(10, Math.min(activeCursorX - 60, svgWidth - 130)) + 60}
                     y={16}
-                    fill="#ffffff"
+                    fill="#F5F2EB"
                     fontSize="9"
                     fontWeight="bold"
                     fontFamily="monospace"
@@ -555,13 +555,13 @@ export function ElevationWeatherSync({
 
               {/* Rain Probability Line */}
               {rainProbLineD && (
-                <path d={rainProbLineD} fill="none" stroke="#818cf8" strokeWidth="2" strokeLinecap="round" />
+                <path d={rainProbLineD} fill="none" stroke="#82937D" strokeWidth="2" strokeLinecap="round" />
               )}
 
-              <text x={4} y={padTop + 10} fill="#818cf8" fontSize="9" fontFamily="monospace">
+              <text x={4} y={padTop + 10} fill="#82937D" fontSize="9" fontFamily="monospace">
                 100% PROBABILITY
               </text>
-              <text x={4} y={svgHeight - padBottom - 4} fill="#64748b" fontSize="9" fontFamily="monospace">
+              <text x={4} y={svgHeight - padBottom - 4} fill="#A89F91" fontSize="9" fontFamily="monospace">
                 0% DRY
               </text>
             </>
@@ -577,13 +577,13 @@ export function ElevationWeatherSync({
 
               {/* Sustained Wind Line */}
               {windLineD && (
-                <path d={windLineD} fill="none" stroke="#10b981" strokeWidth="2.2" strokeLinecap="round" />
+                <path d={windLineD} fill="none" stroke="#C4A482" strokeWidth="2.2" strokeLinecap="round" />
               )}
 
-              <text x={4} y={padTop + 10} fill="#ef4444" fontSize="9" fontFamily="monospace">
+              <text x={4} y={padTop + 10} fill="#E5A93C" fontSize="9" fontFamily="monospace">
                 PEAK GUSTS: {Math.round(maxWindKmh)} km/h
               </text>
-              <text x={4} y={svgHeight - padBottom - 4} fill="#10b981" fontSize="9" fontFamily="monospace">
+              <text x={4} y={svgHeight - padBottom - 4} fill="#C4A482" fontSize="9" fontFamily="monospace">
                 SUSTAINED (km/h)
               </text>
             </>
@@ -597,7 +597,7 @@ export function ElevationWeatherSync({
                 y1={0}
                 x2={activeCursorX}
                 y2={svgHeight - padBottom}
-                stroke="#f43f5e"
+                stroke="#E5A93C"
                 strokeWidth="1.5"
                 strokeDasharray="4,2"
               />
@@ -605,8 +605,8 @@ export function ElevationWeatherSync({
                 cx={activeCursorX}
                 cy={padTop + usableHeight / 2}
                 r="3.5"
-                fill="#f43f5e"
-                stroke="#ffffff"
+                fill="#E5A93C"
+                stroke="#F5F2EB"
                 strokeWidth="1.5"
               />
             </g>
@@ -621,7 +621,7 @@ export function ElevationWeatherSync({
                 key={ratio}
                 x={x}
                 y={svgHeight - 4}
-                fill="#64748b"
+                fill="#A89F91"
                 fontSize="9"
                 fontFamily="monospace"
                 textAnchor={ratio === 0 ? "start" : ratio === 1 ? "end" : "middle"}

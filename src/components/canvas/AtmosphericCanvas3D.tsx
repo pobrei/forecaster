@@ -90,7 +90,7 @@ export const AtmosphericCanvas3D: React.FC<AtmosphericCanvas3DProps> = ({
 
     // 1. Scene & Atmospheric Fog Setup
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(isDark ? 0x07090e : 0xf1f5f9, 0.012);
+    scene.fog = new THREE.FogExp2(0x12100E, 0.012);
 
     // 2. Camera Setup
     const width = container.clientWidth || window.innerWidth;
@@ -107,18 +107,18 @@ export const AtmosphericCanvas3D: React.FC<AtmosphericCanvas3DProps> = ({
     });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-    renderer.setClearColor(isDark ? 0x040608 : 0xf8fafc, isDark ? 0.35 : 0.2);
+    renderer.setClearColor(0x12100E, 0.4);
     container.appendChild(renderer.domElement);
 
-    // 4. Natural Lighting (Sunlight/Moonlight + Warm Rim light)
-    const ambientLight = new THREE.AmbientLight(isDark ? 0x64748b : 0xfef08a, isDark ? 0.9 : 1.4);
+    // 4. Natural Lighting (Phosphor key light + Warm bronze fill)
+    const ambientLight = new THREE.AmbientLight(0x2C251F, 1.1);
     scene.add(ambientLight);
 
-    const sunLight = new THREE.DirectionalLight(isDark ? 0x38bdf8 : 0xfbbf24, isDark ? 1.2 : 2.2);
+    const sunLight = new THREE.DirectionalLight(0xE5A93C, 1.4);
     sunLight.position.set(25, 35, 20);
     scene.add(sunLight);
 
-    const rimLight = new THREE.DirectionalLight(isDark ? 0x1e293b : 0xffedd5, 0.8);
+    const rimLight = new THREE.DirectionalLight(0x453A2E, 0.9);
     rimLight.position.set(-20, -10, -15);
     scene.add(rimLight);
 
@@ -227,9 +227,9 @@ export const AtmosphericCanvas3D: React.FC<AtmosphericCanvas3DProps> = ({
     const dustCtx = dustCanvas.getContext('2d');
     if (dustCtx) {
       const grad = dustCtx.createRadialGradient(16, 16, 0, 16, 16, 16);
-      grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
-      grad.addColorStop(0.3, isDark ? 'rgba(254, 215, 170, 0.7)' : 'rgba(251, 191, 36, 0.8)');
-      grad.addColorStop(0.7, isDark ? 'rgba(251, 146, 60, 0.2)' : 'rgba(217, 119, 6, 0.2)');
+      grad.addColorStop(0, '#F5F2EB');
+      grad.addColorStop(0.3, 'rgba(229, 169, 60, 0.7)');
+      grad.addColorStop(0.7, 'rgba(229, 169, 60, 0.2)');
       grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
       dustCtx.fillStyle = grad;
       dustCtx.fillRect(0, 0, 32, 32);
@@ -237,11 +237,11 @@ export const AtmosphericCanvas3D: React.FC<AtmosphericCanvas3DProps> = ({
     const dustTexture = new THREE.CanvasTexture(dustCanvas);
 
     const dustMat = new THREE.PointsMaterial({
-      size: isDark ? 0.75 : 0.65,
+      size: 0.75,
       map: dustTexture,
       transparent: true,
-      opacity: isDark ? 0.65 : 0.45,
-      blending: isDark ? THREE.AdditiveBlending : THREE.NormalBlending,
+      opacity: 0.65,
+      blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
     const dustSystem = new THREE.Points(dustGeom, dustMat);
@@ -263,9 +263,9 @@ export const AtmosphericCanvas3D: React.FC<AtmosphericCanvas3DProps> = ({
       const curve = new THREE.CatmullRomCurve3(pts);
       const tube = new THREE.TubeGeometry(curve, 35, 0.05, 5, false);
       const tubeMat = new THREE.MeshBasicMaterial({
-        color: isDark ? 0x94a3b8 : 0xd97706,
+        color: 0xE5A93C,
         transparent: true,
-        opacity: isDark ? 0.12 : 0.08,
+        opacity: 0.15,
       });
       windGroup.add(new THREE.Mesh(tube, tubeMat));
     }

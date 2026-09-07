@@ -37,9 +37,9 @@ const SpatialWorkspace = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-screen h-screen flex flex-col items-center justify-center bg-[#070a10] text-cyan-400 font-mono text-xs select-none">
-        <div className="h-10 w-10 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mb-3 shadow-[0_0_15px_rgba(6,182,212,0.4)]" />
-        <span className="tracking-widest uppercase">INITIALIZING 3D SPATIAL WORKSPACE...</span>
+      <div className="w-screen h-screen flex flex-col items-center justify-center bg-[#12100E] text-[#E5A93C] font-mono text-xs select-none">
+        <div className="h-10 w-10 border-2 border-[#E5A93C] border-t-transparent rounded-full animate-spin mb-3 shadow-[0_0_20px_rgba(229,169,60,0.35)]" />
+        <span className="tracking-widest uppercase text-[#F5F2EB]">INITIALIZING 3D SPATIAL WORKSPACE...</span>
       </div>
     ),
   }
@@ -194,10 +194,10 @@ export default function Home() {
   const renderMobileSpecialContent = () => {
     if (mobileTab === 'telemetry') {
       return (
-        <div className="p-4 space-y-5 overflow-y-auto h-full bg-slate-950 font-mono text-xs">
+        <div className="p-4 space-y-5 overflow-y-auto h-full bg-[#12100E] font-mono text-xs">
           {forecasts.length === 0 ? (
-            <div className="text-center py-16 text-slate-500">
-              <Activity className="h-10 w-10 mx-auto mb-3 opacity-40 text-amber-400" />
+            <div className="text-center py-16 text-[#A89F91]">
+              <Activity className="h-10 w-10 mx-auto mb-3 opacity-50 text-[#E5A93C]" />
               <p>NO TELEMETRY AVAILABLE. GENERATE FORECAST IN PARAMETERS.</p>
             </div>
           ) : (
@@ -244,10 +244,10 @@ export default function Home() {
 
     if (mobileTab === 'dispatch') {
       return (
-        <div className="p-4 space-y-5 overflow-y-auto h-full bg-slate-950">
+        <div className="p-4 space-y-5 overflow-y-auto h-full bg-[#12100E]">
           {!route || forecasts.length === 0 ? (
-            <div className="text-center py-16 text-slate-500 font-mono text-xs">
-              <ShieldCheck className="h-10 w-10 mx-auto mb-3 opacity-40 text-indigo-400" />
+            <div className="text-center py-16 text-[#A89F91] font-mono text-xs">
+              <ShieldCheck className="h-10 w-10 mx-auto mb-3 opacity-50 text-[#82937D]" />
               <p>DISPATCH READY ONCE FORECAST DATA IS SYNTHESIZED.</p>
             </div>
           ) : (
