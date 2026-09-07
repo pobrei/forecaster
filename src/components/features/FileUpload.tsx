@@ -42,7 +42,7 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
 
 
 
-  const validateFile = (file: File): string | null => {
+  const validateFile = useCallback((file: File): string | null => {
     try {
       console.log('Validating file (iOS Safari compatible):', {
         name: file.name,
@@ -74,7 +74,7 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
       // iOS Safari often doesn't provide MIME types or provides unexpected ones
       // So we'll be more lenient with MIME type validation
       const isValidMimeType = file.type === '' || // Empty MIME type (common on iOS Safari)
-                             GPX_CONSTRAINTS.MIME_TYPES.includes(file.type as any);
+                             (GPX_CONSTRAINTS.MIME_TYPES as readonly string[]).includes(file.type);
 
       if (!isValidMimeType) {
         console.warn('Unexpected MIME type on iOS Safari:', file.type);
@@ -89,7 +89,7 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
       console.error('File validation error:', error);
       return 'Failed to validate file. Please try again.';
     }
-  };
+  }, [isMobile]);
 
   const handleFiles = useCallback((files: FileList | null) => {
     try {
@@ -121,7 +121,7 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
       console.error('Error handling files:', error);
       toast.error('Failed to process file. Please try again.');
     }
-  }, [isMobile]);
+  }, [validateFile]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();

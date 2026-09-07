@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Download,
   FileText,
-  Image,
+  Image as ImageIcon,
   FileSpreadsheet,
   FileCode,
   CheckCircle,
@@ -352,7 +352,7 @@ export function UnifiedExport({ route, forecasts, settings, className }: Unified
                 className="flex items-center gap-2"
                 variant="outline"
               >
-                <Image className="h-4 w-4" />
+                <ImageIcon className="h-4 w-4" />
                 Export PNG Image
               </Button>
 

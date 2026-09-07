@@ -288,7 +288,7 @@ export function WeatherMap({
       padding: [50, 50, 50, 50],
       maxZoom: 16,
     });
-  }, [route, forecasts]);
+  }, [route, forecasts, onPointSelect]);
 
   // Handle external point selection (from timeline or charts)
   useEffect(() => {

@@ -73,7 +73,7 @@ export function IOSSafariFileUpload({ onRouteUploaded, isLoading = false, classN
 
     // Standard MIME type validation for other browsers
     const validMimeTypes = GPX_CONSTRAINTS.MIME_TYPES;
-    if (file.type && !validMimeTypes.includes(file.type as any)) {
+    if (file.type && !(validMimeTypes as readonly string[]).includes(file.type)) {
       return 'Invalid file type. Please select a GPX file.';
     }
 

@@ -46,7 +46,7 @@ export class AppError extends Error {
   public readonly severity: ErrorSeverity
   public readonly statusCode: number
   public readonly isOperational: boolean
-  public readonly context?: Record<string, any>
+  public readonly context?: Record<string, unknown>
 
   constructor(
     message: string,
@@ -54,7 +54,7 @@ export class AppError extends Error {
     severity: ErrorSeverity = ErrorSeverity.MEDIUM,
     statusCode: number = 500,
     isOperational: boolean = true,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ) {
     super(message)
     this.name = 'AppError'
@@ -69,43 +69,43 @@ export class AppError extends Error {
 }
 
 export class ValidationError extends AppError {
-  constructor(message: string, context?: Record<string, any>) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(message, ErrorType.VALIDATION, ErrorSeverity.LOW, 400, true, context)
     this.name = 'ValidationError'
   }
 }
 
 export class APIError extends AppError {
-  constructor(message: string, statusCode: number = 500, context?: Record<string, any>) {
+  constructor(message: string, statusCode: number = 500, context?: Record<string, unknown>) {
     super(message, ErrorType.API, ErrorSeverity.MEDIUM, statusCode, true, context)
     this.name = 'APIError'
   }
 }
 
 export class NetworkError extends AppError {
-  constructor(message: string, context?: Record<string, any>) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(message, ErrorType.NETWORK, ErrorSeverity.MEDIUM, 503, true, context)
     this.name = 'NetworkError'
   }
 }
 
 export class DatabaseError extends AppError {
-  constructor(message: string, context?: Record<string, any>) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(message, ErrorType.DATABASE, ErrorSeverity.HIGH, 500, true, context)
     this.name = 'DatabaseError'
   }
 }
 
 export class RateLimitError extends AppError {
-  constructor(message: string = 'Rate limit exceeded', context?: Record<string, any>) {
+  constructor(message: string = 'Rate limit exceeded', context?: Record<string, unknown>) {
     super(message, ErrorType.RATE_LIMIT, ErrorSeverity.LOW, 429, true, context)
     this.name = 'RateLimitError'
   }
 }
 
 // Error logging functions
-export function logError(error: Error, context?: Record<string, any>) {
-  const errorInfo = {
+export function logError(error: Error, context?: Record<string, unknown>) {
+  const errorInfo: Record<string, unknown> = {
     message: error.message,
     stack: error.stack,
     name: error.name,
@@ -114,10 +114,10 @@ export function logError(error: Error, context?: Record<string, any>) {
   }
 
   if (error instanceof AppError) {
-    (errorInfo as any).type = error.type
-    ;(errorInfo as any).severity = error.severity
-    ;(errorInfo as any).statusCode = error.statusCode
-    ;(errorInfo as any).context = error.context
+    errorInfo.type = error.type
+    errorInfo.severity = error.severity
+    errorInfo.statusCode = error.statusCode
+    errorInfo.context = error.context
   }
 
   // Log to console in development
@@ -140,7 +140,7 @@ export function logError(error: Error, context?: Record<string, any>) {
   }
 }
 
-export function logWarning(message: string, context?: Record<string, any>) {
+export function logWarning(message: string, context?: Record<string, unknown>) {
   const warningInfo = {
     message,
     level: 'warning',
@@ -163,7 +163,7 @@ export function logWarning(message: string, context?: Record<string, any>) {
   }
 }
 
-export function logInfo(message: string, context?: Record<string, any>) {
+export function logInfo(message: string, context?: Record<string, unknown>) {
   const infoLog = {
     message,
     level: 'info',
@@ -176,7 +176,7 @@ export function logInfo(message: string, context?: Record<string, any>) {
   }
 
   // Only log important info messages to Sentry
-  if (env.SENTRY_DSN && context?.important) {
+  if (env.SENTRY_DSN && (context as Record<string, unknown> | undefined)?.important) {
     Sentry.withScope((scope) => {
       if (context) {
         scope.setContext('additional', context)
@@ -204,7 +204,7 @@ function getSentryLevel(severity: ErrorSeverity): Sentry.SeverityLevel {
 }
 
 // Error boundary helper
-export function handleError(error: unknown, context?: Record<string, any>): AppError {
+export function handleError(error: unknown, context?: Record<string, unknown>): AppError {
   if (error instanceof AppError) {
     logError(error, context)
     return error
@@ -236,7 +236,7 @@ export function handleError(error: unknown, context?: Record<string, any>): AppE
 }
 
 // Performance monitoring
-export function trackPerformance(name: string, duration: number, context?: Record<string, any>) {
+export function trackPerformance(name: string, duration: number, context?: Record<string, unknown>) {
   if (env.SENTRY_DSN) {
     Sentry.addBreadcrumb({
       message: `Performance: ${name}`,

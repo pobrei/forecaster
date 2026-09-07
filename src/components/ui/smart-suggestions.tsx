@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { WeatherForecast } from '@/types';
 import { 
   Lightbulb, 
   Clock, 
@@ -166,7 +167,7 @@ export function SmartSuggestions({
 }
 
 // Helper function to generate weather-based suggestions
-export function generateWeatherSuggestions(forecasts: any[]): Suggestion[] {
+export function generateWeatherSuggestions(forecasts: WeatherForecast[]): Suggestion[] {
   const suggestions: Suggestion[] = [];
   
   if (!forecasts || forecasts.length === 0) {
@@ -174,7 +175,7 @@ export function generateWeatherSuggestions(forecasts: any[]): Suggestion[] {
   }
 
   // Check for rain
-  const rainForecasts = forecasts.filter(f => f.weather.precipitation > 0);
+  const rainForecasts = forecasts.filter(f => (f.weather.rain?.['1h'] || 0) > 0 || (f.weather.pop || 0) > 0.2);
   if (rainForecasts.length > 0) {
     suggestions.push({
       id: 'rain-warning',
@@ -188,7 +189,7 @@ export function generateWeatherSuggestions(forecasts: any[]): Suggestion[] {
   }
 
   // Check for high winds
-  const windyForecasts = forecasts.filter(f => f.weather.windSpeed > 20);
+  const windyForecasts = forecasts.filter(f => f.weather.wind_speed * 3.6 > 20);
   if (windyForecasts.length > 0) {
     suggestions.push({
       id: 'wind-warning',

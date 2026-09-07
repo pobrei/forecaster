@@ -16,6 +16,7 @@ export interface ErrorContext {
   ip?: string;
   userAgent?: string;
   requestId?: string;
+  [key: string]: unknown;
 }
 
 export function createErrorHandler<T>(

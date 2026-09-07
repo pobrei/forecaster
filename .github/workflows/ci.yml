@@ -159,12 +159,14 @@ jobs:
       - name: Build application
         run: npm run build
 
+      - name: Archive build artifacts
+        run: tar -czf next-build.tar.gz .next
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-files
-          path: .next/
-          include-hidden-files: true
+          path: next-build.tar.gz
 
       - name: Performance audit with Lighthouse
         uses: treosh/lighthouse-ci-action@v12
