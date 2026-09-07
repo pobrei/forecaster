@@ -30,9 +30,15 @@ export function ExpeditionTablet({ children, className }: ExpeditionTabletProps)
   const [batteryLevel] = useState<number>(98);
   const { theme, setTheme } = useTheme();
 
-  // 2.5D Parallax mouse tilt
+  // Tablet DOM refs & 2.5D Parallax mouse tilt
   const tabletRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [tilt, setTilt] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // High-performance animation frame & scroll lock refs
+  const rafIdRef = useRef<number | null>(null);
+  const isScrollingRef = useRef(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const togglePower = useCallback(() => {
     playTactileClick();
@@ -88,7 +94,6 @@ export function ExpeditionTablet({ children, className }: ExpeditionTabletProps)
   // Keyboard shortcut listener: P = power toggle, F = fullscreen toggle
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in an input or textarea
       if (['input', 'textarea'].includes((e.target as HTMLElement)?.tagName?.toLowerCase())) {
         return;
       }
@@ -106,52 +111,76 @@ export function ExpeditionTablet({ children, className }: ExpeditionTabletProps)
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [togglePower, toggleFullscreen]);
 
-  // Subtle 3D tilt tracking in desk view mode
+  // Track active scrolling to eliminate GPU compositing lag during scroll
+  const handleScroll = useCallback(() => {
+    isScrollingRef.current = true;
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = setTimeout(() => {
+      isScrollingRef.current = false;
+    }, 150);
+  }, []);
+
+  // Subtle 3D tilt tracking in desk view mode throttled to RAF
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (isFullscreen) return;
+    if (isFullscreen || isScrollingRef.current) return;
     const el = tabletRef.current;
     if (!el) return;
 
-    const rect = el.getBoundingClientRect();
-    const clientX = e.clientX - rect.left;
-    const clientY = e.clientY - rect.top;
+    if (rafIdRef.current) return; // Drop frame if one is already pending
 
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
 
-    const rotX = ((clientY - centerY) / centerY) * -3.5;
-    const rotY = ((clientX - centerX) / centerX) * 4.5;
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      if (!tabletRef.current || isScrollingRef.current) return;
 
-    setTilt({ x: rotX, y: rotY });
+      const rect = tabletRef.current.getBoundingClientRect();
+      const relX = clientX - rect.left;
+      const relY = clientY - rect.top;
+
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+
+      // Subtle tactile parallax (max ±1.8 deg to avoid blur or composite thrashing)
+      const rotX = Math.max(-1.8, Math.min(1.8, ((relY - centerY) / centerY) * -1.8));
+      const rotY = Math.max(-2.2, Math.min(2.2, ((relX - centerX) / centerX) * 2.2));
+
+      setTilt({ x: rotX, y: rotY });
+    });
   }, [isFullscreen]);
 
   const handleMouseLeave = useCallback(() => {
+    if (rafIdRef.current) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
     setTilt({ x: 0, y: 0 });
   }, []);
 
   return (
     <div
       className={cn(
-        "relative w-full transition-all duration-700 ease-out flex items-center justify-center",
-        isFullscreen ? "min-h-screen p-0 m-0" : "min-h-[92vh] py-6 sm:py-10 px-2 sm:px-4 lg:px-8"
+        "relative w-full h-dvh max-h-dvh flex items-center justify-center overflow-hidden select-none transition-all duration-500",
+        isFullscreen ? "p-0 m-0" : "p-2 sm:p-4 md:p-6"
       )}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Expedition Tablet Outer Container */}
+      {/* Expedition Tablet Outer Container with Fixed Resolution Dimensions */}
       <div
         ref={tabletRef}
         style={{
           transform: isFullscreen
             ? 'none'
-            : `perspective(1600px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) translateZ(0)`,
-          transition: isFullscreen ? 'all 0.5s ease-out' : 'transform 0.15s ease-out',
+            : `perspective(1400px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) translateZ(0)`,
+          transition: isFullscreen ? 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)' : 'transform 0.12s ease-out',
         }}
         className={cn(
-          "relative transition-all duration-500 ease-in-out w-full",
+          "relative transition-all duration-500 ease-in-out w-full flex flex-col transform-gpu will-change-transform",
           isFullscreen
-            ? "max-w-none rounded-none border-none shadow-none"
-            : "max-w-[1400px] rounded-[38px] sm:rounded-[48px] shadow-[0_30px_90px_-15px_rgba(0,0,0,0.65),0_0_0_1px_rgba(255,255,255,0.08)]",
+            ? "h-full w-full max-w-none max-h-none rounded-none border-none shadow-none"
+            : "max-w-[1440px] h-full max-h-[920px] min-h-[580px] rounded-[34px] sm:rounded-[44px] shadow-[0_25px_80px_-15px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.08)]",
           className
         )}
       >
@@ -210,30 +239,30 @@ export function ExpeditionTablet({ children, className }: ExpeditionTabletProps)
         {/* ========================================================= */}
         <div
           className={cn(
-            "relative w-full overflow-hidden transition-all duration-500",
+            "relative w-full h-full flex flex-col overflow-hidden transition-all duration-500",
             isFullscreen
               ? "p-0 bg-background"
-              : "p-2 sm:p-4 lg:p-5 rounded-[36px] sm:rounded-[46px] border border-border/80 bg-gradient-to-br from-slate-200 via-slate-300 to-slate-400 dark:from-slate-800 dark:via-slate-900 dark:to-neutral-950 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.5)]"
+              : "p-2 sm:p-3.5 lg:p-4 rounded-[32px] sm:rounded-[42px] border border-border/80 bg-gradient-to-br from-slate-200 via-slate-300 to-slate-400 dark:from-slate-800 dark:via-slate-900 dark:to-neutral-950 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.5)]"
           )}
         >
           {/* Subtle Technical Corner Hex Screw Rivets */}
           {!isFullscreen && (
             <>
-              <div className="absolute top-3 left-3 h-2 w-2 rounded-full border border-slate-400/80 dark:border-slate-600/80 bg-slate-300 dark:bg-slate-800 shadow-inner flex items-center justify-center opacity-60">
+              <div className="absolute top-2.5 left-2.5 h-2 w-2 rounded-full border border-slate-400/80 dark:border-slate-600/80 bg-slate-300 dark:bg-slate-800 shadow-inner flex items-center justify-center opacity-60">
                 <div className="w-1 h-0.5 bg-slate-500/80 rotate-45" />
               </div>
-              <div className="absolute top-3 right-3 h-2 w-2 rounded-full border border-slate-400/80 dark:border-slate-600/80 bg-slate-300 dark:bg-slate-800 shadow-inner flex items-center justify-center opacity-60">
+              <div className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full border border-slate-400/80 dark:border-slate-600/80 bg-slate-300 dark:bg-slate-800 shadow-inner flex items-center justify-center opacity-60">
                 <div className="w-1 h-0.5 bg-slate-500/80 -rotate-45" />
               </div>
-              <div className="absolute bottom-3 left-3 h-2 w-2 rounded-full border border-slate-400/80 dark:border-slate-600/80 bg-slate-300 dark:bg-slate-800 shadow-inner flex items-center justify-center opacity-60">
+              <div className="absolute bottom-2.5 left-2.5 h-2 w-2 rounded-full border border-slate-400/80 dark:border-slate-600/80 bg-slate-300 dark:bg-slate-800 shadow-inner flex items-center justify-center opacity-60">
                 <div className="w-1 h-0.5 bg-slate-500/80 -rotate-45" />
               </div>
-              <div className="absolute bottom-3 right-3 h-2 w-2 rounded-full border border-slate-400/80 dark:border-slate-600/80 bg-slate-300 dark:bg-slate-800 shadow-inner flex items-center justify-center opacity-60">
+              <div className="absolute bottom-2.5 right-2.5 h-2 w-2 rounded-full border border-slate-400/80 dark:border-slate-600/80 bg-slate-300 dark:bg-slate-800 shadow-inner flex items-center justify-center opacity-60">
                 <div className="w-1 h-0.5 bg-slate-500/80 rotate-45" />
               </div>
 
               {/* Laser-Etched Technical Spec Markings */}
-              <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 hidden md:flex items-center gap-3 text-[8px] font-mono tracking-[0.25em] text-slate-500/70 dark:text-slate-400/50 uppercase select-none">
+              <div className="absolute bottom-1 left-1/2 -translate-x-1/2 hidden md:flex items-center gap-3 text-[7.5px] font-mono tracking-[0.25em] text-slate-500/70 dark:text-slate-400/50 uppercase select-none">
                 <span>MIL-STD-810H // TACTICAL EXPEDITION SLATE</span>
                 <span>•</span>
                 <span>IP68 ALL-WEATHER HOUSING</span>
@@ -248,16 +277,16 @@ export function ExpeditionTablet({ children, className }: ExpeditionTabletProps)
           {/* ========================================================= */}
           <div
             className={cn(
-              "relative w-full overflow-hidden transition-all duration-300",
+              "relative w-full h-full flex flex-col overflow-hidden transition-all duration-300",
               isFullscreen
                 ? "p-0 rounded-none border-none bg-background"
-                : "rounded-[28px] sm:rounded-[36px] p-2.5 sm:p-3.5 bg-neutral-950 border border-neutral-800/90 shadow-[inset_0_2px_4px_rgba(0,0,0,0.8),inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+                : "rounded-[24px] sm:rounded-[34px] p-1.5 sm:p-2.5 bg-neutral-950 border border-neutral-800/90 shadow-[inset_0_2px_4px_rgba(0,0,0,0.8),inset_0_0_0_1px_rgba(255,255,255,0.06)]"
             )}
           >
-            {/* Front Camera & Satellite Uplink Dynamic Pill (Centered on top bezel) */}
+            {/* Front Camera & Satellite Uplink Dynamic Pill */}
             {!isFullscreen && (
-              <div className="relative mx-auto mb-2 flex items-center justify-center select-none">
-                <div className="h-4 px-3 rounded-full bg-neutral-900/90 border border-neutral-800 flex items-center gap-2 shadow-inner">
+              <div className="shrink-0 relative mx-auto mb-1.5 flex items-center justify-center select-none">
+                <div className="h-3.5 px-3 rounded-full bg-neutral-900/90 border border-neutral-800 flex items-center gap-2 shadow-inner">
                   {/* Front camera lens */}
                   <div className="h-2 w-2 rounded-full bg-neutral-950 border border-neutral-700/60 flex items-center justify-center">
                     <div className="h-0.5 w-0.5 rounded-full bg-blue-500/80" />
@@ -278,24 +307,24 @@ export function ExpeditionTablet({ children, className }: ExpeditionTabletProps)
             {/* ======================================================= */}
             <div
               className={cn(
-                "relative w-full overflow-hidden bg-background text-foreground transition-all duration-300",
+                "relative w-full flex-1 min-h-0 flex flex-col overflow-hidden bg-background text-foreground transition-all duration-300",
                 isFullscreen
-                  ? "min-h-screen"
-                  : "rounded-[22px] sm:rounded-[28px] min-h-[750px] shadow-[inset_0_0_20px_rgba(0,0,0,0.15)] border border-border/40"
+                  ? "rounded-none"
+                  : "rounded-[18px] sm:rounded-[26px] shadow-[inset_0_0_20px_rgba(0,0,0,0.15)] border border-border/40"
               )}
             >
               {/* Diagonal Glass Specular Sheen (Apple / iPad glare effect) */}
               {!isFullscreen && (
                 <div
                   aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 z-20 bg-gradient-to-br from-white/[0.045] via-transparent to-transparent opacity-80"
+                  className="pointer-events-none absolute inset-0 z-30 bg-gradient-to-br from-white/[0.04] via-transparent to-transparent opacity-80"
                 />
               )}
 
               {/* ===================================================== */}
               {/* TABLET TOP STATUS BAR (Integrated Telemetry Bar)     */}
               {/* ===================================================== */}
-              <div className="sticky top-0 z-40 w-full px-4 sm:px-6 py-1.5 bg-background/85 backdrop-blur-md border-b border-border/40 flex items-center justify-between text-[11px] font-mono select-none">
+              <div className="shrink-0 z-30 w-full px-4 sm:px-6 py-1.5 bg-background/90 backdrop-blur-md border-b border-border/40 flex items-center justify-between text-[11px] font-mono select-none">
                 {/* Left: Clock & Date */}
                 <div className="flex items-center gap-2.5 text-muted-foreground">
                   <span className="font-semibold text-foreground tracking-wider">{currentTime || '12:00:00'}</span>
@@ -357,16 +386,21 @@ export function ExpeditionTablet({ children, className }: ExpeditionTabletProps)
               {/* ===================================================== */}
               {isPoweredOn ? (
                 <div
+                  ref={scrollContainerRef}
+                  onScroll={handleScroll}
                   className={cn(
-                    "relative w-full transition-all duration-300",
+                    "relative flex-1 min-h-0 w-full overflow-y-auto overscroll-contain transform-gpu custom-slate-scrollbar",
                     isPoweringOff && "scale-y-[0.005] brightness-200 opacity-20 filter blur-xs"
                   )}
+                  style={{
+                    WebkitOverflowScrolling: 'touch',
+                  }}
                 >
                   {children}
                 </div>
               ) : (
                 /* CRT / OLED Standby Screen */
-                <div className="py-28 sm:py-44 px-6 text-center space-y-6 flex flex-col items-center justify-center select-none bg-neutral-950 text-neutral-300 min-h-[600px]">
+                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-6 select-none bg-neutral-950 text-neutral-300">
                   <div className="relative flex items-center justify-center h-20 w-20 rounded-full bg-neutral-900 border border-neutral-800 shadow-2xl">
                     <Power className="h-8 w-8 text-orange-500 animate-pulse" />
                     <div className="absolute inset-0 rounded-full border border-orange-500/30 animate-ping opacity-30" />

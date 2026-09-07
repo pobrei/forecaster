@@ -106,7 +106,7 @@ export const AtmosphericCanvas3D: React.FC<AtmosphericCanvas3DProps> = ({
       powerPreference: 'high-performance',
     });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.setClearColor(isDark ? 0x040608 : 0xf8fafc, isDark ? 0.35 : 0.2);
     container.appendChild(renderer.domElement);
 
@@ -149,21 +149,25 @@ export const AtmosphericCanvas3D: React.FC<AtmosphericCanvas3DProps> = ({
       new THREE.Color(0x9a3412), // Burnt Orange
     ];
 
-    const leafCount = 85;
+    // Pre-allocate shared materials for the 7 colors (avoids 85 separate material instances)
+    const leafMaterials = leafColors.map(
+      (color) =>
+        new THREE.MeshStandardMaterial({
+          color,
+          roughness: 0.6,
+          metalness: 0.1,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: isDark ? 0.88 : 0.82,
+        })
+    );
+
+    const leafCount = 48;
     const leafGroup = new THREE.Group();
     const leafData: LeafPhysics[] = [];
 
     for (let i = 0; i < leafCount; i++) {
-      const color = leafColors[i % leafColors.length];
-      const mat = new THREE.MeshStandardMaterial({
-        color,
-        roughness: 0.6,
-        metalness: 0.1,
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: isDark ? 0.88 : 0.82,
-      });
-
+      const mat = leafMaterials[i % leafMaterials.length];
       const mesh = new THREE.Mesh(leafGeom, mat);
       const scale = 0.55 + Math.random() * 0.65;
       mesh.scale.set(scale, scale, scale);
@@ -197,7 +201,7 @@ export const AtmosphericCanvas3D: React.FC<AtmosphericCanvas3DProps> = ({
     scene.add(leafGroup);
 
     // 6. Drifting Atmospheric Dust, Spores & Light Motes
-    const dustCount = 1100;
+    const dustCount = 550;
     const dustGeom = new THREE.BufferGeometry();
     const dustPos = new Float32Array(dustCount * 3);
     const dustVel: { vx: number; vy: number; vz: number; baseAmp: number }[] = [];
@@ -399,12 +403,7 @@ export const AtmosphericCanvas3D: React.FC<AtmosphericCanvas3DProps> = ({
       window.removeEventListener('touchmove', handlePointerMove);
 
       leafGeom.dispose();
-      leafGroup.children.forEach((child) => {
-        if (child instanceof THREE.Mesh) {
-          if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
-          else child.material.dispose();
-        }
-      });
+      leafMaterials.forEach((m) => m.dispose());
       dustGeom.dispose();
       dustMat.dispose();
       dustTexture.dispose();

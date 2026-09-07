@@ -1,14 +1,12 @@
 // Service Worker for Forecaster PWA
-const CACHE_NAME = 'forecaster-v1.0.0';
-const STATIC_CACHE_NAME = 'forecaster-static-v1.0.0';
-const DYNAMIC_CACHE_NAME = 'forecaster-dynamic-v1.0.0';
+const CACHE_NAME = 'forecaster-v1.0.1';
+const STATIC_CACHE_NAME = 'forecaster-static-v1.0.1';
+const DYNAMIC_CACHE_NAME = 'forecaster-dynamic-v1.0.1';
 
-// Files to cache immediately
+// Files to cache immediately (only assets guaranteed to exist in public/)
 const STATIC_FILES = [
-  '/',
   '/manifest.json',
-  '/next.svg',
-  '/vercel.svg',
+  '/icon.svg',
 ];
 
 // API endpoints to cache
@@ -17,30 +15,29 @@ const API_CACHE_PATTERNS = [
   /^\/api\/weather$/,
 ];
 
-// Install event - cache static files
+// Install event - cache static files safely
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: Installing...');
-  
   event.waitUntil(
     caches.open(STATIC_CACHE_NAME)
-      .then((cache) => {
-        console.log('Service Worker: Caching static files');
-        return cache.addAll(STATIC_FILES);
+      .then(async (cache) => {
+        // Cache files individually so a missing asset doesn't reject entire install
+        await Promise.all(
+          STATIC_FILES.map(async (url) => {
+            try {
+              const res = await fetch(url);
+              if (res.ok) await cache.put(url, res);
+            } catch (err) {
+              console.warn('Service Worker: Optional static pre-cache skipped for', url, err);
+            }
+          })
+        );
       })
-      .then(() => {
-        console.log('Service Worker: Static files cached');
-        return self.skipWaiting();
-      })
-      .catch((error) => {
-        console.error('Service Worker: Error caching static files', error);
-      })
+      .then(() => self.skipWaiting())
   );
 });
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Activating...');
-  
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
@@ -49,16 +46,12 @@ self.addEventListener('activate', (event) => {
             if (cacheName !== STATIC_CACHE_NAME && 
                 cacheName !== DYNAMIC_CACHE_NAME &&
                 cacheName !== CACHE_NAME) {
-              console.log('Service Worker: Deleting old cache', cacheName);
               return caches.delete(cacheName);
             }
           })
         );
       })
-      .then(() => {
-        console.log('Service Worker: Activated');
-        return self.clients.claim();
-      })
+      .then(() => self.clients.claim())
   );
 });
 
@@ -109,7 +102,7 @@ async function handleApiRequest(request) {
               cache.put(request, response.clone());
             });
           }
-        });
+        }).catch(() => {});
         return cachedResponse;
       }
     }
@@ -125,8 +118,6 @@ async function handleApiRequest(request) {
     
     return networkResponse;
   } catch (error) {
-    console.log('Service Worker: Network failed, trying cache for API request');
-    
     // Try to serve from cache if network fails
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
@@ -137,7 +128,7 @@ async function handleApiRequest(request) {
     return new Response(
       JSON.stringify({
         success: false,
-        error: 'Network unavailable. Please check your connection.',
+        error: 'Network unavailable. Operating in offline reconnaissance mode.',
         offline: true
       }),
       {
@@ -148,7 +139,7 @@ async function handleApiRequest(request) {
   }
 }
 
-// Handle static file requests with cache-first strategy
+// Handle static file requests with cache-first strategy safely
 async function handleStaticRequest(request) {
   try {
     const cachedResponse = await caches.match(request);
@@ -164,8 +155,9 @@ async function handleStaticRequest(request) {
     
     return networkResponse;
   } catch (error) {
-    console.log('Service Worker: Failed to fetch static file', request.url);
-    throw error;
+    const fallback = await caches.match(request);
+    if (fallback) return fallback;
+    return new Response(null, { status: 204, statusText: 'No Content' });
   }
 }
 
@@ -181,8 +173,6 @@ async function handleDynamicRequest(request) {
     
     return networkResponse;
   } catch (error) {
-    console.log('Service Worker: Network failed, trying cache');
-    
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
       return cachedResponse;
@@ -190,13 +180,17 @@ async function handleDynamicRequest(request) {
     
     // Return offline page for navigation requests
     if (request.mode === 'navigate') {
-      const offlineResponse = await caches.match('/');
+      const offlineResponse = await caches.match('/offline') || await caches.match('/');
       if (offlineResponse) {
         return offlineResponse;
       }
+      return new Response(
+        '<!DOCTYPE html><html><head><title>Forecaster Offline</title></head><body style="font-family:sans-serif;background:#090d16;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;"><h2>Forecaster Slate Offline</h2><p>Atmospheric telemetry disconnected. Check network or reload.</p></div></body></html>',
+        { headers: { 'Content-Type': 'text/html' } }
+      );
     }
     
-    throw error;
+    return new Response(null, { status: 503, statusText: 'Offline' });
   }
 }
 

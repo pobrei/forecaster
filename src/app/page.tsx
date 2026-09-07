@@ -210,7 +210,7 @@ export default function Home() {
       <AtmosphericCanvas3D />
 
       {/* 2. Interactive Expedition Tablet / iPad Touch Screen Device Object */}
-      <div className="relative z-10 w-full min-h-screen">
+      <div className="relative z-10 w-full h-dvh overflow-hidden">
         <ExpeditionTablet>
           {/* Tablet Screen Header Navigation */}
           <Header />
@@ -219,7 +219,7 @@ export default function Home() {
           {/* Floating Tablet Dossier Dock */}
           <DossierPillDock />
 
-          <main className="container mx-auto px-3 sm:px-6 py-6 md:py-10 max-w-7xl">
+          <main className="container mx-auto px-3 sm:px-6 py-6 md:py-10 pb-36 max-w-7xl">
             {/* Editorial Hero Section (Mosby Files & Gionatan Nese Minimalist Luxury) */}
             <section className="text-center mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700 select-none">
           {/* Classification & Metadata Top Stamp */}

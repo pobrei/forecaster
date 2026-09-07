@@ -145,9 +145,28 @@ test.describe('Forecaster Smoke Tests', () => {
     // Verify tablet display restored
     await expect(page.getByText(/FILE \/\/ 01/i).first()).toBeVisible();
 
-    // Capture screenshot of expedition tablet in desk view
+    // Capture screenshot of expedition tablet in desk view at initial scroll position
     await page.screenshot({
       path: '/Users/filippsh/.gemini/antigravity-ide/brain/8bd520e2-e567-497f-a4d3-e3ab959c2643/tablet_expedition_preview.png',
+      fullPage: false,
+    });
+
+    // Verify tablet internal scroll container scrolls smoothly without window lag
+    const scrollContainer = page.locator('.custom-slate-scrollbar');
+    await expect(scrollContainer).toBeVisible();
+
+    // Scroll container down 350px smoothly to inspect File 01 & File 02
+    await scrollContainer.evaluate((el) => {
+      el.scrollTo({ top: 350, behavior: 'smooth' });
+    });
+    await page.waitForTimeout(500);
+
+    // Verify File 02 is reachable via internal scroll
+    await expect(page.getByText(/FILE \/\/ 02/i).first()).toBeVisible();
+
+    // Capture screenshot of expedition tablet scrolled state
+    await page.screenshot({
+      path: '/Users/filippsh/.gemini/antigravity-ide/brain/8bd520e2-e567-497f-a4d3-e3ab959c2643/tablet_scrolled_preview.png',
       fullPage: false,
     });
   });

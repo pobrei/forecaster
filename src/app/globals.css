@@ -518,3 +518,18 @@
     transform: translateY(-3px);
   }
 }
+
+/* Minimalist Expedition Tablet Scrollbar */
+.custom-slate-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-slate-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-slate-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 9999px;
+}
+.custom-slate-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
+}
