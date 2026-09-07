@@ -208,5 +208,26 @@ export interface CachedRoute {
   lastAccessed: Date;
 }
 
+export interface SavedExpedition {
+  _id?: string;
+  id: string; // Unique expedition identifier
+  name: string;
+  description?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  route: Route;
+  forecasts: WeatherForecast[];
+  settings: AppSettings;
+  stats: {
+    totalDistance: number;
+    totalElevationGain: number;
+    pointsCount: number;
+    minTemp: number;
+    maxTemp: number;
+    maxWind: number;
+  };
+}
+
 // Re-export weather source types
 export * from './weather-sources';
+

@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/features/ThemeToggle";
 import {
   Cloud,
-  Github
+  Github,
+  Database
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -49,7 +50,15 @@ export function Header({ className }: HeaderProps) {
           {/* Desktop Navigation - Removed as requested */}
 
           {/* Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
+            <div 
+              title="MongoDB Atlas Connected: Persistent Caching & Expedition Archive Active"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 font-mono text-[10px] text-emerald-600 dark:text-emerald-400 select-none"
+            >
+              <Database className="h-3 w-3 text-emerald-500 animate-pulse" />
+              <span className="font-semibold tracking-wider">ATLAS CLOUD SYNCED</span>
+            </div>
+
             <Button
               variant="ghost"
               size="icon"

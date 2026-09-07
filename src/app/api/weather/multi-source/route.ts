@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHash } from 'crypto';
 import { fetchMultiSourceForecasts, getAvailableProviders } from '@/lib/multi-source-weather';
 import { sampleRoutePoints } from '@/lib/gpx-parser';
 import { RoutePoint } from '@/types';
 import { WeatherProviderId, ModelDivergenceAlert } from '@/types/weather-sources';
 import { ROUTE_CONFIG } from '@/lib/constants';
+import { getCachedMultiSourceForecast, setCachedMultiSourceForecast } from '@/lib/mongodb';
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,6 +36,50 @@ export async function POST(request: NextRequest) {
       : availableProviders.slice(0, 4); // Default to top 4 models
 
     console.log(`Multi-source weather request: ${requestedSources.join(', ')}`);
+
+    // Deterministic cache key based on route bounds, settings, and requested sources
+    const startPoint = route.points[0];
+    const endPoint = route.points[route.points.length - 1];
+    const timeSlot = Math.floor(new Date(finalSettings.startTime).getTime() / (15 * 60 * 1000));
+
+    const cacheKey = createHash('sha256')
+      .update(JSON.stringify({
+        routeName: route.name,
+        distance: Math.round(route.distance * 10) / 10,
+        elevationGain: Math.round(route.elevationGain || 0),
+        pointsCount: route.points.length,
+        firstCoord: [startPoint.lat.toFixed(4), startPoint.lon.toFixed(4)],
+        lastCoord: [endPoint.lat.toFixed(4), endPoint.lon.toFixed(4)],
+        interval: finalSettings.forecastInterval,
+        speed: finalSettings.averageSpeed,
+        timeSlot,
+        sources: [...requestedSources].sort(),
+        hasCustomKeys: !!customKeys && Object.keys(customKeys).length > 0,
+      }))
+      .digest('hex');
+
+    // Attempt cache lookup
+    const cachedPayload = await getCachedMultiSourceForecast(cacheKey);
+    if (cachedPayload) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          forecasts: cachedPayload.forecasts,
+          availableProviders: cachedPayload.availableSources || availableProviders,
+          usedProviders: cachedPayload.sources,
+          pointCount: cachedPayload.forecasts.length,
+          summary: {
+            totalPoints: cachedPayload.forecasts.length,
+            agreementScore: cachedPayload.modelAgreementScore,
+            divergenceCount: (cachedPayload.divergenceAlerts || []).length,
+            divergenceAlerts: (cachedPayload.divergenceAlerts as ModelDivergenceAlert[] || []).slice(0, 5),
+          },
+          message: `Fetched weather from ${cachedPayload.sources.length} model(s) (MongoDB Cache Hit ⚡)`,
+          cached: true
+        },
+        timestamp: new Date()
+      });
+    }
 
     // Sample route points
     const sampledPoints = sampleRoutePoints(route, finalSettings.forecastInterval);
@@ -75,6 +121,17 @@ export async function POST(request: NextRequest) {
       .sort((a, b) => (b.severity === 'high' ? 2 : 1) - (a.severity === 'high' ? 2 : 1))
       .slice(0, 5);
 
+    // Persist to MongoDB cache with 30-minute TTL
+    await setCachedMultiSourceForecast(
+      cacheKey,
+      requestedSources,
+      forecasts,
+      allAlerts,
+      averageAgreement,
+      availableProviders,
+      30 * 60 * 1000
+    );
+
     return NextResponse.json({
       success: true,
       data: {
@@ -88,7 +145,8 @@ export async function POST(request: NextRequest) {
           divergenceCount: allAlerts.length,
           divergenceAlerts: topDivergenceAlerts,
         },
-        message: `Fetched weather from ${requestedSources.length} model(s)/source(s)`
+        message: `Fetched weather from ${requestedSources.length} model(s)/source(s)`,
+        cached: false
       },
       timestamp: new Date()
     });

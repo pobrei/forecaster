@@ -174,9 +174,20 @@ export function useProgressiveWeather(options: UseProgressiveWeatherOptions = {}
     });
   }, []);
 
+  const setForecasts = useCallback((forecasts: WeatherForecast[]) => {
+    setState({
+      forecasts,
+      isLoading: false,
+      progress: { current: forecasts.length, total: forecasts.length, percentage: 100 },
+      error: null,
+      isComplete: true
+    });
+  }, []);
+
   return {
     ...state,
     loadWeatherData,
+    setForecasts,
     reset
   };
 }

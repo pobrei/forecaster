@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from 'react';
-import { Thermometer, Wind, CloudRain, Sun, Layers, Compass, ShieldCheck, MapPin, Activity } from 'lucide-react';
+import { Thermometer, Wind, CloudRain, Sun, Layers, Compass, ShieldCheck, MapPin, Activity, Database } from 'lucide-react';
 import { FileUpload } from '@/components/features/ClientOnlyFileUpload';
 import { SettingsPanel } from '@/components/features/SettingsPanel';
 import { WeatherSourceSelector } from '@/components/features/WeatherSourceSelector';
@@ -20,12 +20,14 @@ import { PWAInstallBanner, PWAOfflineBanner } from '@/components/features/PWAIns
 import { AtmosphericCanvas3D } from '@/components/canvas/AtmosphericCanvas3D';
 import { DossierFolder } from '@/components/dossier/DossierFolder';
 import { DossierPillDock } from '@/components/dossier/DossierPillDock';
-import { Route, AppSettings, SelectedWeatherPoint } from '@/types';
+import { Route, AppSettings, SelectedWeatherPoint, SavedExpedition } from '@/types';
 import { ROUTE_CONFIG } from '@/lib/constants';
 import { useProgressiveWeather } from '@/hooks/useProgressiveWeather';
 import { useMultiSourceWeather } from '@/hooks/useMultiSourceWeather';
 import { useWeatherSourcePreferences, useAppStore } from '@/store/app-store';
 import { WeatherSourcePreferences } from '@/types/weather-sources';
+import { playTelemetryChirp } from '@/lib/audio-fx';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export default function Home() {
@@ -38,6 +40,7 @@ export default function Home() {
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   }));
   const [selectedPoint, setSelectedPoint] = useState<SelectedWeatherPoint | null>(null);
+  const [isSavingExpedition, setIsSavingExpedition] = useState(false);
 
   // Weather source preferences from store
   const weatherSourcePreferences = useWeatherSourcePreferences();
@@ -53,6 +56,7 @@ export default function Home() {
     isLoading: isGeneratingForecast,
     progress,
     loadWeatherData,
+    setForecasts,
     reset: resetWeatherData
   } = useProgressiveWeather({
     onProgress: (progress) => {
@@ -80,6 +84,55 @@ export default function Home() {
     resetMultiSource();
     setSelectedPoint(null);
     toast.success(`Route "${newRoute.name}" loaded successfully!`);
+  };
+
+  const handleExpeditionLoaded = useCallback((expedition: SavedExpedition) => {
+    setRoute(expedition.route);
+    if (expedition.settings) {
+      setSettings(expedition.settings);
+    }
+    if (expedition.forecasts && expedition.forecasts.length > 0) {
+      setForecasts(expedition.forecasts);
+    } else {
+      resetWeatherData();
+    }
+    resetMultiSource();
+    setSelectedPoint(null);
+  }, [resetWeatherData, resetMultiSource, setForecasts]);
+
+  const handleSaveExpeditionToAtlas = async () => {
+    if (!route) {
+      toast.error('No armed expedition route to save');
+      return;
+    }
+    setIsSavingExpedition(true);
+    try {
+      playTelemetryChirp();
+      toast.loading('Archiving expedition in MongoDB Atlas...', { id: 'save-exp' });
+      const res = await fetch('/api/expeditions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: route.name,
+          route,
+          forecasts,
+          settings,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to save expedition');
+      }
+      toast.dismiss('save-exp');
+      toast.success(`Archived "${route.name}" in MongoDB Atlas!`, {
+        description: 'Permanently saved to cloud database. Access it anytime under ATLAS ARCHIVE.',
+      });
+    } catch (err) {
+      toast.dismiss('save-exp');
+      toast.error(err instanceof Error ? err.message : 'Failed to archive expedition');
+    } finally {
+      setIsSavingExpedition(false);
+    }
   };
 
   const handleSettingsChange = (newSettings: AppSettings) => {
@@ -225,6 +278,7 @@ export default function Home() {
             <div className="lg:col-span-4">
               <FileUpload
                 onRouteUploaded={handleRouteUploaded}
+                onExpeditionLoaded={handleExpeditionLoaded}
                 isLoading={isGeneratingForecast}
               />
             </div>
@@ -250,26 +304,44 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Active Route Telemetry Strip */}
+          {/* Active Route Telemetry Strip & Atlas Save Action */}
           {route && (
-            <div className="mt-6 pt-5 border-t border-border/40 grid grid-cols-2 sm:grid-cols-4 gap-4 font-mono select-none">
-              <div className="p-3 rounded-lg bg-background/50 border border-border/50">
-                <div className="text-[10px] text-muted-foreground uppercase">EXPEDITION NAME</div>
-                <div className="font-semibold text-sm truncate text-foreground">{route.name}</div>
-              </div>
-              <div className="p-3 rounded-lg bg-background/50 border border-border/50">
-                <div className="text-[10px] text-muted-foreground uppercase">TOTAL DISTANCE</div>
-                <div className="font-semibold text-sm text-primary">{route.totalDistance.toFixed(1)} km</div>
-              </div>
-              <div className="p-3 rounded-lg bg-background/50 border border-border/50">
-                <div className="text-[10px] text-muted-foreground uppercase">ELEVATION GAIN</div>
-                <div className="font-semibold text-sm text-foreground">
-                  {route.totalElevationGain ? `+${Math.round(route.totalElevationGain)}m` : 'N/A'}
+            <div className="mt-6 pt-5 border-t border-border/40 space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 font-mono select-none">
+                <div className="p-3 rounded-lg bg-background/50 border border-border/50">
+                  <div className="text-[10px] text-muted-foreground uppercase">EXPEDITION NAME</div>
+                  <div className="font-semibold text-sm truncate text-foreground">{route.name}</div>
+                </div>
+                <div className="p-3 rounded-lg bg-background/50 border border-border/50">
+                  <div className="text-[10px] text-muted-foreground uppercase">TOTAL DISTANCE</div>
+                  <div className="font-semibold text-sm text-primary">{route.totalDistance.toFixed(1)} km</div>
+                </div>
+                <div className="p-3 rounded-lg bg-background/50 border border-border/50">
+                  <div className="text-[10px] text-muted-foreground uppercase">ELEVATION GAIN</div>
+                  <div className="font-semibold text-sm text-foreground">
+                    {route.totalElevationGain ? `+${Math.round(route.totalElevationGain)}m` : 'N/A'}
+                  </div>
+                </div>
+                <div className="p-3 rounded-lg bg-background/50 border border-border/50">
+                  <div className="text-[10px] text-muted-foreground uppercase">WAYPOINT NODES</div>
+                  <div className="font-semibold text-sm text-foreground">{route.points.length} coords</div>
                 </div>
               </div>
-              <div className="p-3 rounded-lg bg-background/50 border border-border/50">
-                <div className="text-[10px] text-muted-foreground uppercase">WAYPOINT NODES</div>
-                <div className="font-semibold text-sm text-foreground">{route.points.length} coords</div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-border/20">
+                <div className="text-[11px] font-mono text-muted-foreground flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>MONGODB ATLAS PERSISTENCE ACTIVE</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveExpeditionToAtlas}
+                  disabled={isSavingExpedition}
+                  className="px-3.5 py-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-mono text-[11px] uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-xs active:scale-95 disabled:opacity-50"
+                >
+                  <Database className={cn("h-3.5 w-3.5 text-emerald-500", isSavingExpedition && "animate-spin")} />
+                  <span>{isSavingExpedition ? 'Archiving to Atlas...' : 'Save Expedition to Atlas Archive'}</span>
+                </button>
               </div>
             </div>
           )}
@@ -498,11 +570,35 @@ export default function Home() {
               </p>
             </div>
           ) : (
-            <UnifiedExport
-              route={route}
-              forecasts={forecasts}
-              settings={settings}
-            />
+            <div className="space-y-6">
+              {/* Atlas Cloud Archive Mission Banner */}
+              <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <Database className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground">Save Expedition to Atlas Cloud Archive</h4>
+                    <p className="text-xs text-muted-foreground">Persist route coordinates, weather synthesis, and ensemble results to MongoDB Atlas for instant multi-device reload.</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveExpeditionToAtlas}
+                  disabled={isSavingExpedition}
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-mono text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs active:scale-95 disabled:opacity-50 shrink-0"
+                >
+                  <Database className={cn("h-3.5 w-3.5", isSavingExpedition && "animate-spin")} />
+                  <span>{isSavingExpedition ? 'Archiving...' : 'Save to Atlas Archive'}</span>
+                </button>
+              </div>
+
+              <UnifiedExport
+                route={route}
+                forecasts={forecasts}
+                settings={settings}
+              />
+            </div>
           )}
         </DossierFolder>
       </main>

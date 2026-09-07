@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { FileUpload as OriginalFileUpload } from './FileUpload';
 import { IOSSafariFileUpload } from './IOSSafariFileUpload';
-import { Route } from '@/types';
+import { Route, SavedExpedition } from '@/types';
 
 interface FileUploadProps {
   onRouteUploaded: (route: Route) => void;
+  onExpeditionLoaded?: (expedition: SavedExpedition) => void;
   isLoading?: boolean;
   className?: string;
 }
@@ -25,7 +26,7 @@ const isIOSSafari = () => {
 };
 
 // Client-only wrapper to prevent hydration mismatch
-export function FileUpload({ onRouteUploaded, isLoading = false, className }: FileUploadProps) {
+export function FileUpload({ onRouteUploaded, onExpeditionLoaded, isLoading = false, className }: FileUploadProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [isIOSDevice, setIsIOSDevice] = useState(false);
 
@@ -75,5 +76,5 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
     return <IOSSafariFileUpload onRouteUploaded={onRouteUploaded} isLoading={isLoading} className={className} />;
   }
 
-  return <OriginalFileUpload onRouteUploaded={onRouteUploaded} isLoading={isLoading} className={className} />;
+  return <OriginalFileUpload onRouteUploaded={onRouteUploaded} onExpeditionLoaded={onExpeditionLoaded} isLoading={isLoading} className={className} />;
 }

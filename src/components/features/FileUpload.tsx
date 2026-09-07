@@ -3,9 +3,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, FileText, X, CheckCircle, AlertCircle, Smartphone } from 'lucide-react';
+import { Upload, FileText, X, CheckCircle, AlertCircle, Smartphone, Database, Trash2, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Route, APIResponse, UploadResponse } from '@/types';
+import { Route, APIResponse, UploadResponse, SavedExpedition } from '@/types';
 import { formatFileSize } from '@/lib/format';
 import { GPX_CONSTRAINTS } from '@/lib/constants';
 import { toast } from 'sonner';
@@ -15,17 +15,107 @@ import { playTactileClick, playTelemetryChirp } from '@/lib/audio-fx';
 
 interface FileUploadProps {
   onRouteUploaded: (route: Route) => void;
+  onExpeditionLoaded?: (expedition: SavedExpedition) => void;
   isLoading?: boolean;
   className?: string;
 }
 
-export function FileUpload({ onRouteUploaded, isLoading = false, className }: FileUploadProps) {
+export function FileUpload({ onRouteUploaded, onExpeditionLoaded, isLoading = false, className }: FileUploadProps) {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [isMobile, setIsMobile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // MongoDB Saved Expeditions State
+  const [sourceTab, setSourceTab] = useState<'presets' | 'saved'>('presets');
+  const [savedExpeditions, setSavedExpeditions] = useState<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    createdAt: string;
+    updatedAt: string;
+    stats: {
+      totalDistance: number;
+      totalElevationGain: number;
+      pointsCount: number;
+      minTemp: number;
+      maxTemp: number;
+      maxWind: number;
+    };
+  }>>([]);
+  const [isLoadingSaved, setIsLoadingSaved] = useState(false);
+  const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
+
+  const fetchSavedExpeditions = useCallback(async () => {
+    setIsLoadingSaved(true);
+    try {
+      const res = await fetch('/api/expeditions');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.expeditions)) {
+          setSavedExpeditions(data.expeditions);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load saved expeditions:', err);
+    } finally {
+      setIsLoadingSaved(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (sourceTab === 'saved') {
+      fetchSavedExpeditions();
+    }
+  }, [sourceTab, fetchSavedExpeditions]);
+
+  const handleSelectSaved = async (id: string) => {
+    try {
+      playTelemetryChirp();
+      toast.loading('Retrieving saved expedition from MongoDB Atlas...', { id: 'load-exp' });
+      const res = await fetch(`/api/expeditions/${id}`);
+      if (!res.ok) throw new Error('Expedition not found');
+      const data = await res.json();
+      if (!data.success || !data.expedition) throw new Error('Corrupt expedition data');
+      
+      const exp: SavedExpedition = data.expedition;
+      toast.dismiss('load-exp');
+      toast.success(`Loaded "${exp.name}" from MongoDB Atlas`, {
+        description: `${exp.stats.totalDistance} km • ${exp.stats.totalElevationGain}m elevation`,
+      });
+
+      if (onExpeditionLoaded) {
+        onExpeditionLoaded(exp);
+      } else {
+        onRouteUploaded(exp.route);
+      }
+    } catch (err) {
+      toast.dismiss('load-exp');
+      toast.error('Failed to load expedition from MongoDB');
+      console.error(err);
+    }
+  };
+
+  const handleDeleteSaved = async (e: React.MouseEvent, id: string, name: string) => {
+    e.stopPropagation();
+    try {
+      setIsDeletingId(id);
+      const res = await fetch(`/api/expeditions/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setSavedExpeditions(prev => prev.filter(x => x.id !== id));
+        toast.success(`Removed "${name}" from MongoDB Atlas`);
+      } else {
+        toast.error('Failed to delete expedition');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete expedition');
+    } finally {
+      setIsDeletingId(null);
+    }
+  };
 
   const handleSelectPreset = (preset: SampleRoutePreset) => {
     playTelemetryChirp();
@@ -316,34 +406,129 @@ export function FileUpload({ onRouteUploaded, isLoading = false, className }: Fi
               Supports GPX files up to 4 MB
             </p>
 
-            {/* Quick Sample Expeditions */}
-            <div className="mt-5 pt-4 border-t border-border/40 text-left">
-              <div className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase mb-2 flex items-center justify-between">
-                <span>OR LOAD SAMPLE EXPEDITION</span>
-                <span className="text-primary font-semibold">ONE-CLICK DEMO</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {SAMPLE_EXPEDITIONS.map((preset) => (
+            {/* Quick Archival Presets & Atlas Cloud Archive Switcher */}
+            <div className="mt-5 pt-4 border-t border-border/40 text-left space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1 p-0.5 rounded-lg bg-muted/60 border border-border/40 text-[10px] font-mono">
                   <button
-                    key={preset.id}
                     type="button"
-                    onClick={() => handleSelectPreset(preset)}
-                    disabled={isLoading}
-                    className="p-2 rounded-md border border-border/60 bg-background/50 hover:bg-primary/10 hover:border-primary/40 text-left transition-all group/preset cursor-pointer disabled:opacity-50"
+                    onClick={() => { playTactileClick(); setSourceTab('presets'); }}
+                    className={cn(
+                      "px-2 py-1 rounded-md transition-all cursor-pointer",
+                      sourceTab === 'presets'
+                        ? "bg-background text-foreground font-semibold shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
                   >
-                    <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground mb-0.5">
-                      <span className="truncate">{preset.title.split(' ')[0]}</span>
-                      <span className="font-bold text-primary">{preset.distanceKm}km</span>
-                    </div>
-                    <div className="font-medium text-[11px] text-foreground group-hover/preset:text-primary transition-colors truncate">
-                      {preset.title}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground">
-                      +{preset.elevationGainM}m elev
-                    </div>
+                    PRESETS (3)
                   </button>
-                ))}
+                  <button
+                    type="button"
+                    onClick={() => { playTactileClick(); setSourceTab('saved'); }}
+                    className={cn(
+                      "px-2 py-1 rounded-md transition-all flex items-center gap-1 cursor-pointer",
+                      sourceTab === 'saved'
+                        ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-semibold shadow-xs border border-emerald-500/30"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Database className="h-3 w-3" />
+                    ATLAS ARCHIVE {savedExpeditions.length > 0 ? `(${savedExpeditions.length})` : ''}
+                  </button>
+                </div>
+
+                {sourceTab === 'saved' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={fetchSavedExpeditions}
+                    disabled={isLoadingSaved}
+                    className="h-6 px-2 text-[10px] font-mono text-muted-foreground hover:text-foreground"
+                  >
+                    <RefreshCw className={cn("h-3 w-3 mr-1", isLoadingSaved && "animate-spin")} />
+                    REFRESH
+                  </Button>
+                )}
               </div>
+
+              {sourceTab === 'presets' ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {SAMPLE_EXPEDITIONS.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => handleSelectPreset(preset)}
+                      disabled={isLoading}
+                      className="p-2 rounded-md border border-border/60 bg-background/50 hover:bg-primary/10 hover:border-primary/40 text-left transition-all group/preset cursor-pointer disabled:opacity-50"
+                    >
+                      <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground mb-0.5">
+                        <span className="truncate">{preset.title.split(' ')[0]}</span>
+                        <span className="font-bold text-primary">{preset.distanceKm}km</span>
+                      </div>
+                      <div className="font-medium text-[11px] text-foreground group-hover/preset:text-primary transition-colors truncate">
+                        {preset.title}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">
+                        +{preset.elevationGainM}m elev
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {isLoadingSaved ? (
+                    <div className="py-6 text-center text-muted-foreground text-xs font-mono flex items-center justify-center gap-2">
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin text-emerald-500" />
+                      Connecting to MongoDB Atlas...
+                    </div>
+                  ) : savedExpeditions.length === 0 ? (
+                    <div className="p-3 text-center rounded-md border border-dashed border-border/60 bg-background/30 text-muted-foreground">
+                      <p className="text-[11px] font-mono text-foreground font-medium">No saved expeditions in MongoDB Atlas</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        Load a route and click &ldquo;Save to Dossier Archive&rdquo; to persist it in Atlas.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                      {savedExpeditions.map((exp) => (
+                        <div
+                          key={exp.id}
+                          onClick={() => handleSelectSaved(exp.id)}
+                          className="p-2 rounded-md border border-border/60 bg-background/50 hover:bg-emerald-500/10 hover:border-emerald-500/40 text-left transition-all group flex items-center justify-between cursor-pointer"
+                        >
+                          <div className="min-w-0 flex-1 pr-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-[11px] text-foreground group-hover:text-emerald-500 transition-colors truncate">
+                                {exp.name}
+                              </span>
+                              <span className="text-[9px] font-mono px-1 rounded bg-muted text-muted-foreground">
+                                {new Date(exp.updatedAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground mt-0.5">
+                              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{exp.stats?.totalDistance ?? 0} km</span>
+                              <span>•</span>
+                              <span>+{exp.stats?.totalElevationGain ?? 0}m</span>
+                              <span>•</span>
+                              <span>{exp.stats?.pointsCount ?? 0} waypoints</span>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            disabled={isDeletingId === exp.id}
+                            onClick={(e) => handleDeleteSaved(e, exp.id, exp.name)}
+                            className="h-7 w-7 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 shrink-0"
+                            title="Delete from MongoDB"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ) : (

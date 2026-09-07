@@ -1,5 +1,17 @@
 import type { MongoClient, Db, Collection } from 'mongodb';
-import { CachedWeatherData, CachedRoute } from '@/types';
+import { CachedWeatherData, CachedRoute, SavedExpedition } from '@/types';
+
+export interface CachedMultiSourcePayload {
+  _id?: string;
+  cacheKey: string;
+  sources: string[];
+  forecasts: unknown[];
+  divergenceAlerts: unknown[];
+  modelAgreementScore: number;
+  availableSources: string[];
+  createdAt: Date;
+  expiresAt: Date;
+}
 
 const options = {
   maxPoolSize: 10,
@@ -17,6 +29,8 @@ export function isMongoConfigured(): boolean {
 // In-memory fallback caches when MongoDB is not configured or offline
 const inMemoryWeatherCache = new Map<string, { data: CachedWeatherData; expiresAt: number }>();
 const inMemoryRouteCache = new Map<string, CachedRoute>();
+const inMemorySavedExpeditions = new Map<string, SavedExpedition>();
+const inMemoryMultiSourceCache = new Map<string, { data: CachedMultiSourcePayload; expiresAt: number }>();
 
 async function getClientPromise(): Promise<MongoClient | null> {
   const uri = process.env.MONGODB_URI;
@@ -33,13 +47,19 @@ async function getClientPromise(): Promise<MongoClient | null> {
 
     if (!globalWithMongo._mongoClientPromise) {
       client = new MongoClientClass(uri, options);
-      globalWithMongo._mongoClientPromise = client.connect();
+      globalWithMongo._mongoClientPromise = client.connect().catch((err) => {
+        globalWithMongo._mongoClientPromise = undefined;
+        throw err;
+      });
     }
     return globalWithMongo._mongoClientPromise;
   } else {
     if (!clientPromise) {
       client = new MongoClientClass(uri, options);
-      clientPromise = client.connect();
+      clientPromise = client.connect().catch((err) => {
+        clientPromise = null;
+        throw err;
+      });
     }
     return clientPromise;
   }
@@ -71,6 +91,16 @@ export async function getRouteCacheCollection(): Promise<Collection<CachedRoute>
   return db.collection<CachedRoute>('route_cache');
 }
 
+export async function getSavedExpeditionsCollection(): Promise<Collection<SavedExpedition>> {
+  const { db } = await connectToDatabase();
+  return db.collection<SavedExpedition>('saved_expeditions');
+}
+
+export async function getMultiSourceCacheCollection(): Promise<Collection<CachedMultiSourcePayload>> {
+  const { db } = await connectToDatabase();
+  return db.collection<CachedMultiSourcePayload>('multi_source_cache');
+}
+
 // Database initialization and indexes
 export async function initializeDatabase(): Promise<void> {
   if (!isMongoConfigured()) {
@@ -89,6 +119,16 @@ export async function initializeDatabase(): Promise<void> {
     const routeCache = db.collection('route_cache');
     await routeCache.createIndex({ hash: 1 }, { unique: true });
     await routeCache.createIndex({ lastAccessed: 1 });
+
+    // Create indexes for saved expeditions
+    const savedExpeditions = db.collection('saved_expeditions');
+    await savedExpeditions.createIndex({ id: 1 }, { unique: true });
+    await savedExpeditions.createIndex({ updatedAt: -1 });
+
+    // Create indexes for multi-source forecast cache
+    const multiSourceCache = db.collection('multi_source_cache');
+    await multiSourceCache.createIndex({ cacheKey: 1 }, { unique: true });
+    await multiSourceCache.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
     
     console.log('Database indexes created successfully');
   } catch (error) {
@@ -246,6 +286,173 @@ export async function cleanupCache(): Promise<void> {
       console.log('Cache cleanup completed');
     } catch (error) {
       console.error('Error during cache cleanup:', error);
+    }
+  }
+}
+
+// Saved Expeditions Operations
+export interface SavedExpeditionSummary {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  stats: SavedExpedition['stats'];
+}
+
+export async function listSavedExpeditions(): Promise<SavedExpeditionSummary[]> {
+  if (isMongoConfigured()) {
+    try {
+      const collection = await getSavedExpeditionsCollection();
+      const expeditions = await collection
+        .find({})
+        .sort({ updatedAt: -1 })
+        .project<SavedExpeditionSummary>({
+          id: 1,
+          name: 1,
+          description: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          stats: 1,
+        })
+        .toArray();
+      return expeditions;
+    } catch (error) {
+      console.warn('MongoDB list saved expeditions failed, using memory:', error);
+    }
+  }
+
+  // Memory fallback
+  return Array.from(inMemorySavedExpeditions.values())
+    .map(e => ({
+      id: e.id,
+      name: e.name,
+      description: e.description,
+      createdAt: e.createdAt,
+      updatedAt: e.updatedAt,
+      stats: e.stats,
+    }))
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+}
+
+export async function getSavedExpeditionById(id: string): Promise<SavedExpedition | null> {
+  if (isMongoConfigured()) {
+    try {
+      const collection = await getSavedExpeditionsCollection();
+      const item = await collection.findOne({ id });
+      if (item) return item;
+    } catch (error) {
+      console.warn('MongoDB get saved expedition failed, using memory:', error);
+    }
+  }
+
+  return inMemorySavedExpeditions.get(id) || null;
+}
+
+export async function saveExpedition(data: Omit<SavedExpedition, '_id'>): Promise<SavedExpedition> {
+  const item: SavedExpedition = {
+    ...data,
+    updatedAt: new Date(),
+    createdAt: data.createdAt || new Date(),
+  };
+
+  inMemorySavedExpeditions.set(item.id, item);
+
+  if (isMongoConfigured()) {
+    try {
+      const collection = await getSavedExpeditionsCollection();
+      await collection.replaceOne(
+        { id: item.id },
+        item,
+        { upsert: true }
+      );
+      console.log(`Saved expedition ${item.name} (${item.id}) to MongoDB`);
+    } catch (error) {
+      console.warn('MongoDB save expedition failed, persisted in memory:', error);
+    }
+  }
+
+  return item;
+}
+
+export async function deleteSavedExpedition(id: string): Promise<boolean> {
+  inMemorySavedExpeditions.delete(id);
+
+  if (isMongoConfigured()) {
+    try {
+      const collection = await getSavedExpeditionsCollection();
+      const result = await collection.deleteOne({ id });
+      return result.deletedCount > 0;
+    } catch (error) {
+      console.warn('MongoDB delete expedition failed:', error);
+    }
+  }
+
+  return true;
+}
+
+// Multi-Source Forecast Cache Operations
+export async function getCachedMultiSourceForecast(cacheKey: string): Promise<CachedMultiSourcePayload | null> {
+  if (isMongoConfigured()) {
+    try {
+      const collection = await getMultiSourceCacheCollection();
+      const cached = await collection.findOne({
+        cacheKey,
+        expiresAt: { $gt: new Date() }
+      });
+      if (cached) {
+        console.log(`Multi-source forecast cache hit for key: ${cacheKey.slice(0, 8)}...`);
+        return cached;
+      }
+    } catch (error) {
+      console.warn('MongoDB multi-source cache lookup failed:', error);
+    }
+  }
+
+  const memoryItem = inMemoryMultiSourceCache.get(cacheKey);
+  if (memoryItem && memoryItem.expiresAt > Date.now()) {
+    console.log(`Multi-source forecast cache hit (in-memory) for key: ${cacheKey.slice(0, 8)}...`);
+    return memoryItem.data;
+  }
+
+  return null;
+}
+
+export async function setCachedMultiSourceForecast(
+  cacheKey: string,
+  sources: string[],
+  forecasts: unknown[],
+  divergenceAlerts: unknown[],
+  modelAgreementScore: number,
+  availableSources: string[],
+  ttlMs: number = 30 * 60 * 1000 // 30 minutes default
+): Promise<void> {
+  const now = new Date();
+  const expiresAt = new Date(Date.now() + ttlMs);
+
+  const payload: CachedMultiSourcePayload = {
+    cacheKey,
+    sources,
+    forecasts,
+    divergenceAlerts,
+    modelAgreementScore,
+    availableSources,
+    createdAt: now,
+    expiresAt,
+  };
+
+  inMemoryMultiSourceCache.set(cacheKey, { data: payload, expiresAt: expiresAt.getTime() });
+
+  if (isMongoConfigured()) {
+    try {
+      const collection = await getMultiSourceCacheCollection();
+      await collection.replaceOne(
+        { cacheKey },
+        payload,
+        { upsert: true }
+      );
+    } catch (error) {
+      console.warn('MongoDB multi-source caching failed:', error);
     }
   }
 }
