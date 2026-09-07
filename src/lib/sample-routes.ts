@@ -46,7 +46,56 @@ function generateRoutePoints(
   return points;
 }
 
+export function createAlpine45KmSampleRoute(): Route {
+  const startLat = 46.8680;
+  const startLon = 8.6450;
+  const endLat = 46.8720;
+  const endLon = 8.9480;
+  const totalDistance = 45.0;
+  const totalElevationGain = 1850;
+  const pointCount = 28;
+  const points: RoutePoint[] = [];
+
+  for (let i = 0; i < pointCount; i++) {
+    const t = i / (pointCount - 1);
+    const lat = startLat + (endLat - startLat) * t + Math.sin(t * Math.PI * 2) * 0.024;
+    const lon = startLon + (endLon - startLon) * t + Math.cos(t * Math.PI) * 0.015;
+    
+    // Klausen Pass summit (2,165m)
+    const elevation = Math.round(
+      920 + (2165 - 920) * Math.sin(t * Math.PI) + Math.sin(t * 14) * 35
+    );
+
+    points.push({
+      lat: parseFloat(lat.toFixed(5)),
+      lon: parseFloat(lon.toFixed(5)),
+      elevation,
+      distance: parseFloat((totalDistance * t).toFixed(1)),
+      estimatedTime: new Date(Date.now() + i * 15 * 60 * 1000),
+    });
+  }
+
+  return {
+    id: `alpine-45km-${Date.now()}`,
+    name: 'Swiss Alps Klausen Pass Traverse (45km)',
+    totalDistance,
+    totalElevationGain,
+    estimatedDuration: 3.5,
+    points,
+  };
+}
+
 export const SAMPLE_EXPEDITIONS: SampleRoutePreset[] = [
+  {
+    id: 'exp-alpine-45km',
+    title: 'Swiss Alps Klausen Pass',
+    subtitle: 'Altdorf to Linthal via Klausenpass (2,165m)',
+    region: 'Central Swiss Alps, Uri/Glarus',
+    tag: 'ALPINE SUMMIT // 45.0 KM',
+    distanceKm: 45.0,
+    elevationGainM: 1850,
+    route: createAlpine45KmSampleRoute(),
+  },
   {
     id: 'exp-dolomites',
     title: 'Dolomites Alta Via',
