@@ -33,7 +33,15 @@ const CAMERA_TARGETS: Record<CameraTargetMode, { pos: [number, number, number]; 
   right: { pos: [3.55, 0, 4.2], lookAt: [3.55, 0, 0.35] },
 };
 
-function CameraRig({ targetMode, zoomOffset = 0 }: { targetMode: CameraTargetMode; zoomOffset?: number }) {
+function CameraRig({ 
+  targetMode, 
+  zoomOffset = 0,
+  isHoveringHUD = false,
+}: { 
+  targetMode: CameraTargetMode; 
+  zoomOffset?: number;
+  isHoveringHUD?: boolean;
+}) {
   const currentLookAt = useRef(new THREE.Vector3(0, 0, 0));
   const targetLookAt = useRef(new THREE.Vector3(0, 0, 0));
   const targetPos = useRef(new THREE.Vector3(0, 0, 8.6));
@@ -41,9 +49,9 @@ function CameraRig({ targetMode, zoomOffset = 0 }: { targetMode: CameraTargetMod
   useFrame((state, delta) => {
     const config = CAMERA_TARGETS[targetMode];
 
-    // Subtle, gentle mouse parallax
-    const parallaxX = state.pointer.x * 0.35;
-    const parallaxY = state.pointer.y * 0.18;
+    // Mouse parallax offset (frozen when interacting with HUD to guarantee rock-solid map & chart responsiveness)
+    const parallaxX = isHoveringHUD ? 0 : state.pointer.x * 0.35;
+    const parallaxY = isHoveringHUD ? 0 : state.pointer.y * 0.18;
 
     targetPos.current.set(
       config.pos[0] + (targetMode === 'overview' ? parallaxX : parallaxX * 0.2),
@@ -151,6 +159,7 @@ export function SpatialWorkspace({
 }: SpatialWorkspaceProps) {
   const [cameraMode, setCameraMode] = useState<CameraTargetMode>('overview');
   const [zoomOffset, setZoomOffset] = useState<number>(0);
+  const [isHoveringHUD, setIsHoveringHUD] = useState(false);
   const [muted, setMuted] = useState(false);
 
   const toggleSound = () => {
@@ -315,7 +324,7 @@ export function SpatialWorkspace({
       {/* ========================================================================= */}
       <Canvas
         camera={{ fov: 46, position: [0, 0, 8.6], near: 0.1, far: 100 }}
-        dpr={[1, 2]}
+        dpr={[1, 1.5]}
         gl={{
           antialias: true,
           powerPreference: 'high-performance',
@@ -374,10 +383,15 @@ export function SpatialWorkspace({
           isSavingExpedition={isSavingExpedition}
           onFocusCamera={handleSelectCamera}
           activeCameraMode={cameraMode}
+          onHoverHUDChange={setIsHoveringHUD}
         />
 
         {/* Dynamic Camera Parallax & Smooth Lerp Rig with Zoom */}
-        <CameraRig targetMode={cameraMode} zoomOffset={zoomOffset} />
+        <CameraRig 
+          targetMode={cameraMode} 
+          zoomOffset={zoomOffset} 
+          isHoveringHUD={isHoveringHUD} 
+        />
       </Canvas>
     </div>
   );

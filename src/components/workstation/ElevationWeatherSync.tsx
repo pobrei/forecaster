@@ -226,12 +226,18 @@ export function ElevationWeatherSync({
 
   const lastHoveredIndexRef = useRef<number | null>(null);
 
-  // Mouse scrubbing
+  // Mouse scrubbing with zero-latency local coordinate calculation
   const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
     if (!svgRef.current || forecasts.length === 0) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    const clientX = e.clientX - rect.left;
-    const ratio = Math.max(0, Math.min(1, clientX / rect.width));
+    
+    // In 3D CSS transformed viewports, nativeEvent.offsetX provides instant hit-tested local coordinates
+    // without triggering expensive synchronous getBoundingClientRect layout reflows
+    const width = svgRef.current.clientWidth || 400;
+    const clientX = typeof e.nativeEvent.offsetX === 'number'
+      ? e.nativeEvent.offsetX
+      : (e.clientX - svgRef.current.getBoundingClientRect().left);
+
+    const ratio = Math.max(0, Math.min(1, clientX / width));
     const targetDist = ratio * totalDist;
 
     let closestIndex = 0;

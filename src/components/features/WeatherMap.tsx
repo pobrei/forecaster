@@ -196,8 +196,17 @@ export function WeatherMap({
       });
     });
 
+    // Keep OpenLayers viewport dimensions perfectly synchronized with container
+    const resizeObserver = new ResizeObserver(() => {
+      map.updateSize();
+    });
+    if (mapRef.current) {
+      resizeObserver.observe(mapRef.current);
+    }
+
     return () => {
       if (pointerMoveRaf !== null) cancelAnimationFrame(pointerMoveRaf);
+      resizeObserver.disconnect();
       map.setTarget(undefined);
     };
   }, []);
