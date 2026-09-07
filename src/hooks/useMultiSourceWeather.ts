@@ -2,8 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { Route, AppSettings } from '@/types';
-import { MultiSourceWeatherForecast, WeatherProviderId } from '@/types/weather-sources';
-import { toast } from 'sonner';
+import { MultiSourceWeatherForecast, WeatherProviderId, ModelDivergenceAlert } from '@/types/weather-sources';
 
 interface MultiSourceWeatherState {
   forecasts: MultiSourceWeatherForecast[];
@@ -11,6 +10,12 @@ interface MultiSourceWeatherState {
   error: string | null;
   availableProviders: WeatherProviderId[];
   usedProviders: WeatherProviderId[];
+  summary: {
+    totalPoints: number;
+    agreementScore: number;
+    divergenceCount: number;
+    divergenceAlerts: ModelDivergenceAlert[];
+  } | null;
 }
 
 interface UseMultiSourceWeatherOptions {
@@ -27,26 +32,26 @@ export function useMultiSourceWeather(options: UseMultiSourceWeatherOptions = {}
     error: null,
     availableProviders: [],
     usedProviders: [],
+    summary: null,
   });
 
   const loadMultiSourceWeather = useCallback(async (
     route: Route,
     settings?: AppSettings,
-    sources?: WeatherProviderId[]
+    sources?: WeatherProviderId[],
+    customKeys?: { openweathermap?: string; weatherapi?: string; visualcrossing?: string }
   ) => {
     setState(prev => ({
       ...prev,
       isLoading: true,
       error: null,
-      forecasts: [],
     }));
 
     try {
-      console.log('📊 Fetching multi-source weather data...');
       const response = await fetch('/api/weather/multi-source', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ route, settings, sources })
+        body: JSON.stringify({ route, settings, sources, customKeys })
       });
 
       if (!response.ok) {
@@ -55,13 +60,10 @@ export function useMultiSourceWeather(options: UseMultiSourceWeatherOptions = {}
       }
 
       const result = await response.json();
-      console.log('📊 Multi-source result:', result);
 
       if (!result.success) {
         throw new Error(result.error || 'Unknown error');
       }
-
-      console.log(`📊 Loaded data from ${result.data.usedProviders?.length || 0} providers:`, result.data.usedProviders);
 
       setState(prev => ({
         ...prev,
@@ -69,6 +71,7 @@ export function useMultiSourceWeather(options: UseMultiSourceWeatherOptions = {}
         forecasts: result.data.forecasts,
         availableProviders: result.data.availableProviders,
         usedProviders: result.data.usedProviders,
+        summary: result.data.summary || null,
       }));
 
       onComplete?.(result.data.forecasts);
@@ -93,6 +96,7 @@ export function useMultiSourceWeather(options: UseMultiSourceWeatherOptions = {}
       error: null,
       availableProviders: [],
       usedProviders: [],
+      summary: null,
     });
   }, []);
 
@@ -102,4 +106,3 @@ export function useMultiSourceWeather(options: UseMultiSourceWeatherOptions = {}
     reset,
   };
 }
-

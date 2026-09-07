@@ -47,12 +47,6 @@ export function PerformanceIndicator({
     return `${minutes}m ${remainingSeconds}s`;
   };
 
-  const getProgressColor = (): string => {
-    if (progress >= 100) return 'bg-green-500';
-    if (progress >= 75) return 'bg-blue-500';
-    if (progress >= 50) return 'bg-yellow-500';
-    return 'bg-orange-500';
-  };
 
   const getStatusIcon = () => {
     if (progress >= 100) {

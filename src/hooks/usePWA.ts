@@ -15,19 +15,25 @@ interface PWAState {
 }
 
 export function usePWA() {
-  const [pwaState, setPWAState] = useState<PWAState>({
-    isInstallable: false,
-    isInstalled: false,
-    isOnline: true,
-    installPrompt: null,
+  const [pwaState, setPWAState] = useState<PWAState>(() => {
+    const isInstalled = typeof window !== 'undefined' &&
+      (window.matchMedia('(display-mode: standalone)').matches ||
+       (window.navigator as { standalone?: boolean }).standalone === true);
+    return {
+      isInstallable: false,
+      isInstalled: !!isInstalled,
+      isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+      installPrompt: null,
+    };
   });
 
   useEffect(() => {
-    // Check if app is already installed
-    const isInstalled = window.matchMedia('(display-mode: standalone)').matches ||
-                       (window.navigator as { standalone?: boolean }).standalone === true;
-
-    setPWAState(prev => ({ ...prev, isInstalled }));
+    // Listen for display mode changes
+    const mediaQuery = window.matchMedia('(display-mode: standalone)');
+    const handleDisplayModeChange = (e: MediaQueryListEvent) => {
+      setPWAState(prev => ({ ...prev, isInstalled: e.matches }));
+    };
+    mediaQuery.addEventListener('change', handleDisplayModeChange);
 
     // Register service worker
     if ('serviceWorker' in navigator) {
@@ -87,9 +93,6 @@ export function usePWA() {
     window.addEventListener('appinstalled', handleAppInstalled);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
-    // Set initial online status
-    setPWAState(prev => ({ ...prev, isOnline: navigator.onLine }));
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);

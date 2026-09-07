@@ -122,18 +122,22 @@ export default function Home() {
     try {
       console.log('🌤️ Comparison mode:', weatherSourcePreferences.comparisonMode);
 
-      // In comparison mode, ONLY load multi-source data (which includes all sources)
-      if (weatherSourcePreferences.comparisonMode === 'comparison') {
+      if (weatherSourcePreferences.comparisonMode === 'comparison' || weatherSourcePreferences.comparisonMode === 'consensus') {
         console.log('🌤️ Loading multi-source weather data...');
-        toast.loading('Loading weather from all sources...', { id: 'multi-source' });
-        await loadMultiSourceWeather(route, settings);
-        // Also load primary data for backward compatibility
-        await loadWeatherData(route, settings);
+        toast.loading(`Loading forecast from ${weatherSourcePreferences.enabledSources.length} models...`, { id: 'multi-source' });
+        await Promise.all([
+          loadMultiSourceWeather(
+            route,
+            settings,
+            weatherSourcePreferences.enabledSources,
+            weatherSourcePreferences.customApiKeys
+          ),
+          loadWeatherData(route, settings)
+        ]);
         toast.dismiss('multi-source');
-        toast.success('Comparison data loaded from all available sources!');
+        toast.success(`Loaded predictions from ${weatherSourcePreferences.enabledSources.length} models!`);
       } else {
         console.log('🌤️ Loading single-source weather data...');
-        // Single source mode - just load primary weather data
         await loadWeatherData(route, settings);
       }
     } catch (error) {
@@ -142,18 +146,23 @@ export default function Home() {
     }
   };
 
-  // Load comparison data when switching to comparison mode (if we already have forecasts)
+  // Load comparison data when switching to comparison mode
   const handleLoadComparison = async () => {
     if (!route) {
       toast.error('Please upload a GPX file first');
       return;
     }
 
-    toast.loading('Loading comparison data from all sources...', { id: 'multi-source' });
+    toast.loading(`Loading comparison for ${weatherSourcePreferences.enabledSources.length} models...`, { id: 'multi-source' });
     try {
-      await loadMultiSourceWeather(route, settings);
+      await loadMultiSourceWeather(
+        route,
+        settings,
+        weatherSourcePreferences.enabledSources,
+        weatherSourcePreferences.customApiKeys
+      );
       toast.dismiss('multi-source');
-      toast.success('Comparison data loaded!');
+      toast.success('Model comparison data loaded!');
     } catch (error) {
       toast.dismiss('multi-source');
       toast.error('Failed to load comparison data');
@@ -162,7 +171,7 @@ export default function Home() {
 
   const hasData = route && forecasts.length > 0;
   const hasMultiSourceData = multiSourceForecasts.length > 0;
-  const isComparisonMode = weatherSourcePreferences.comparisonMode === 'comparison';
+  const isComparisonMode = weatherSourcePreferences.comparisonMode === 'comparison' || weatherSourcePreferences.comparisonMode === 'consensus';
 
   return (
     <>
@@ -313,27 +322,27 @@ export default function Home() {
               />
             </div>
 
-            {/* Source Comparison - Show in comparison mode */}
+            {/* Source & Model Comparison - Show in comparison or consensus mode */}
             {isComparisonMode && (
-              <>
+              <div className="space-y-4">
                 {/* Show load button if no comparison data yet */}
                 {!hasMultiSourceData && !isLoadingMultiSource && (
                   <Card className="border-dashed border-2 border-primary/30 bg-primary/5">
                     <CardContent className="py-8">
                       <div className="text-center space-y-4">
-                        <Layers className="h-12 w-12 mx-auto text-primary/60" />
+                        <Layers className="h-12 w-12 mx-auto text-primary/70 animate-pulse" />
                         <div>
-                          <h3 className="font-semibold text-lg">Multi-Source Comparison</h3>
-                          <p className="text-muted-foreground">
-                            Load weather data from all available sources to compare predictions
+                          <h3 className="font-semibold text-lg">Multi-Model Comparison</h3>
+                          <p className="text-muted-foreground max-w-md mx-auto text-sm mt-1">
+                            Cross-analyze weather predictions from {weatherSourcePreferences.enabledSources.length} global meteorological models (ECMWF, GFS, ICON, Météo-France, GEM, Best Match) along your route
                           </p>
                         </div>
                         <button
                           type="button"
                           onClick={handleLoadComparison}
-                          className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                          className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm shadow-sm cursor-pointer"
                         >
-                          Load Comparison Data
+                          Load Model Comparison ({weatherSourcePreferences.enabledSources.length} Models)
                         </button>
                       </div>
                     </CardContent>
@@ -346,7 +355,9 @@ export default function Home() {
                     <CardContent className="py-8">
                       <div className="text-center space-y-4">
                         <div className="h-12 w-12 mx-auto border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-                        <p className="text-muted-foreground">Loading weather from all available sources...</p>
+                        <p className="text-muted-foreground text-sm">
+                          Cross-analyzing weather predictions across {weatherSourcePreferences.enabledSources.length} models...
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
@@ -357,9 +368,11 @@ export default function Home() {
                   <WeatherSourceComparison
                     forecasts={multiSourceForecasts}
                     units={settings.units}
+                    selectedPointIndex={selectedPoint?.forecastIndex}
+                    onPointSelect={handlePointSelection}
                   />
                 )}
-              </>
+              </div>
             )}
 
             {/* Export */}

@@ -219,8 +219,8 @@ export const useAppStore = create<AppState>()(
         sidebarOpen: state.sidebarOpen,
         weatherSourcePreferences: state.weatherSourcePreferences,
       }),
-      merge: (persistedState: any, currentState: AppState) => {
-        const merged = { ...currentState, ...(persistedState || {}) };
+      merge: (persistedState: unknown, currentState: AppState) => {
+        const merged = { ...currentState, ...((persistedState as Partial<AppState>) || {}) };
         if (merged.settings) {
           merged.settings = { ...currentState.settings, ...merged.settings };
           if (merged.settings.startTime) {

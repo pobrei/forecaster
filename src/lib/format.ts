@@ -200,7 +200,7 @@ export function getWindDirectionRotation(degrees: number): number {
  * Get wind direction arrow symbol based on degrees
  * Returns a CSS class name for styling the arrow
  */
-export function getWindDirectionArrow(degrees: number): string {
+export function getWindDirectionArrow(_degrees: number): string {
   // For backward compatibility, return a simple arrow character
   // This will be replaced by CSS-based arrows in the UI components
   return '→';

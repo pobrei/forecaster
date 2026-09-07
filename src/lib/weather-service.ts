@@ -125,7 +125,7 @@ class OpenMeteoService implements WeatherService {
 }
 
 // OpenWeatherMap Service (Legacy)
-class OpenWeatherMapService implements WeatherService {
+export class OpenWeatherMapService implements WeatherService {
   private readonly apiKey: string;
 
   constructor(apiKey: string) {
@@ -207,9 +207,6 @@ class WeatherServiceFactory {
 
 // Export the factory for external use
 export { WeatherServiceFactory };
-
-// API key is now optional since we use Open-Meteo by default
-const API_KEY = process.env.OPENWEATHER_API_KEY;
 
 // Rate limiting
 const rateLimiter = {
