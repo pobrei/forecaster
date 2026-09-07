@@ -23,6 +23,19 @@ interface UseProgressiveWeatherOptions {
   onError?: (error: string) => void;
 }
 
+async function extractResponseError(response: Response, defaultMsg: string): Promise<string> {
+  try {
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const data = await response.json();
+      return data.error || data.message || defaultMsg;
+    }
+  } catch {
+    // Ignore JSON parse error
+  }
+  return `${defaultMsg} (${response.status} ${response.statusText || 'Error'})`.trim();
+}
+
 export function useProgressiveWeather(options: UseProgressiveWeatherOptions = {}) {
   const { chunkSize = 50, onProgress, onComplete, onError } = options;
   
@@ -47,8 +60,8 @@ export function useProgressiveWeather(options: UseProgressiveWeatherOptions = {}
     try {
       const estimatedPoints = Math.ceil(route.totalDistance / (settings?.forecastInterval || 5));
       
-      // For moderate routes, use regular endpoint
-      if (estimatedPoints <= 50) {
+      // For routes up to 100 points, use regular ultra-fast batch endpoint
+      if (estimatedPoints <= 100) {
         console.log('Using regular weather endpoint for route');
         const response = await fetch('/api/weather', {
           method: 'POST',
@@ -57,8 +70,14 @@ export function useProgressiveWeather(options: UseProgressiveWeatherOptions = {}
         });
 
         if (response.ok) {
-          const data = await response.json();
-          const forecasts = data.data.forecasts;
+          let data: { data?: { forecasts?: WeatherForecast[] } } | undefined;
+          try {
+            data = await response.json();
+          } catch {
+            throw new Error('Received non-JSON response from weather service');
+          }
+
+          const forecasts = data?.data?.forecasts || [];
           
           setState(prev => ({
             ...prev,
@@ -71,8 +90,8 @@ export function useProgressiveWeather(options: UseProgressiveWeatherOptions = {}
           onComplete?.(forecasts);
           return forecasts;
         } else if (response.status !== 408 && response.status !== 504) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch weather data');
+          const errorMsg = await extractResponseError(response, 'Failed to fetch weather data');
+          throw new Error(errorMsg);
         }
       }
 
@@ -111,19 +130,25 @@ export function useProgressiveWeather(options: UseProgressiveWeatherOptions = {}
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `Failed to fetch weather chunk ${currentChunk + 1}`);
+          const errorMsg = await extractResponseError(response, `Failed to fetch weather chunk ${currentChunk + 1}`);
+          throw new Error(errorMsg);
         }
 
-        const resData = await response.json();
-        if (!resData.success) {
-          throw new Error(resData.error || 'Progressive fetch error');
+        let resData: { success?: boolean; error?: string; data?: { forecasts?: WeatherForecast[]; totalChunks?: number; isComplete?: boolean } } | undefined;
+        try {
+          resData = await response.json();
+        } catch {
+          throw new Error(`Invalid response received for weather chunk ${currentChunk + 1}`);
         }
 
-        const chunkForecasts: WeatherForecast[] = resData.data.forecasts || [];
+        if (!resData?.success) {
+          throw new Error(resData?.error || 'Progressive fetch error');
+        }
+
+        const chunkForecasts: WeatherForecast[] = resData.data?.forecasts || [];
         allForecasts.push(...chunkForecasts);
-        totalChunks = resData.data.totalChunks || totalChunks;
-        isDone = resData.data.isComplete || currentChunk >= totalChunks - 1;
+        totalChunks = resData.data?.totalChunks || totalChunks;
+        isDone = resData.data?.isComplete ?? (currentChunk >= totalChunks - 1);
 
         setState(prev => ({
           ...prev,

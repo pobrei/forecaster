@@ -85,16 +85,16 @@ async function uploadHandler(
   // Generate hash for caching
   const hash = generateGPXHash(content);
 
-  // Check cache with error handling
+  // Check cache with fast timeout (max 800ms to avoid stalling response)
   let cachedRoute;
   try {
     cachedRoute = await withRetryAndTimeout(
       () => getCachedRoute(hash),
-      { maxRetries: 2, timeout: 5000 }
+      { maxRetries: 1, timeout: 800 }
     );
   } catch (error) {
     // Log cache error but don't fail the request
-    console.warn('Cache lookup failed:', error);
+    console.warn('Cache lookup failed or timed out, parsing directly:', error);
   }
 
   if (cachedRoute) {
@@ -109,35 +109,24 @@ async function uploadHandler(
     });
   }
 
-  // Parse GPX file with retry logic
-  const route = await withRetryAndTimeout(
-    async () => {
-      const fileForParsing = new File([content], file.name, { type: file.type });
-      return parseGPXFile(fileForParsing);
-    },
-    { maxRetries: 2, timeout: 15000 }
-  );
+  // Parse GPX file
+  const fileForParsing = new File([content], file.name, { type: file.type });
+  const route = await parseGPXFile(fileForParsing);
 
   // Validate the parsed route
   if (!validateRoute(route)) {
     throw new ValidationError(ERROR_MESSAGES.GPX.NO_TRACKS);
   }
 
-  // Cache the route with error handling
-  try {
-    await withRetryAndTimeout(
-      () => setCachedRoute({
-        hash,
-        route,
-        createdAt: new Date(),
-        lastAccessed: new Date()
-      }),
-      { maxRetries: 2, timeout: 5000 }
-    );
-  } catch (error) {
-    // Log cache error but don't fail the request
-    console.warn('Failed to cache route:', error);
-  }
+  // Cache the route in background (fire-and-forget, never delays upload response)
+  setCachedRoute({
+    hash,
+    route,
+    createdAt: new Date(),
+    lastAccessed: new Date()
+  }).catch(error => {
+    console.warn('Failed to cache route in background:', error);
+  });
 
   console.log(`Successfully processed GPX file: ${route.name}`);
   console.log(`Route stats: ${route.points.length} points, ${route.totalDistance.toFixed(2)}km`);

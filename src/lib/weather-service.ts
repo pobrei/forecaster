@@ -1,10 +1,11 @@
 import { WeatherData, WeatherForecast, RoutePoint, WeatherAlert } from '@/types';
 import { WEATHER_API, WEATHER_THRESHOLDS } from './constants';
-import { getCachedWeatherData, setCachedWeatherData } from './mongodb';
+import { getCachedWeatherData, setCachedWeatherData, setCachedWeatherDataBatch } from './mongodb';
 
 // Abstract Weather Service Interface
 export interface WeatherService {
   fetchWeatherData(lat: number, lon: number): Promise<WeatherData | null>;
+  fetchBatchWeatherData?(points: Array<{ lat: number; lon: number }>): Promise<WeatherData[]>;
   getName(): string;
   getApiLimits(): { requestsPerMinute: number; requestsPerDay: number };
 }
@@ -28,7 +29,7 @@ interface OpenMeteoApiResponse {
 }
 
 // Open-Meteo Service Implementation
-class OpenMeteoService implements WeatherService {
+export class OpenMeteoService implements WeatherService {
   private readonly baseUrl = 'https://api.open-meteo.com/v1';
 
   getName(): string {
@@ -78,7 +79,66 @@ class OpenMeteoService implements WeatherService {
     }
   }
 
-  private transformToWeatherData(data: OpenMeteoApiResponse, lat: number, lon: number): WeatherData {
+  async fetchBatchWeatherData(points: Array<{ lat: number; lon: number }>): Promise<WeatherData[]> {
+    if (!points || points.length === 0) return [];
+
+    const CHUNK_SIZE = 50;
+    const chunkPromises: Promise<WeatherData[]>[] = [];
+
+    for (let i = 0; i < points.length; i += CHUNK_SIZE) {
+      const chunk = points.slice(i, i + CHUNK_SIZE);
+      chunkPromises.push(this.fetchChunk(chunk));
+    }
+
+    const chunkResults = await Promise.all(chunkPromises);
+    return chunkResults.flat();
+  }
+
+  private async fetchChunk(chunk: Array<{ lat: number; lon: number }>): Promise<WeatherData[]> {
+    const lats = chunk.map(p => p.lat.toFixed(4)).join(',');
+    const lons = chunk.map(p => p.lon.toFixed(4)).join(',');
+
+    const params = new URLSearchParams({
+      latitude: lats,
+      longitude: lons,
+      current: [
+        'temperature_2m',
+        'relative_humidity_2m',
+        'apparent_temperature',
+        'precipitation',
+        'weather_code',
+        'cloud_cover',
+        'pressure_msl',
+        'wind_speed_10m',
+        'wind_direction_10m',
+        'wind_gusts_10m'
+      ].join(','),
+      wind_speed_unit: 'ms',
+      timezone: 'auto'
+    });
+
+    const response = await fetch(`${this.baseUrl}/forecast?${params}`);
+
+    if (!response.ok) {
+      throw new Error(`Open-Meteo API error: ${response.status}`);
+    }
+
+    const raw = await response.json();
+    const items: OpenMeteoApiResponse[] = Array.isArray(raw) ? raw : [raw];
+    const results: WeatherData[] = [];
+
+    for (let j = 0; j < chunk.length; j++) {
+      const item = items[j];
+      if (item && item.current) {
+        results.push(this.transformToWeatherData(item, chunk[j].lat, chunk[j].lon));
+      }
+    }
+
+    return results;
+  }
+
+  public transformToWeatherData(data: OpenMeteoApiResponse, lat: number, lon: number): WeatherData {
+
     const current = data.current;
 
     return {
@@ -436,29 +496,65 @@ export function generateWeatherAlerts(weather: WeatherData): WeatherAlert[] {
  * Get weather forecasts for multiple route points with batching and parallel processing
  */
 export async function getWeatherForecasts(routePoints: RoutePoint[]): Promise<WeatherForecast[]> {
+  if (!routePoints || routePoints.length === 0) {
+    return [];
+  }
+
+  const weatherService = WeatherServiceFactory.getService();
+  console.log(`Getting weather forecasts for ${routePoints.length} points using ${weatherService.getName()}`);
+
   const forecasts: WeatherForecast[] = [];
-  const errors: string[] = [];
 
-  // Optimized batch size for better performance
-  const BATCH_SIZE = 15; // Increased from 10
-  const MAX_CONCURRENT = 8; // Increased from 5
+  // 1. Ultra-fast native multi-coordinate batch fetching (e.g. Open-Meteo in ~250ms)
+  if (weatherService instanceof OpenMeteoService || 'fetchBatchWeatherData' in weatherService) {
+    try {
+      const batchService = weatherService as OpenMeteoService;
+      const weatherList = await batchService.fetchBatchWeatherData(
+        routePoints.map(p => ({ lat: p.lat, lon: p.lon }))
+      );
 
-  console.log(`Processing ${routePoints.length} points in batches of ${BATCH_SIZE}`);
-
-  // Process points in batches
-  for (let i = 0; i < routePoints.length; i += BATCH_SIZE) {
-    const batch = routePoints.slice(i, i + BATCH_SIZE);
-    console.log(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(routePoints.length / BATCH_SIZE)}`);
-
-    // Process batch with limited concurrency and optimized delays
-    const batchPromises = batch.map(async (point, index) => {
-      // Reduced delay for better performance while respecting rate limits
-      const delay = Math.floor(index / MAX_CONCURRENT) * 50; // 50ms delay per group (was 100ms)
-      if (delay > 0) {
-        await new Promise(resolve => setTimeout(resolve, delay));
+      for (let i = 0; i < routePoints.length; i++) {
+        const point = routePoints[i];
+        const weather = weatherList[i];
+        if (weather) {
+          const alerts = generateWeatherAlerts(weather);
+          forecasts.push({
+            routePoint: point,
+            weather,
+            alerts: alerts.length > 0 ? alerts : undefined
+          });
+        }
       }
 
-      try {
+      if (forecasts.length > 0) {
+        // Non-blocking background cache save (fire-and-forget, never delays response)
+        setCachedWeatherDataBatch(
+          forecasts.map(f => ({
+            lat: f.weather.lat,
+            lon: f.weather.lon,
+            data: f.weather,
+            timestamp: new Date(),
+            expiresAt: new Date(Date.now() + WEATHER_API.CACHE_DURATION)
+          }))
+        ).catch(err => {
+          console.warn('Background batch weather caching error:', err);
+        });
+
+        return forecasts;
+      }
+    } catch (batchErr) {
+      console.warn('Batch weather fetch error, falling back to parallel fetch:', batchErr);
+    }
+  }
+
+  // 2. Fallback: parallel point fetch without artificial delays
+  const BATCH_SIZE = 12;
+  const errors: string[] = [];
+
+  for (let i = 0; i < routePoints.length; i += BATCH_SIZE) {
+    const batch = routePoints.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.allSettled(
+      batch.map(async (point) => {
         const weather = await fetchWeatherData(point.lat, point.lon);
         if (weather) {
           const alerts = generateWeatherAlerts(weather);
@@ -469,27 +565,16 @@ export async function getWeatherForecasts(routePoints: RoutePoint[]): Promise<We
           };
         }
         return null;
-      } catch (error) {
-        console.error(`Failed to fetch weather for point ${point.lat}, ${point.lon}:`, error);
-        errors.push(`Failed to fetch weather for coordinates ${point.lat.toFixed(4)}, ${point.lon.toFixed(4)}`);
-        return null;
-      }
-    });
+      })
+    );
 
-    // Wait for batch to complete
-    const batchResults = await Promise.allSettled(batchPromises);
-
-    // Collect successful results
     batchResults.forEach((result) => {
       if (result.status === 'fulfilled' && result.value) {
         forecasts.push(result.value);
+      } else if (result.status === 'rejected') {
+        errors.push(result.reason?.message || 'Point fetch failed');
       }
     });
-
-    // Reduced delay between batches for better performance
-    if (i + BATCH_SIZE < routePoints.length) {
-      await new Promise(resolve => setTimeout(resolve, 100)); // Reduced from 200ms
-    }
   }
 
   if (forecasts.length === 0 && errors.length > 0) {

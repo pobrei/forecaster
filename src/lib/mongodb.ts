@@ -213,6 +213,34 @@ export async function setCachedWeatherData(data: Omit<CachedWeatherData, '_id'>)
   }
 }
 
+export async function setCachedWeatherDataBatch(items: Array<Omit<CachedWeatherData, '_id'>>): Promise<void> {
+  if (!items || items.length === 0) return;
+
+  const duration = process.env.CACHE_DURATION ? parseInt(process.env.CACHE_DURATION) : 3600000;
+  const expiresAt = Date.now() + duration;
+
+  const cachedItems: CachedWeatherData[] = items.map(data => {
+    const cachedData: CachedWeatherData = {
+      ...data,
+      timestamp: new Date(),
+      expiresAt: new Date(expiresAt)
+    };
+    const key = `${data.lat.toFixed(2)}_${data.lon.toFixed(2)}`;
+    inMemoryWeatherCache.set(key, { data: cachedData, expiresAt });
+    return cachedData;
+  });
+
+  if (isMongoConfigured()) {
+    try {
+      const collection = await getWeatherCacheCollection();
+      await collection.insertMany(cachedItems, { ordered: false });
+    } catch (error) {
+      console.warn('MongoDB batch weather caching failed:', error);
+    }
+  }
+}
+
+
 // Route cache operations
 export async function getCachedRoute(hash: string): Promise<CachedRoute | null> {
   if (isMongoConfigured()) {

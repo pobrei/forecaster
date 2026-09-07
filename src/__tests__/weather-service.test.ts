@@ -2,6 +2,7 @@
 jest.mock('@/lib/mongodb', () => ({
   getCachedWeatherData: jest.fn().mockResolvedValue(null),
   setCachedWeatherData: jest.fn().mockResolvedValue(undefined),
+  setCachedWeatherDataBatch: jest.fn().mockResolvedValue(undefined),
 }));
 
 import { WeatherServiceFactory } from '@/lib/weather-service';
@@ -195,4 +196,57 @@ describe('Weather Service Integration', () => {
     expect(weatherData?.weather[0]).toHaveProperty('description');
     expect(weatherData?.weather[0]).toHaveProperty('icon');
   });
+
+  it('should fetch batch weather data for multiple coordinates', async () => {
+    const service = WeatherServiceFactory.getService();
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([
+        {
+          current: {
+            time: '2024-01-01T12:00:00Z',
+            temperature_2m: 18,
+            relative_humidity_2m: 55,
+            apparent_temperature: 18,
+            precipitation: 0,
+            weather_code: 0,
+            cloud_cover: 10,
+            pressure_msl: 1015,
+            wind_speed_10m: 4,
+            wind_direction_10m: 90,
+            wind_gusts_10m: 6
+          }
+        },
+        {
+          current: {
+            time: '2024-01-01T12:00:00Z',
+            temperature_2m: 14,
+            relative_humidity_2m: 80,
+            apparent_temperature: 13,
+            precipitation: 1.2,
+            weather_code: 61,
+            cloud_cover: 90,
+            pressure_msl: 1010,
+            wind_speed_10m: 8,
+            wind_direction_10m: 180,
+            wind_gusts_10m: 12
+          }
+        }
+      ])
+    });
+
+    if ('fetchBatchWeatherData' in service && typeof service.fetchBatchWeatherData === 'function') {
+      const results = await service.fetchBatchWeatherData([
+        { lat: 46.0, lon: 7.0 },
+        { lat: 46.5, lon: 7.5 }
+      ]);
+
+      expect(results).toHaveLength(2);
+      expect(results[0].temp).toBe(18);
+      expect(results[1].temp).toBe(14);
+      expect(results[1].weather[0].main).toBe('Rain');
+    }
+  });
 });
+

@@ -38,15 +38,15 @@ async function weatherHandler(
   console.log(`Processing weather request for route: ${route.name}`);
   console.log(`Settings: interval=${finalSettings.forecastInterval}km, speed=${finalSettings.averageSpeed}km/h`);
 
-  // Check forecast cache with error handling
+  // Check forecast cache with fast timeout
   let cachedForecasts;
   try {
     cachedForecasts = await withRetryAndTimeout(
       () => getCachedForecast(route, finalSettings),
-      { maxRetries: 2, timeout: 5000 }
+      { maxRetries: 1, timeout: 800 }
     );
   } catch (error) {
-    console.warn('Forecast cache lookup failed:', error);
+    console.warn('Forecast cache lookup failed or timed out:', error);
   }
 
   if (cachedForecasts) {
@@ -123,15 +123,10 @@ async function weatherHandler(
     throw new NetworkError(ERROR_MESSAGES.WEATHER.NO_DATA);
   }
 
-  // Cache the forecast results with error handling
-  try {
-    await withRetryAndTimeout(
-      () => setCachedForecast(route, finalSettings, forecasts),
-      { maxRetries: 2, timeout: 5000 }
-    );
-  } catch (error) {
-    console.warn('Failed to cache forecast results:', error);
-  }
+  // Cache the forecast results in background (fire-and-forget, never blocks response)
+  setCachedForecast(route, finalSettings, forecasts).catch(error => {
+    console.warn('Failed to cache forecast results in background:', error);
+  });
 
   // Count alerts for logging
   const totalAlerts = forecasts.reduce((count, forecast) =>

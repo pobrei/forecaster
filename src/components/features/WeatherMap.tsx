@@ -108,13 +108,25 @@ export function WeatherMap({
       }
     });
 
-    // Change cursor on hover
+    // Change cursor on hover with RAF throttling to prevent getImageData canvas readback warnings
+    let pointerMoveRaf: number | null = null;
     map.on('pointermove', (event) => {
-      const feature = map.forEachFeatureAtPixel(event.pixel, (feature) => feature);
-      map.getTargetElement().style.cursor = feature ? 'pointer' : '';
+      if (event.dragging) return;
+      if (pointerMoveRaf !== null) {
+        cancelAnimationFrame(pointerMoveRaf);
+      }
+      pointerMoveRaf = requestAnimationFrame(() => {
+        const target = map.getTargetElement();
+        if (!target) return;
+        const hit = map.hasFeatureAtPixel(event.pixel);
+        target.style.cursor = hit ? 'pointer' : '';
+      });
     });
 
     return () => {
+      if (pointerMoveRaf !== null) {
+        cancelAnimationFrame(pointerMoveRaf);
+      }
       map.setTarget(undefined);
     };
   }, [onPointSelect]);
