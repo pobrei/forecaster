@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Html } from '@react-three/drei';
+import { Float, Html } from '@react-three/drei';
 import { 
   Compass, 
   Layers, 
@@ -83,282 +83,309 @@ export function FloatingWindowArray({
   return (
     <group name="floating-window-array">
       {/* ========================================================================= */}
-      {/* WINDOW 1: LEFT HUD - RECON INGESTION & SPEED PARAMETERS                   */}
-      {/* Positioned on cylindrical arc: [-3.5, 0, 0.35], Rotation: [0, 0.24, 0]    */}
+      {/* WINDOW 1: LEFT HUD - FILE 01 INGESTION & RECON DOSSIER                    */}
+      {/* Positioned on cylindrical arc: [-3.5, 0, 0.45], Rotation: [0, 0.30, 0]    */}
       {/* ========================================================================= */}
-      <group position={[-3.5, 0, 0.35]} rotation={[0, 0.24, 0]}>
-        <Html
-          transform
-          distanceFactor={DISTANCE_FACTOR}
-          position={[0, 0, 0]}
-          className="pointer-events-auto select-auto"
-          style={{ width: '380px', height: '580px' }}
-        >
-          <div
-            onMouseEnter={() => onHoverHUDChange?.(true)}
-            onMouseLeave={() => onHoverHUDChange?.(false)}
-            className={cn(
-              "w-[380px] h-[580px] flex flex-col rounded-2xl bg-slate-950/95 border border-cyan-500/30 shadow-[0_0_30px_rgba(6,182,212,0.12)] ring-1 ring-cyan-500/20 overflow-hidden font-mono text-xs text-slate-100 transition-all duration-200",
-              activeCameraMode === 'left' && "ring-2 ring-cyan-400 border-cyan-400/60 shadow-[0_0_40px_rgba(6,182,212,0.3)]"
-            )}
+      <group position={[-3.5, 0, 0.45]} rotation={[0, 0.30, 0]}>
+        <Float speed={1.6} rotationIntensity={0.15} floatIntensity={0.25}>
+          <Html
+            transform
+            occlude="blending"
+            distanceFactor={DISTANCE_FACTOR}
+            position={[0, 0, 0]}
+            className="pointer-events-auto select-auto"
+            style={{ width: '380px', height: '580px' }}
           >
-            {/* Window Top Tactical Header */}
-            <div className="px-3 py-2 bg-slate-900/90 border-b border-cyan-500/20 flex items-center justify-between shrink-0 select-none">
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
-                <span className="font-bold tracking-wider text-cyan-300 text-[11px]">
-                  FILE // 01 • INGESTION
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[9px] text-slate-400 hidden sm:inline">GPS RECON</span>
-                {onFocusCamera && (
-                  <button
-                    type="button"
-                    onClick={() => onFocusCamera(activeCameraMode === 'left' ? 'overview' : 'left')}
-                    title={activeCameraMode === 'left' ? "Reset to Overview" : "Focus Panel"}
-                    className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer"
-                  >
-                    <Maximize2 className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Window Content: Scrollable Left Panel */}
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 space-y-3">
-              <LeftPanel
-                route={route}
-                settings={settings}
-                preferences={preferences}
-                onRouteLoaded={onRouteLoaded}
-                onResetRoute={onResetRoute}
-                onSettingsChange={onSettingsChange}
-                onPreferencesChange={onPreferencesChange}
-                onGenerateForecast={onGenerateForecast}
-                isLoading={isLoading}
-                hasForecasts={forecasts.length > 0}
-              />
-            </div>
-
-            {/* Window Bottom Status Strip */}
-            <div className="px-3 py-1.5 bg-slate-950/90 border-t border-slate-800 flex items-center justify-between text-[9px] text-slate-500 select-none">
-              <span>CHANNEL: GPX-01</span>
-              <span>STATUS: ARMED</span>
-            </div>
-          </div>
-        </Html>
-      </group>
-
-      {/* ========================================================================= */}
-      {/* WINDOW 2: CENTER HUD - TACTICAL GEOSPATIAL RADAR & OPENLAYERS MAP        */}
-      {/* Positioned at center: [0, 0, 0], Rotation: [0, 0, 0]                     */}
-      {/* ========================================================================= */}
-      <group position={[0, 0, 0]} rotation={[0, 0, 0]}>
-        <Html
-          transform
-          distanceFactor={DISTANCE_FACTOR}
-          position={[0, 0, 0]}
-          className="pointer-events-auto select-auto"
-          style={{ width: '620px', height: '580px' }}
-        >
-          <div
-            onMouseEnter={() => onHoverHUDChange?.(true)}
-            onMouseLeave={() => onHoverHUDChange?.(false)}
-            className={cn(
-              "w-[620px] h-[580px] flex flex-col rounded-2xl bg-slate-950/95 border border-cyan-500/30 shadow-[0_0_35px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500/20 overflow-hidden font-mono text-xs text-slate-100 transition-all duration-200",
-              activeCameraMode === 'center' && "ring-2 ring-cyan-400 border-cyan-400/60 shadow-[0_0_40px_rgba(6,182,212,0.3)]"
-            )}
-          >
-            {/* Window Top Tactical Header */}
-            <div className="px-3.5 py-2 bg-slate-900/90 border-b border-cyan-500/20 flex items-center justify-between shrink-0 select-none">
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                <span className="font-bold tracking-wider text-emerald-300 text-[11px]">
-                  FILE // 02 • GEOSPATIAL RADAR
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <div className="flex items-center gap-1 bg-slate-950/80 p-0.5 rounded-lg border border-slate-800 text-[9px]">
-                  {(['satellite', 'dark', 'mono', 'terrain', 'topo'] as BasemapMode[]).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => setBasemap(mode)}
-                      className={cn(
-                        "px-1.5 py-0.5 rounded uppercase transition-colors cursor-pointer",
-                        basemap === mode
-                          ? "bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40"
-                          : "text-slate-400 hover:text-slate-200"
-                      )}
-                    >
-                      {mode === 'mono' ? 'B&W' : mode}
-                    </button>
-                  ))}
-                </div>
-
-                {onFocusCamera && (
-                  <button
-                    type="button"
-                    onClick={() => onFocusCamera(activeCameraMode === 'center' ? 'overview' : 'center')}
-                    title={activeCameraMode === 'center' ? "Reset to Overview" : "Focus Panel"}
-                    className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer"
-                  >
-                    <Maximize2 className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Window Content: Map Viewport or Zero-State */}
-            <div className="relative flex-1 min-h-0 w-full overflow-hidden bg-slate-950">
-              {route ? (
-                <>
-                  <WeatherMap
-                    route={route}
-                    forecasts={forecasts}
-                    units={settings.units}
-                    selectedPoint={selectedPoint}
-                    onPointSelect={onPointSelect}
-                    basemapMode={basemap}
-                    onBasemapChange={setBasemap}
-                    className="w-full h-full border-none rounded-none"
-                  />
-
-                  {/* Floating Tactical HUD Controls */}
-                  <div className="absolute top-3 right-3 z-30 pointer-events-auto flex flex-col items-end gap-2 max-w-xs">
-                    <MapHUDControls
-                      radarActive={radarActive}
-                      onToggleRadar={() => setRadarActive(!radarActive)}
-                      windVectorsActive={windVectorsActive}
-                      onToggleWindVectors={() => setWindVectorsActive(!windVectorsActive)}
-                      cloudsActive={false}
-                      onToggleClouds={() => {}}
-                    />
-                  </div>
-                </>
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px]">
-                  <div className="h-12 w-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-2.5 shadow-inner">
-                    <Compass className="h-6 w-6" />
-                  </div>
-                  <h3 className="text-xs font-bold text-slate-100 font-mono tracking-wide">
-                    EXPEDITION GEOSPATIAL RADAR
-                  </h3>
-                  <p className="font-sans text-[11px] text-slate-400 max-w-xs mt-1 mb-4 leading-relaxed">
-                    Satellite terrain engine standing by. Ingest a GPX track or load the Swiss Alps traverse to plot polyline atmospheric telemetry.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleLoadSample}
-                    className="px-3.5 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono font-bold text-[11px] uppercase tracking-wider flex items-center gap-1.5 shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all cursor-pointer active:scale-95"
-                  >
-                    <Sparkles className="h-3.5 w-3.5" />
-                    <span>Load Alpine 45km Route</span>
-                  </button>
-                </div>
+            <div
+              onMouseEnter={() => onHoverHUDChange?.(true)}
+              onMouseLeave={() => onHoverHUDChange?.(false)}
+              className={cn(
+                "relative w-[380px] h-[580px] flex flex-col rounded-2xl bg-[rgba(28,24,20,0.88)] backdrop-blur-xl border border-[#453A2E] shadow-[inset_0_1px_0_0_rgba(245,242,235,0.45),0_20px_50px_rgba(0,0,0,0.65)] overflow-hidden font-mono text-xs text-[#F5F2EB] transition-all duration-300",
+                activeCameraMode === 'left' && "ring-2 ring-[#E5A93C] border-[#E5A93C]/80 shadow-[0_0_40px_rgba(229,169,60,0.3)]"
               )}
-            </div>
+            >
+              {/* Sun-bleached corner crosses */}
+              <span className="absolute top-1.5 left-2 font-mono text-[10px] text-[#A89F91]/50 select-none pointer-events-none">+</span>
+              <span className="absolute top-1.5 right-2 font-mono text-[10px] text-[#A89F91]/50 select-none pointer-events-none">+</span>
+              <span className="absolute bottom-1.5 left-2 font-mono text-[10px] text-[#A89F91]/50 select-none pointer-events-none">+</span>
+              <span className="absolute bottom-1.5 right-2 font-mono text-[10px] text-[#A89F91]/50 select-none pointer-events-none">+</span>
 
-            {/* Window Bottom Status Strip */}
-            <div className="px-3.5 py-1.5 bg-slate-950/90 border-t border-slate-800 flex items-center justify-between text-[9px] text-slate-500 select-none">
-              <span>PROJECTION: EPSG:3857</span>
-              <span>RADAR: ACTIVE</span>
-            </div>
-          </div>
-        </Html>
-      </group>
-
-      {/* ========================================================================= */}
-      {/* WINDOW 3: RIGHT HUD - DYNAMIC TELEMETRY & MULTI-MODEL DIVERGENCE         */}
-      {/* Positioned on cylindrical arc: [3.55, 0, 0.35], Rotation: [0, -0.24, 0]   */}
-      {/* ========================================================================= */}
-      <group position={[3.55, 0, 0.35]} rotation={[0, -0.24, 0]}>
-        <Html
-          transform
-          distanceFactor={DISTANCE_FACTOR}
-          position={[0, 0, 0]}
-          className="pointer-events-auto select-auto"
-          style={{ width: '460px', height: '580px' }}
-        >
-          <div
-            onMouseEnter={() => onHoverHUDChange?.(true)}
-            onMouseLeave={() => onHoverHUDChange?.(false)}
-            className={cn(
-              "w-[460px] h-[580px] flex flex-col rounded-2xl bg-slate-950/95 border border-cyan-500/30 shadow-[0_0_30px_rgba(6,182,212,0.12)] ring-1 ring-cyan-500/20 overflow-hidden font-mono text-xs text-slate-100 transition-all duration-200",
-              activeCameraMode === 'right' && "ring-2 ring-cyan-400 border-cyan-400/60 shadow-[0_0_40px_rgba(6,182,212,0.3)]"
-            )}
-          >
-            {/* Window Top Tactical Header */}
-            <div className="px-3.5 py-2 bg-slate-900/90 border-b border-cyan-500/20 flex items-center justify-between shrink-0 select-none">
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
-                <span className="font-bold tracking-wider text-amber-300 text-[11px]">
-                  FILE // 03 • TELEMETRY & CONSENSUS
-                </span>
+              {/* Window Top Tactical Header */}
+              <div className="px-3.5 py-2.5 bg-[#1a1613]/90 border-b border-[#453A2E] flex items-center justify-between shrink-0 select-none">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-[#E5A93C] shadow-[0_0_8px_rgba(229,169,60,0.85)] animate-pulse" />
+                  <span className="font-bold tracking-wider text-[#F5F2EB] text-[11px]">
+                    FILE // 01 • INGESTION
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] text-[#A89F91] hidden sm:inline">GPS RECON</span>
+                  {onFocusCamera && (
+                    <button
+                      type="button"
+                      onClick={() => onFocusCamera(activeCameraMode === 'left' ? 'overview' : 'left')}
+                      title={activeCameraMode === 'left' ? "Reset to Overview" : "Focus Panel"}
+                      className="p-1 rounded hover:bg-[#28221b] text-[#A89F91] hover:text-[#F5F2EB] transition-colors cursor-pointer"
+                    >
+                      <Maximize2 className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div className="flex items-center gap-1.5">
-                {route && onSaveExpedition && (
-                  <button
-                    type="button"
-                    onClick={onSaveExpedition}
-                    disabled={isSavingExpedition}
-                    title="Archive expedition to MongoDB Atlas"
-                    className="px-2 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-mono text-[9px] uppercase flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    <Database className={cn("h-3 w-3 text-emerald-400", isSavingExpedition && "animate-spin")} />
-                    <span>{isSavingExpedition ? 'Saving...' : 'Atlas'}</span>
-                  </button>
-                )}
-
-                {onFocusCamera && (
-                  <button
-                    type="button"
-                    onClick={() => onFocusCamera(activeCameraMode === 'right' ? 'overview' : 'right')}
-                    title={activeCameraMode === 'right' ? "Reset to Overview" : "Focus Panel"}
-                    className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer"
-                  >
-                    <Maximize2 className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Window Content */}
-            <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-              {/* Elevation & Weather Synchronized Graph */}
-              <div className="flex-1 min-h-0 p-2.5 bg-slate-950/70 border-b border-slate-800">
-                <ElevationWeatherSync
+              {/* Window Content: Scrollable Left Panel */}
+              <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 space-y-3">
+                <LeftPanel
                   route={route}
-                  forecasts={forecasts}
-                  units={settings.units}
-                  hoveredIndex={selectedPoint?.forecastIndex ?? null}
-                  onHoverPoint={() => {}}
-                  onSelectPoint={(f, idx) => onPointSelect(idx, 'chart')}
-                  isExpanded={isElevationExpanded}
-                  onToggleExpand={() => setIsElevationExpanded(!isElevationExpanded)}
+                  settings={settings}
+                  preferences={preferences}
+                  onRouteLoaded={onRouteLoaded}
+                  onResetRoute={onResetRoute}
+                  onSettingsChange={onSettingsChange}
+                  onPreferencesChange={onPreferencesChange}
+                  onGenerateForecast={onGenerateForecast}
+                  isLoading={isLoading}
+                  hasForecasts={forecasts.length > 0}
                 />
               </div>
 
-              {/* Multi-Model Consensus Ribbon & Divergence */}
-              <div className="shrink-0 p-2.5 bg-slate-950/90 max-h-[190px] overflow-y-auto custom-scrollbar">
-                <div className="text-[9px] uppercase text-slate-500 font-bold mb-1 flex items-center justify-between">
-                  <span>SUPERCOMPUTER CONSENSUS</span>
-                  <span className="text-cyan-400">ECMWF • GFS • ICON</span>
-                </div>
-                <ModelDivergenceRibbon forecasts={forecasts} className="w-full" />
+              {/* Window Bottom Status Strip */}
+              <div className="px-3.5 py-1.5 bg-[#16120F]/95 border-t border-[#453A2E]/80 flex items-center justify-between text-[9px] text-[#A89F91] select-none">
+                <span>DOSSIER: GPX-INGEST-01</span>
+                <span>STATUS: ARMED // 3D</span>
               </div>
             </div>
+          </Html>
+        </Float>
+      </group>
 
-            {/* Window Bottom Status Strip */}
-            <div className="px-3.5 py-1.5 bg-slate-950/90 border-t border-slate-800 flex items-center justify-between text-[9px] text-slate-500 select-none">
-              <span>TELEMETRY: SYNCHRONIZED</span>
-              <span>SAMPLES: {forecasts.length} PTS</span>
+      {/* ========================================================================= */}
+      {/* WINDOW 2: CENTER HUD - FILE 02 TACTICAL GEOSPATIAL RADAR & MAP            */}
+      {/* Positioned at center of cylindrical arc: [0, 0, 0], Rotation: [0, 0, 0]   */}
+      {/* ========================================================================= */}
+      <group position={[0, 0, 0]} rotation={[0, 0, 0]}>
+        <Float speed={1.6} rotationIntensity={0.15} floatIntensity={0.25}>
+          <Html
+            transform
+            occlude="blending"
+            distanceFactor={DISTANCE_FACTOR}
+            position={[0, 0, 0]}
+            className="pointer-events-auto select-auto"
+            style={{ width: '620px', height: '580px' }}
+          >
+            <div
+              onMouseEnter={() => onHoverHUDChange?.(true)}
+              onMouseLeave={() => onHoverHUDChange?.(false)}
+              className={cn(
+                "relative w-[620px] h-[580px] flex flex-col rounded-2xl bg-[rgba(28,24,20,0.88)] backdrop-blur-xl border border-[#453A2E] shadow-[inset_0_1px_0_0_rgba(245,242,235,0.45),0_20px_50px_rgba(0,0,0,0.65)] overflow-hidden font-mono text-xs text-[#F5F2EB] transition-all duration-300",
+                activeCameraMode === 'center' && "ring-2 ring-[#E5A93C] border-[#E5A93C]/80 shadow-[0_0_40px_rgba(229,169,60,0.3)]"
+              )}
+            >
+              {/* Sun-bleached corner crosses */}
+              <span className="absolute top-1.5 left-2 font-mono text-[10px] text-[#A89F91]/50 select-none pointer-events-none">+</span>
+              <span className="absolute top-1.5 right-2 font-mono text-[10px] text-[#A89F91]/50 select-none pointer-events-none">+</span>
+              <span className="absolute bottom-1.5 left-2 font-mono text-[10px] text-[#A89F91]/50 select-none pointer-events-none">+</span>
+              <span className="absolute bottom-1.5 right-2 font-mono text-[10px] text-[#A89F91]/50 select-none pointer-events-none">+</span>
+
+              {/* Window Top Tactical Header */}
+              <div className="px-3.5 py-2.5 bg-[#1a1613]/90 border-b border-[#453A2E] flex items-center justify-between shrink-0 select-none">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-[#E5A93C] shadow-[0_0_8px_rgba(229,169,60,0.85)] animate-pulse" />
+                  <span className="font-bold tracking-wider text-[#F5F2EB] text-[11px]">
+                    FILE // 02 • TACTICAL GEOSPATIAL RADAR
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1 bg-[#16120F]/90 p-0.5 rounded-lg border border-[#453A2E] text-[9px]">
+                    {(['satellite', 'dark', 'mono', 'terrain', 'topo'] as BasemapMode[]).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setBasemap(mode)}
+                        className={cn(
+                          "px-1.5 py-0.5 rounded uppercase transition-colors cursor-pointer",
+                          basemap === mode
+                            ? "bg-[#E5A93C]/20 text-[#E5A93C] font-bold border border-[#E5A93C]/50"
+                            : "text-[#A89F91] hover:text-[#F5F2EB]"
+                        )}
+                      >
+                        {mode === 'mono' ? 'B&W' : mode}
+                      </button>
+                    ))}
+                  </div>
+
+                  {onFocusCamera && (
+                    <button
+                      type="button"
+                      onClick={() => onFocusCamera(activeCameraMode === 'center' ? 'overview' : 'center')}
+                      title={activeCameraMode === 'center' ? "Reset to Overview" : "Focus Panel"}
+                      className="p-1 rounded hover:bg-[#28221b] text-[#A89F91] hover:text-[#F5F2EB] transition-colors cursor-pointer"
+                    >
+                      <Maximize2 className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Window Content: Map Viewport or Zero-State */}
+              <div className="relative flex-1 min-h-0 w-full overflow-hidden bg-[#12100E]">
+                {route ? (
+                  <>
+                    <WeatherMap
+                      route={route}
+                      forecasts={forecasts}
+                      units={settings.units}
+                      selectedPoint={selectedPoint}
+                      onPointSelect={onPointSelect}
+                      basemapMode={basemap}
+                      onBasemapChange={setBasemap}
+                      className="w-full h-full border-none rounded-none"
+                    />
+
+                    {/* Floating Tactical HUD Controls */}
+                    <div className="absolute top-3 right-3 z-30 pointer-events-auto flex flex-col items-end gap-2 max-w-xs">
+                      <MapHUDControls
+                        radarActive={radarActive}
+                        onToggleRadar={() => setRadarActive(!radarActive)}
+                        windVectorsActive={windVectorsActive}
+                        onToggleWindVectors={() => setWindVectorsActive(!windVectorsActive)}
+                        cloudsActive={false}
+                        onToggleClouds={() => {}}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-[radial-gradient(#2c251f_1px,transparent_1px)] [background-size:20px_20px]">
+                    <div className="h-12 w-12 rounded-2xl bg-[#28221B] border border-[#453A2E] flex items-center justify-center text-[#E5A93C] mb-2.5 shadow-inner">
+                      <Compass className="h-6 w-6" />
+                    </div>
+                    <h3 className="text-xs font-bold text-[#F5F2EB] font-mono tracking-wide">
+                      EXPEDITION GEOSPATIAL RADAR
+                    </h3>
+                    <p className="font-sans text-[11px] text-[#A89F91] max-w-xs mt-1 mb-4 leading-relaxed">
+                      Satellite terrain engine standing by. Ingest a GPX track in File 01 or load the Swiss Alps traverse to plot polyline atmospheric telemetry.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleLoadSample}
+                      className="px-3.5 py-1.5 rounded-xl bg-[#E5A93C] hover:bg-[#d4962b] text-[#12100E] font-mono font-bold text-[11px] uppercase tracking-wider flex items-center gap-1.5 shadow-[0_0_15px_rgba(229,169,60,0.35)] transition-all cursor-pointer active:scale-95"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-[#12100E]" />
+                      <span>Load Alpine 45km Route</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Window Bottom Status Strip */}
+              <div className="px-3.5 py-1.5 bg-[#16120F]/95 border-t border-[#453A2E]/80 flex items-center justify-between text-[9px] text-[#A89F91] select-none">
+                <span>PROJECTION: EPSG:3857 (SPHERICAL MERCATOR)</span>
+                <span>RADAR: ACTIVE</span>
+              </div>
             </div>
-          </div>
-        </Html>
+          </Html>
+        </Float>
+      </group>
+
+      {/* ========================================================================= */}
+      {/* WINDOW 3: RIGHT HUD - FILE 03 TELEMETRY & DIVERGENCE                      */}
+      {/* Positioned on cylindrical arc: [3.5, 0, 0.45], Rotation: [0, -0.30, 0]    */}
+      {/* ========================================================================= */}
+      <group position={[3.5, 0, 0.45]} rotation={[0, -0.30, 0]}>
+        <Float speed={1.6} rotationIntensity={0.15} floatIntensity={0.25}>
+          <Html
+            transform
+            occlude="blending"
+            distanceFactor={DISTANCE_FACTOR}
+            position={[0, 0, 0]}
+            className="pointer-events-auto select-auto"
+            style={{ width: '460px', height: '580px' }}
+          >
+            <div
+              onMouseEnter={() => onHoverHUDChange?.(true)}
+              onMouseLeave={() => onHoverHUDChange?.(false)}
+              className={cn(
+                "relative w-[460px] h-[580px] flex flex-col rounded-2xl bg-[rgba(28,24,20,0.88)] backdrop-blur-xl border border-[#453A2E] shadow-[inset_0_1px_0_0_rgba(245,242,235,0.45),0_20px_50px_rgba(0,0,0,0.65)] overflow-hidden font-mono text-xs text-[#F5F2EB] transition-all duration-300",
+                activeCameraMode === 'right' && "ring-2 ring-[#E5A93C] border-[#E5A93C]/80 shadow-[0_0_40px_rgba(229,169,60,0.3)]"
+              )}
+            >
+              {/* Sun-bleached corner crosses */}
+              <span className="absolute top-1.5 left-2 font-mono text-[10px] text-[#A89F91]/50 select-none pointer-events-none">+</span>
+              <span className="absolute top-1.5 right-2 font-mono text-[10px] text-[#A89F91]/50 select-none pointer-events-none">+</span>
+              <span className="absolute bottom-1.5 left-2 font-mono text-[10px] text-[#A89F91]/50 select-none pointer-events-none">+</span>
+              <span className="absolute bottom-1.5 right-2 font-mono text-[10px] text-[#A89F91]/50 select-none pointer-events-none">+</span>
+
+              {/* Window Top Tactical Header */}
+              <div className="px-3.5 py-2.5 bg-[#1a1613]/90 border-b border-[#453A2E] flex items-center justify-between shrink-0 select-none">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-[#E5A93C] shadow-[0_0_8px_rgba(229,169,60,0.85)] animate-pulse" />
+                  <span className="font-bold tracking-wider text-[#F5F2EB] text-[11px]">
+                    FILE // 03 • TELEMETRY & DIVERGENCE
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  {route && onSaveExpedition && (
+                    <button
+                      type="button"
+                      onClick={onSaveExpedition}
+                      disabled={isSavingExpedition}
+                      title="Archive expedition to MongoDB Atlas"
+                      className="px-2 py-0.5 rounded bg-[#82937D]/15 hover:bg-[#82937D]/25 border border-[#82937D]/50 text-[#82937D] font-mono text-[9px] uppercase flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      <Database className={cn("h-3 w-3 text-[#82937D]", isSavingExpedition && "animate-spin")} />
+                      <span>{isSavingExpedition ? 'Saving...' : 'Atlas'}</span>
+                    </button>
+                  )}
+
+                  {onFocusCamera && (
+                    <button
+                      type="button"
+                      onClick={() => onFocusCamera(activeCameraMode === 'right' ? 'overview' : 'right')}
+                      title={activeCameraMode === 'right' ? "Reset to Overview" : "Focus Panel"}
+                      className="p-1 rounded hover:bg-[#28221b] text-[#A89F91] hover:text-[#F5F2EB] transition-colors cursor-pointer"
+                    >
+                      <Maximize2 className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Window Content */}
+              <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                {/* Elevation & Weather Synchronized Graph */}
+                <div className="flex-1 min-h-0 p-2.5 bg-[#16120F]/85 border-b border-[#453A2E]">
+                  <ElevationWeatherSync
+                    route={route}
+                    forecasts={forecasts}
+                    units={settings.units}
+                    hoveredIndex={selectedPoint?.forecastIndex ?? null}
+                    onHoverPoint={() => {}}
+                    onSelectPoint={(f, idx) => onPointSelect(idx, 'chart')}
+                    isExpanded={isElevationExpanded}
+                    onToggleExpand={() => setIsElevationExpanded(!isElevationExpanded)}
+                  />
+                </div>
+
+                {/* Multi-Model Consensus Ribbon & Divergence */}
+                <div className="shrink-0 p-2.5 bg-[#1a1613]/95 max-h-[190px] overflow-y-auto custom-scrollbar">
+                  <div className="text-[9px] uppercase text-[#A89F91] font-bold mb-1 flex items-center justify-between">
+                    <span>SUPERCOMPUTER CONSENSUS</span>
+                    <span className="text-[#E5A93C]">ECMWF • GFS • ICON</span>
+                  </div>
+                  <ModelDivergenceRibbon forecasts={forecasts} className="w-full" />
+                </div>
+              </div>
+
+              {/* Window Bottom Status Strip */}
+              <div className="px-3.5 py-1.5 bg-[#16120F]/95 border-t border-[#453A2E]/80 flex items-center justify-between text-[9px] text-[#A89F91] select-none">
+                <span>TELEMETRY: SYNCHRONIZED</span>
+                <span>SAMPLES: {forecasts.length} PTS</span>
+              </div>
+            </div>
+          </Html>
+        </Float>
       </group>
     </group>
   );

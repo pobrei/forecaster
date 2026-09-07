@@ -20,17 +20,17 @@ import {
 import { cn } from '@/lib/utils';
 import { Route, WeatherForecast, SelectedWeatherPoint, AppSettings } from '@/types';
 import { WeatherSourcePreferences } from '@/types/weather-sources';
-import { AtmosphericParticles } from './AtmosphericParticles';
+import { DustAtmosphere } from './DustAtmosphere';
 import { FloatingWindowArray } from './FloatingWindowArray';
 import { isAudioMuted, setAudioMuted, playTactileClick } from '@/lib/audio-fx';
 
 type CameraTargetMode = 'overview' | 'left' | 'center' | 'right';
 
 const CAMERA_TARGETS: Record<CameraTargetMode, { pos: [number, number, number]; lookAt: [number, number, number] }> = {
-  overview: { pos: [0, 0, 8.6], lookAt: [0, 0, 0] },
-  left: { pos: [-3.5, 0, 4.2], lookAt: [-3.5, 0, 0.35] },
-  center: { pos: [0, 0, 4.2], lookAt: [0, 0, 0] },
-  right: { pos: [3.55, 0, 4.2], lookAt: [3.55, 0, 0.35] },
+  overview: { pos: [0, 0, 7.2], lookAt: [0, 0, 0] },
+  left: { pos: [-3.5, 0, 3.8], lookAt: [-3.5, 0, 0.45] },
+  center: { pos: [0, 0, 3.8], lookAt: [0, 0, 0] },
+  right: { pos: [3.5, 0, 3.8], lookAt: [3.5, 0, 0.45] },
 };
 
 function CameraRig({ 
@@ -44,7 +44,7 @@ function CameraRig({
 }) {
   const currentLookAt = useRef(new THREE.Vector3(0, 0, 0));
   const targetLookAt = useRef(new THREE.Vector3(0, 0, 0));
-  const targetPos = useRef(new THREE.Vector3(0, 0, 8.6));
+  const targetPos = useRef(new THREE.Vector3(0, 0, 7.2));
 
   useFrame((state, delta) => {
     const config = CAMERA_TARGETS[targetMode];
@@ -65,8 +65,8 @@ function CameraRig({
       config.lookAt[2]
     );
 
-    // Smooth lerp camera position and lookAt
-    const lerpFactor = Math.min(delta * 4.0, 0.2);
+    // Smooth lerp camera position and lookAt with inertia dampening
+    const lerpFactor = Math.min(delta * 3.8, 0.18);
     state.camera.position.lerp(targetPos.current, lerpFactor);
     currentLookAt.current.lerp(targetLookAt.current, lerpFactor);
     state.camera.lookAt(currentLookAt.current);
@@ -75,28 +75,31 @@ function CameraRig({
   return null;
 }
 
-// Inverted Atmospheric Boundary Sphere with subtle wireframe & horizon ring
+// Inverted Atmospheric Boundary Sphere with warm dust fog & horizon ring
 function AtmosphericSphere() {
   return (
     <group name="atmospheric-sphere">
+      {/* Warm dust fog gradient */}
+      <fog attach="fog" args={['#12100E', 12, 38]} />
+
       {/* Outer inverted boundary sphere */}
       <mesh>
         <sphereGeometry args={[35, 32, 32]} />
         <meshBasicMaterial
-          color="#061220"
+          color="#181310"
           side={THREE.BackSide}
           depthWrite={false}
         />
       </mesh>
 
-      {/* Subtle glowing wireframe longitude/latitude cage */}
+      {/* Subtle glowing weathered bronze wireframe cage */}
       <mesh>
         <sphereGeometry args={[34.8, 24, 24]} />
         <meshBasicMaterial
-          color="#0ea5e9"
+          color="#453A2E"
           wireframe
           transparent
-          opacity={0.045}
+          opacity={0.075}
           side={THREE.BackSide}
           depthWrite={false}
         />
@@ -106,16 +109,16 @@ function AtmosphericSphere() {
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, -2.8, 0]}>
         <ringGeometry args={[14, 14.05, 64]} />
         <meshBasicMaterial
-          color="#06b6d4"
+          color="#E5A93C"
           side={THREE.DoubleSide}
           transparent
-          opacity={0.2}
+          opacity={0.25}
         />
       </mesh>
 
       {/* Sub-Horizon Radar Grid Lines */}
       <gridHelper
-        args={[28, 28, '#0ea5e9', '#0f172a']}
+        args={[28, 28, '#E5A93C', '#2C251F']}
         position={[0, -2.8, 0]}
       />
     </group>
@@ -175,40 +178,40 @@ export function SpatialWorkspace({
   };
 
   return (
-    <div className="w-screen h-screen relative overflow-hidden bg-[#070a10] select-none">
+    <div className="w-screen h-screen relative overflow-hidden bg-[#12100E] select-none">
       {/* ========================================================================= */}
       {/* 1. TOP TACTICAL NAVIGATION OVERLAY (DOM)                                  */}
       {/* ========================================================================= */}
-      <header className="absolute top-0 inset-x-0 z-30 h-12 px-4 bg-slate-950/75 backdrop-blur-xl border-b border-cyan-500/20 flex items-center justify-between font-mono text-xs text-slate-200 pointer-events-auto">
+      <header className="absolute top-0 inset-x-0 z-30 h-12 px-4 bg-[#12100E]/90 backdrop-blur-xl border-b border-[#453A2E] flex items-center justify-between font-mono text-xs text-[#F5F2EB] pointer-events-auto">
         {/* Brand & Mission Status */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.9)]" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#E5A93C] opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#E5A93C] shadow-[0_0_10px_rgba(229,169,60,0.9)]" />
             </span>
-            <span className="font-bold tracking-wider text-slate-100 text-sm">
-              FORECASTER <span className="text-cyan-400 font-normal text-xs">SPATIAL // 3D</span>
+            <span className="font-bold tracking-wider text-[#F5F2EB] text-sm">
+              FORECASTER <span className="text-[#E5A93C] font-normal text-xs">ARID FIELD DOSSIER // 3D</span>
             </span>
           </div>
 
-          <span className="hidden sm:inline text-slate-700">|</span>
-          <span className="hidden sm:inline text-[10px] text-slate-400">
+          <span className="hidden sm:inline text-[#453A2E]">|</span>
+          <span className="hidden sm:inline text-[10px] text-[#A89F91]">
             ATMOSPHERIC EXPEDITION RADAR
           </span>
         </div>
 
         {/* Center: Camera Navigation Focus Controls & Zoom */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center bg-slate-900/90 border border-slate-800 rounded-xl p-0.5 text-[11px] gap-0.5">
+          <div className="flex items-center bg-[#1c1814]/90 border border-[#453A2E] rounded-xl p-0.5 text-[11px] gap-0.5">
             <button
               type="button"
               onClick={() => handleSelectCamera('left')}
               className={cn(
                 "px-2.5 py-1 rounded-lg transition-all cursor-pointer",
                 cameraMode === 'left'
-                  ? "bg-cyan-500/20 border border-cyan-500/50 text-cyan-300 font-bold shadow-xs"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-[#E5A93C]/20 border border-[#E5A93C]/60 text-[#E5A93C] font-bold shadow-xs"
+                  : "text-[#A89F91] hover:text-[#F5F2EB]"
               )}
             >
               01 // Ingestion
@@ -220,8 +223,8 @@ export function SpatialWorkspace({
               className={cn(
                 "px-2.5 py-1 rounded-lg transition-all cursor-pointer",
                 cameraMode === 'center'
-                  ? "bg-cyan-500/20 border border-cyan-500/50 text-cyan-300 font-bold shadow-xs"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-[#E5A93C]/20 border border-[#E5A93C]/60 text-[#E5A93C] font-bold shadow-xs"
+                  : "text-[#A89F91] hover:text-[#F5F2EB]"
               )}
             >
               02 // Radar Map
@@ -233,8 +236,8 @@ export function SpatialWorkspace({
               className={cn(
                 "px-2.5 py-1 rounded-lg transition-all cursor-pointer",
                 cameraMode === 'right'
-                  ? "bg-cyan-500/20 border border-cyan-500/50 text-cyan-300 font-bold shadow-xs"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-[#E5A93C]/20 border border-[#E5A93C]/60 text-[#E5A93C] font-bold shadow-xs"
+                  : "text-[#A89F91] hover:text-[#F5F2EB]"
               )}
             >
               03 // Telemetry
@@ -246,8 +249,8 @@ export function SpatialWorkspace({
               className={cn(
                 "px-2.5 py-1 rounded-lg transition-all cursor-pointer",
                 cameraMode === 'overview'
-                  ? "bg-cyan-500/20 border border-cyan-500/50 text-cyan-300 font-bold shadow-xs"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-[#E5A93C]/20 border border-[#E5A93C]/60 text-[#E5A93C] font-bold shadow-xs"
+                  : "text-[#A89F91] hover:text-[#F5F2EB]"
               )}
             >
               Panorama
@@ -255,7 +258,7 @@ export function SpatialWorkspace({
           </div>
 
           {/* Quick Zoom Controller */}
-          <div className="hidden sm:flex items-center bg-slate-900/90 border border-slate-800 rounded-xl px-1.5 py-0.5 text-[11px] gap-1">
+          <div className="hidden sm:flex items-center bg-[#1c1814]/90 border border-[#453A2E] rounded-xl px-1.5 py-0.5 text-[11px] gap-1">
             <button
               type="button"
               onClick={() => {
@@ -263,7 +266,7 @@ export function SpatialWorkspace({
                 setZoomOffset((z) => Math.min(z + 1.2, 4.0));
               }}
               title="Zoom Out (Expand Field)"
-              className="px-1.5 py-0.5 rounded text-slate-400 hover:text-cyan-300 hover:bg-slate-800 transition-colors cursor-pointer font-bold"
+              className="px-1.5 py-0.5 rounded text-[#A89F91] hover:text-[#E5A93C] hover:bg-[#28221b] transition-colors cursor-pointer font-bold"
             >
               −
             </button>
@@ -274,9 +277,9 @@ export function SpatialWorkspace({
                 setZoomOffset(0);
               }}
               title="Reset Zoom"
-              className="px-1 font-mono text-[10px] text-slate-400 hover:text-slate-200 cursor-pointer"
+              className="px-1 font-mono text-[10px] text-[#A89F91] hover:text-[#F5F2EB] cursor-pointer"
             >
-              {zoomOffset === 0 ? '100%' : `${Math.round((8.6 / (8.6 + zoomOffset)) * 100)}%`}
+              {zoomOffset === 0 ? '100%' : `${Math.round((7.2 / (7.2 + zoomOffset)) * 100)}%`}
             </button>
             <button
               type="button"
@@ -285,7 +288,7 @@ export function SpatialWorkspace({
                 setZoomOffset((z) => Math.max(z - 1.2, -2.4));
               }}
               title="Zoom In"
-              className="px-1.5 py-0.5 rounded text-slate-400 hover:text-cyan-300 hover:bg-slate-800 transition-colors cursor-pointer font-bold"
+              className="px-1.5 py-0.5 rounded text-[#A89F91] hover:text-[#E5A93C] hover:bg-[#28221b] transition-colors cursor-pointer font-bold"
             >
               +
             </button>
@@ -302,7 +305,7 @@ export function SpatialWorkspace({
                 onToggleViewMode();
               }}
               title="Switch to 2D Dock View"
-              className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-cyan-300 transition-all text-[11px] cursor-pointer"
+              className="px-2.5 py-1 rounded-lg bg-[#1c1814] hover:bg-[#28221b] border border-[#453A2E] text-[#A89F91] hover:text-[#E5A93C] transition-all text-[11px] cursor-pointer"
             >
               2D Dock View
             </button>
@@ -312,58 +315,60 @@ export function SpatialWorkspace({
             type="button"
             onClick={toggleSound}
             title={muted ? 'Unmute audio' : 'Mute audio'}
-            className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-cyan-400 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg hover:bg-[#28221b] text-[#A89F91] hover:text-[#E5A93C] transition-colors cursor-pointer"
           >
-            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4 text-emerald-400" />}
+            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4 text-[#82937D]" />}
           </button>
         </div>
       </header>
 
       {/* ========================================================================= */}
-      {/* 2. FULL-SCREEN R3F WEBGL CANVAS (FOV: 46, POSITION: [0, 0, 8.6])          */}
+      {/* 2. FULL-SCREEN R3F WEBGL CANVAS (FOV: 50, POSITION: [0, 0, 7.2])          */}
       {/* ========================================================================= */}
       <Canvas
-        camera={{ fov: 46, position: [0, 0, 8.6], near: 0.1, far: 100 }}
+        camera={{ fov: 50, position: [0, 0, 7.2], near: 0.1, far: 100 }}
         dpr={[1, 1.5]}
         gl={{
           antialias: true,
           powerPreference: 'high-performance',
           alpha: false,
         }}
-        className="w-full h-full"
+        className="w-full h-full bg-[#12100E]"
       >
-        {/* Ambient & Angled Lighting */}
-        <ambientLight intensity={0.65} />
-        
-        {/* Cyan rim spot light catching left glass edges */}
+        {/* Cinematic Warm Lighting:
+            - Warm ambient light (#2C251F)
+            - Angled directional key light catching glass top rims (#F5F2EB)
+            - Warm point light behind panels (#E5A93C)
+        */}
+        <ambientLight color="#2C251F" intensity={0.95} />
+
+        {/* Angled directional key light catching glass top rims */}
+        <directionalLight position={[0, 6, 7]} intensity={1.2} color="#F5F2EB" />
+
+        {/* Warm point light behind panels */}
+        <pointLight position={[0, 0, -2.5]} intensity={1.6} color="#E5A93C" distance={18} />
+
+        {/* Rim spots catching left and right glass edges */}
         <spotLight
           position={[-6, 7, 5]}
           angle={0.6}
           penumbra={1}
-          intensity={1.8}
-          color="#38bdf8"
+          intensity={1.3}
+          color="#F5F2EB"
         />
-
-        {/* Amber rim spot light catching right glass edges */}
         <spotLight
           position={[6, 7, 5]}
           angle={0.6}
           penumbra={1}
-          intensity={1.5}
-          color="#f59e0b"
+          intensity={1.3}
+          color="#E5A93C"
         />
-
-        {/* Front center fill light */}
-        <directionalLight position={[0, 4, 6]} intensity={0.8} color="#f8fafc" />
-
-        {/* Under-glow point light illuminating sub-radar floor */}
-        <pointLight position={[0, -3.5, 3]} intensity={0.6} color="#06b6d4" />
 
         {/* Atmospheric Boundary Sphere */}
         <AtmosphericSphere />
 
-        {/* Sparkles + Wind-Blown Leaf Physics */}
-        <AtmosphericParticles />
+        {/* Animated Wind-Blown Dust & Silt Physics */}
+        <DustAtmosphere />
 
         {/* 3 Curved Floating Glass HUD Panels */}
         <FloatingWindowArray

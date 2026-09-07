@@ -51,6 +51,14 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Arid Field Dossier / Wasted Slate Aesthetic Palette
+        basalt: "#12100E",
+        umber: "rgba(28, 24, 20, 0.88)",
+        bronze: "#453A2E",
+        bone: "#F5F2EB",
+        sand: "#A89F91",
+        ochre: "#E5A93C",
+        sage: "#82937D",
       },
       borderRadius: {
         lg: "var(--radius)",
