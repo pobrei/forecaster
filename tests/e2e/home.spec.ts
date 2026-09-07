@@ -46,4 +46,38 @@ test.describe('Forecaster Smoke Tests', () => {
       fullPage: true,
     });
   });
+
+  test('should generate ultra-high-resolution PNG dossier export', async ({ page }) => {
+    await page.goto('/');
+
+    // Click sample expedition preset button
+    const presetBtn = page.getByRole('button', { name: /Dolomites/i });
+    await presetBtn.click();
+
+    // Click Generate Weather Forecast
+    const generateBtn = page.getByRole('button', { name: /Generate Weather Forecast/i });
+    await expect(generateBtn).toBeEnabled();
+    await generateBtn.click();
+
+    // Wait for weather metrics to be rendered
+    await expect(page.getByText(/Peak wind velocity/i)).toBeVisible({ timeout: 15000 });
+
+    // Scroll to FILE // 05 (Export)
+    const exportBtn = page.getByRole('button', { name: /Export PNG Image/i });
+    await exportBtn.scrollIntoViewIfNeeded();
+    await expect(exportBtn).toBeVisible();
+
+    // Set up download listener
+    const downloadPromise = page.waitForEvent('download', { timeout: 15000 });
+    await exportBtn.click();
+
+    const download = await downloadPromise;
+    const downloadPath = '/Users/filippsh/.gemini/antigravity-ide/brain/8bd520e2-e567-497f-a4d3-e3ab959c2643/exported_dossier_highres.png';
+    await download.saveAs(downloadPath);
+
+    // Verify file exists and has substantial size
+    const fs = await import('fs');
+    const stats = fs.statSync(downloadPath);
+    expect(stats.size).toBeGreaterThan(100000);
+  });
 });
