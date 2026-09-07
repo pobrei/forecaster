@@ -21,6 +21,7 @@ import {
   UnifiedExport 
 } from '@/components/features';
 import { MetricGrid } from '@/components/ui';
+import dynamic from 'next/dynamic';
 import { Route, AppSettings, SelectedWeatherPoint } from '@/types';
 import { ROUTE_CONFIG } from '@/lib/constants';
 import { createAlpine45KmSampleRoute } from '@/lib/sample-routes';
@@ -31,7 +32,21 @@ import { WeatherSourcePreferences } from '@/types/weather-sources';
 import { playTelemetryChirp } from '@/lib/audio-fx';
 import { toast } from 'sonner';
 
+const SpatialWorkspace = dynamic(
+  () => import('@/components/3d').then((mod) => mod.SpatialWorkspace),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-screen h-screen flex flex-col items-center justify-center bg-[#070a10] text-cyan-400 font-mono text-xs select-none">
+        <div className="h-10 w-10 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mb-3 shadow-[0_0_15px_rgba(6,182,212,0.4)]" />
+        <span className="tracking-widest uppercase">INITIALIZING 3D SPATIAL WORKSPACE...</span>
+      </div>
+    ),
+  }
+);
+
 export default function Home() {
+  const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
   const [route, setRoute] = useState<Route | null>(null);
   const [settings, setSettings] = useState<AppSettings>(() => ({
     startTime: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
@@ -248,6 +263,28 @@ export default function Home() {
     return null;
   };
 
+  if (viewMode === '3d') {
+    return (
+      <SpatialWorkspace
+        route={route}
+        forecasts={forecasts}
+        settings={settings}
+        preferences={weatherSourcePreferences}
+        selectedPoint={selectedPoint}
+        isLoading={isGeneratingForecast || isLoadingMultiSource}
+        onRouteLoaded={handleRouteLoaded}
+        onResetRoute={handleResetRoute}
+        onSettingsChange={setSettings}
+        onPreferencesChange={handleWeatherSourceChange}
+        onGenerateForecast={handleGenerateForecast}
+        onPointSelect={handlePointSelection}
+        onToggleViewMode={() => setViewMode('2d')}
+        onSaveExpedition={handleSaveExpeditionToAtlas}
+        isSavingExpedition={isSavingExpedition}
+      />
+    );
+  }
+
   return (
     <>
       {/* Photorealistic Ambient Atmospheric Canvas */}
@@ -262,6 +299,7 @@ export default function Home() {
         isSavingExpedition={isSavingExpedition}
         activeMobileTab={mobileTab}
         onMobileTabChange={setMobileTab}
+        onToggleViewMode={() => setViewMode('3d')}
         leftPanel={
           <LeftPanel
             route={route}

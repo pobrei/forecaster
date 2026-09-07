@@ -15,7 +15,8 @@ import {
   Activity, 
   ShieldCheck,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Route, WeatherForecast } from '@/types';
@@ -36,6 +37,7 @@ interface SplitScreenLayoutProps {
   isSavingExpedition?: boolean;
   activeMobileTab?: MobileTab;
   onMobileTabChange?: (tab: MobileTab) => void;
+  onToggleViewMode?: () => void;
 }
 
 export function SplitScreenLayout({
@@ -50,6 +52,7 @@ export function SplitScreenLayout({
   isSavingExpedition = false,
   activeMobileTab: externalTab,
   onMobileTabChange,
+  onToggleViewMode,
 }: SplitScreenLayoutProps) {
   const [internalTab, setInternalTab] = useState<MobileTab>('parameters');
   const [muted, setMuted] = useState(false);
@@ -154,6 +157,18 @@ export function SplitScreenLayout({
               className="p-1.5 rounded-md hover:bg-slate-800 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
             >
               <RotateCcw className="h-3.5 w-3.5" />
+            </button>
+          )}
+
+          {onToggleViewMode && (
+            <button
+              type="button"
+              onClick={onToggleViewMode}
+              title="Switch to 3D Spatial Workstation"
+              className="px-2 py-1 rounded-md bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-mono text-[10px] tracking-wide uppercase flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Sparkles className="h-3 w-3 text-cyan-400" />
+              <span className="hidden sm:inline">3D Spatial</span>
             </button>
           )}
 
