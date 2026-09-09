@@ -3,7 +3,11 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { ModelComparisonSuite } from '../ModelComparisonSuite';
 import { ModelDivergenceRibbon } from '../ModelDivergenceRibbon';
 import { Route, WeatherForecast } from '@/types';
-import { MultiSourceWeatherForecast, DEFAULT_WEATHER_SOURCE_PREFERENCES } from '@/types/weather-sources';
+import { 
+  MultiSourceWeatherForecast, 
+  DEFAULT_WEATHER_SOURCE_PREFERENCES,
+  WeatherProviderId 
+} from '@/types/weather-sources';
 
 const mockRoute: Route = {
   id: 'route-test-1',
@@ -66,7 +70,7 @@ describe('Model Comparison Suite & Ribbon Precipitation Accuracy', () => {
   const defaultPrefs = {
     ...DEFAULT_WEATHER_SOURCE_PREFERENCES,
     primarySource: 'ecmwf' as const,
-    enabledSources: ['ecmwf', 'gfs', 'icon', 'meteofrance'] as any[],
+    enabledSources: ['ecmwf', 'gfs', 'icon', 'meteofrance'] as WeatherProviderId[],
   };
 
   it('renders 100% dry consensus badge and 0.0 mm/h on completely dry routes', () => {

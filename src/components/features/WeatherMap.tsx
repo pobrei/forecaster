@@ -40,7 +40,13 @@ interface WeatherMapProps {
   onBasemapChange?: (mode: BasemapMode) => void;
   isVisible?: boolean;
   activeTab?: string;
+  radarActive?: boolean;
+  windVectorsActive?: boolean;
+  cloudsActive?: boolean;
 }
+
+// Shared memory cache for latest RainViewer radar tile URL
+let cachedRainViewerUrl: string | null = null;
 
 // 100% Free basemap providers (No API key, token, or auth required)
 const BASEMAP_SOURCES: Record<BasemapMode, { name: string; label: string; shortLabel: string; url: string; maxZoom: number; attribution: string }> = {
@@ -119,12 +125,20 @@ export function WeatherMap({
   onBasemapChange,
   isVisible = true,
   activeTab,
+  radarActive = false,
+  windVectorsActive = true,
+  cloudsActive = false,
 }: WeatherMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<Map | null>(null);
   const baseTileLayerRef = useRef<TileLayer | null>(null);
   const routeLayerRef = useRef<VectorLayer | null>(null);
   const weatherLayerRef = useRef<VectorLayer | null>(null);
+  const windVectorLayerRef = useRef<VectorLayer | null>(null);
+  const radarTileLayerRef = useRef<TileLayer | null>(null);
+  const radarVectorLayerRef = useRef<VectorLayer | null>(null);
+  const cloudTileLayerRef = useRef<TileLayer | null>(null);
+  const cloudVectorLayerRef = useRef<VectorLayer | null>(null);
   const reticleLayerRef = useRef<VectorLayer | null>(null);
   const hoverReticleLayerRef = useRef<VectorLayer | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
@@ -132,6 +146,11 @@ export function WeatherMap({
 
   const [internalBasemap, setInternalBasemap] = useState<BasemapMode>('satellite');
   const [localSelectedPoint, setLocalSelectedPoint] = useState<WeatherForecast | null>(null);
+  const [mapReady, setMapReady] = useState(false);
+  const windVectorsActiveRef = useRef(windVectorsActive);
+  useEffect(() => {
+    windVectorsActiveRef.current = windVectorsActive;
+  }, [windVectorsActive]);
 
   const currentBasemap = externalBasemap ?? internalBasemap;
   const initialBasemapRef = useRef(currentBasemap);
@@ -233,6 +252,7 @@ export function WeatherMap({
     }
 
     mapInstanceRef.current = map;
+    setMapReady(true);
 
     // Hover cursor handling with RAF throttling
     let pointerMoveRaf: number | null = null;
@@ -264,6 +284,8 @@ export function WeatherMap({
       if (pointerMoveRaf !== null) cancelAnimationFrame(pointerMoveRaf);
       resizeObserver.disconnect();
       map.setTarget(undefined);
+      mapInstanceRef.current = null;
+      setMapReady(false);
     };
   }, []);
 
@@ -293,6 +315,10 @@ export function WeatherMap({
     if (weatherLayerRef.current) {
       map.removeLayer(weatherLayerRef.current);
       weatherLayerRef.current = null;
+    }
+    if (windVectorLayerRef.current) {
+      map.removeLayer(windVectorLayerRef.current);
+      windVectorLayerRef.current = null;
     }
 
     const routeCoordinates = route.points.map((p) => fromLonLat([p.lon, p.lat]));
@@ -417,6 +443,7 @@ export function WeatherMap({
     // Weather Fixes & Wind Vector Layer
     if (forecasts && forecasts.length > 0) {
       const weatherFeatures: Feature[] = [];
+      const windFeatures: Feature[] = [];
 
       forecasts.forEach((forecast, index) => {
         const coord = fromLonLat([forecast.routePoint.lon, forecast.routePoint.lat]);
@@ -452,6 +479,7 @@ export function WeatherMap({
             }),
           })
         );
+        weatherFeatures.push(weatherFeature);
 
         // Wind Vector Barb Feature (Icon with actual wind direction & speed)
         const windFeature = new Feature({
@@ -476,8 +504,7 @@ export function WeatherMap({
             }),
           })
         );
-
-        weatherFeatures.push(weatherFeature, windFeature);
+        windFeatures.push(windFeature);
       });
 
       const weatherSource = new VectorSource({ features: weatherFeatures });
@@ -487,6 +514,15 @@ export function WeatherMap({
       });
       map.addLayer(weatherLayer);
       weatherLayerRef.current = weatherLayer;
+
+      const windSource = new VectorSource({ features: windFeatures });
+      const windLayer = new VectorLayer({
+        source: windSource,
+        zIndex: 22,
+        visible: windVectorsActiveRef.current,
+      });
+      map.addLayer(windLayer);
+      windVectorLayerRef.current = windLayer;
 
       // Click on weather point
       map.on('click', (event) => {
@@ -508,7 +544,249 @@ export function WeatherMap({
     fitRouteToBounds(true);
   }, [route, forecasts, onPointSelect, fitRouteToBounds]);
 
-  // 4. Synchronized Reticle Beacon on Map when selectedPoint changes
+  // 4. Dynamically toggle Wind Vector barb layer visibility
+  useEffect(() => {
+    if (windVectorLayerRef.current) {
+      windVectorLayerRef.current.setVisible(windVectorsActive);
+    }
+  }, [windVectorsActive]);
+
+  // 5. Live Doppler Precipitation Radar & Route Rain Echo Layer
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    const map = mapInstanceRef.current;
+
+    if (radarTileLayerRef.current) {
+      map.removeLayer(radarTileLayerRef.current);
+      radarTileLayerRef.current = null;
+    }
+    if (radarVectorLayerRef.current) {
+      map.removeLayer(radarVectorLayerRef.current);
+      radarVectorLayerRef.current = null;
+    }
+
+    if (!radarActive) return;
+
+    let isCancelled = false;
+
+    // Apply cached radar layer immediately for zero-latency response
+    if (cachedRainViewerUrl) {
+      const cachedTileLayer = new TileLayer({
+        source: new XYZ({
+          url: cachedRainViewerUrl,
+          maxZoom: 18,
+          crossOrigin: 'anonymous',
+        }),
+        opacity: 0.72,
+        zIndex: 6,
+      });
+      map.addLayer(cachedTileLayer);
+      radarTileLayerRef.current = cachedTileLayer;
+    }
+
+    const loadRadarTiles = async () => {
+      try {
+        const response = await fetch('https://api.rainviewer.com/public/weather-maps.json');
+        if (!response.ok) throw new Error(`RainViewer HTTP ${response.status}`);
+        const data = await response.json();
+        const past = data?.radar?.past;
+        if (isCancelled) return;
+
+        if (past && past.length > 0) {
+          const latest = past[past.length - 1];
+          const host = data.host || 'https://tilecache.rainviewer.com';
+          const freshTileUrl = `${host}${latest.path}/256/{z}/{x}/{y}/2/1_1.png`;
+          cachedRainViewerUrl = freshTileUrl;
+
+          if (radarTileLayerRef.current) {
+            radarTileLayerRef.current.setSource(
+              new XYZ({
+                url: freshTileUrl,
+                maxZoom: 18,
+                crossOrigin: 'anonymous',
+              })
+            );
+          } else if (!isCancelled) {
+            const radarTileLayer = new TileLayer({
+              source: new XYZ({
+                url: freshTileUrl,
+                maxZoom: 18,
+                crossOrigin: 'anonymous',
+              }),
+              opacity: 0.72,
+              zIndex: 6,
+            });
+            map.addLayer(radarTileLayer);
+            radarTileLayerRef.current = radarTileLayer;
+          }
+        }
+      } catch (err) {
+        console.warn('RainViewer live fetch error:', err);
+      }
+    };
+
+    loadRadarTiles();
+
+    // Route Precipitation Halos
+    if (forecasts && forecasts.length > 0) {
+      const radarEchoFeatures: Feature[] = [];
+
+      forecasts.forEach((f) => {
+        const rainMm = f.weather.rain?.['1h'] || f.weather.snow?.['1h'] || 0;
+        const pop = f.weather.pop ?? 0;
+
+        if (rainMm > 0.05 || pop > 0.25) {
+          const coord = fromLonLat([f.routePoint.lon, f.routePoint.lat]);
+          const echoFeature = new Feature({
+            geometry: new Point(coord),
+          });
+
+          let echoFill = 'rgba(130, 147, 125, 0.4)';
+          let strokeColor = '#82937D';
+          let pulseRadius = 18;
+
+          if (rainMm >= 4 || pop > 0.75) {
+            echoFill = 'rgba(239, 68, 68, 0.45)';
+            strokeColor = '#EF4444';
+            pulseRadius = 26;
+          } else if (rainMm >= 1.5 || pop > 0.5) {
+            echoFill = 'rgba(229, 169, 60, 0.45)';
+            strokeColor = '#E5A93C';
+            pulseRadius = 22;
+          }
+
+          echoFeature.setStyle([
+            new Style({
+              image: new Circle({
+                radius: pulseRadius,
+                fill: new Fill({ color: echoFill }),
+                stroke: new Stroke({ color: strokeColor, width: 2, lineDash: [3, 3] }),
+              }),
+              text: new Text({
+                text: rainMm > 0 ? `🌧 ${rainMm.toFixed(1)}mm` : `🌧 ${Math.round(pop * 100)}%`,
+                font: 'bold 9px monospace',
+                fill: new Fill({ color: strokeColor }),
+                stroke: new Stroke({ color: '#12100E', width: 3 }),
+                offsetY: 18,
+              }),
+            }),
+          ]);
+
+          radarEchoFeatures.push(echoFeature);
+        }
+      });
+
+      if (radarEchoFeatures.length > 0) {
+        const radarVectorLayer = new VectorLayer({
+          source: new VectorSource({ features: radarEchoFeatures }),
+          zIndex: 18,
+        });
+        map.addLayer(radarVectorLayer);
+        radarVectorLayerRef.current = radarVectorLayer;
+      }
+    }
+
+    return () => {
+      isCancelled = true;
+      if (radarTileLayerRef.current) {
+        map.removeLayer(radarTileLayerRef.current);
+        radarTileLayerRef.current = null;
+      }
+      if (radarVectorLayerRef.current) {
+        map.removeLayer(radarVectorLayerRef.current);
+        radarVectorLayerRef.current = null;
+      }
+    };
+  }, [radarActive, forecasts, mapReady]);
+
+  // 6. Satellite Cloud Density & Route Atmospheric Cover Layer
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    const map = mapInstanceRef.current;
+
+    if (cloudTileLayerRef.current) {
+      map.removeLayer(cloudTileLayerRef.current);
+      cloudTileLayerRef.current = null;
+    }
+    if (cloudVectorLayerRef.current) {
+      map.removeLayer(cloudVectorLayerRef.current);
+      cloudVectorLayerRef.current = null;
+    }
+
+    if (!cloudsActive) return;
+
+    // Satellite Global Cloud Layer (NASA GIBS VIIRS TrueColor Cloud Reflectance)
+    const cloudTileLayer = new TileLayer({
+      source: new XYZ({
+        url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_SNPP_CorrectedReflectance_TrueColor/default/default/GoogleMapsCompatible_Level9/{z}/{x}/{y}.jpg',
+        maxZoom: 9,
+        crossOrigin: 'anonymous',
+      }),
+      opacity: 0.55,
+      zIndex: 4,
+    });
+    map.addLayer(cloudTileLayer);
+    cloudTileLayerRef.current = cloudTileLayer;
+
+    // Route Cloud Density Halos
+    if (forecasts && forecasts.length > 0) {
+      const cloudFeatures: Feature[] = [];
+
+      forecasts.forEach((f) => {
+        const cloudCover = f.weather.clouds ?? 0;
+        if (cloudCover >= 15) {
+          const coord = fromLonLat([f.routePoint.lon, f.routePoint.lat]);
+          const cloudFeature = new Feature({
+            geometry: new Point(coord),
+          });
+
+          const opacity = Math.min(0.4, 0.12 + (cloudCover / 100) * 0.28);
+          const radius = Math.round(14 + (cloudCover / 100) * 14);
+
+          cloudFeature.setStyle([
+            new Style({
+              image: new Circle({
+                radius,
+                fill: new Fill({ color: `rgba(245, 242, 235, ${opacity})` }),
+                stroke: new Stroke({ color: `rgba(196, 164, 130, ${opacity + 0.2})`, width: 1.5, lineDash: [4, 4] }),
+              }),
+              text: new Text({
+                text: `☁ ${cloudCover}%`,
+                font: 'bold 9px monospace',
+                fill: new Fill({ color: '#C4A482' }),
+                stroke: new Stroke({ color: '#12100E', width: 3 }),
+                offsetY: -26,
+              }),
+            }),
+          ]);
+
+          cloudFeatures.push(cloudFeature);
+        }
+      });
+
+      if (cloudFeatures.length > 0) {
+        const cloudVectorLayer = new VectorLayer({
+          source: new VectorSource({ features: cloudFeatures }),
+          zIndex: 16,
+        });
+        map.addLayer(cloudVectorLayer);
+        cloudVectorLayerRef.current = cloudVectorLayer;
+      }
+    }
+
+    return () => {
+      if (cloudTileLayerRef.current) {
+        map.removeLayer(cloudTileLayerRef.current);
+        cloudTileLayerRef.current = null;
+      }
+      if (cloudVectorLayerRef.current) {
+        map.removeLayer(cloudVectorLayerRef.current);
+        cloudVectorLayerRef.current = null;
+      }
+    };
+  }, [cloudsActive, forecasts, mapReady]);
+
+  // 7. Synchronized Reticle Beacon on Map when selectedPoint changes
   useEffect(() => {
     if (!mapInstanceRef.current) return;
     const map = mapInstanceRef.current;
@@ -750,6 +1028,32 @@ export function WeatherMap({
           </div>
         )}
       </div>
+
+      {/* Tactical Active Overlay Status Indicator (Bottom-Right) */}
+      {(radarActive || cloudsActive || !windVectorsActive) && (
+        <div className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 z-30 pointer-events-none flex items-center gap-1.5 font-mono text-[9px] sm:text-[10px] bg-[#16120F]/90 backdrop-blur-md px-2.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-[#453A2E]/80 shadow-2xl">
+          {radarActive && (
+            <span className="flex items-center gap-1.5 text-[#E5A93C] font-bold">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#E5A93C] animate-pulse" />
+              <span>RADAR ON</span>
+            </span>
+          )}
+          {radarActive && (cloudsActive || !windVectorsActive) && <span className="text-[#453A2E]">•</span>}
+          {cloudsActive && (
+            <span className="flex items-center gap-1.5 text-[#C4A482] font-bold">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#C4A482]" />
+              <span>CLOUDS ON</span>
+            </span>
+          )}
+          {cloudsActive && !windVectorsActive && <span className="text-[#453A2E]">•</span>}
+          {!windVectorsActive && (
+            <span className="flex items-center gap-1.5 text-[#A89F91]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#A89F91]" />
+              <span>VECTORS OFF</span>
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

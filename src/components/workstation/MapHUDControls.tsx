@@ -48,16 +48,16 @@ export function MapHUDControls({
             playTactileClick();
             onToggleRadar();
           }}
-          title="Toggle Precipitation Radar"
+          title={radarActive ? "Disable Precipitation Radar" : "Enable Precipitation Radar"}
           className={cn(
-            "px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-[10px] uppercase cursor-pointer",
+            "px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-[10px] tracking-wider uppercase cursor-pointer border",
             radarActive
-              ? "bg-[#E5A93C]/20 text-[#E5A93C] border border-[#E5A93C]/60 shadow-xs font-bold"
-              : "text-[#A89F91] hover:text-[#F5F2EB] hover:bg-[#28221B]"
+              ? "bg-[#E5A93C]/20 text-[#E5A93C] border-[#E5A93C]/60 shadow-xs font-bold"
+              : "text-[#A89F91] border-transparent hover:text-[#F5F2EB] hover:bg-[#28221B]"
           )}
         >
-          <CloudRain className="h-3 w-3 text-[#E5A93C]" />
-          <span className="hidden sm:inline">RADAR</span>
+          <CloudRain className={cn("h-3.5 w-3.5 transition-colors", radarActive ? "text-[#E5A93C]" : "text-[#A89F91]/70")} />
+          <span>RADAR</span>
         </button>
 
         <button
@@ -66,16 +66,16 @@ export function MapHUDControls({
             playTactileClick();
             onToggleWindVectors();
           }}
-          title="Toggle Wind Vector Streamlines"
+          title={windVectorsActive ? "Disable Wind Vectors" : "Enable Wind Vectors"}
           className={cn(
-            "px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-[10px] uppercase cursor-pointer",
+            "px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-[10px] tracking-wider uppercase cursor-pointer border",
             windVectorsActive
-              ? "bg-[#82937D]/25 text-[#82937D] border border-[#82937D]/60 shadow-xs font-bold"
-              : "text-[#A89F91] hover:text-[#F5F2EB] hover:bg-[#28221B]"
+              ? "bg-[#82937D]/25 text-[#82937D] border-[#82937D]/60 shadow-xs font-bold"
+              : "text-[#A89F91] border-transparent hover:text-[#F5F2EB] hover:bg-[#28221B]"
           )}
         >
-          <Wind className="h-3 w-3 text-[#82937D]" />
-          <span className="hidden sm:inline">VECTORS</span>
+          <Wind className={cn("h-3.5 w-3.5 transition-colors", windVectorsActive ? "text-[#82937D]" : "text-[#A89F91]/70")} />
+          <span>VECTORS</span>
         </button>
 
         <button
@@ -84,63 +84,65 @@ export function MapHUDControls({
             playTactileClick();
             onToggleClouds();
           }}
-          title="Toggle Cloud Density Layer"
+          title={cloudsActive ? "Disable Cloud Cover Layer" : "Enable Cloud Cover Layer"}
           className={cn(
-            "px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-[10px] uppercase cursor-pointer",
+            "px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-[10px] tracking-wider uppercase cursor-pointer border",
             cloudsActive
-              ? "bg-[#C4A482]/20 text-[#C4A482] border border-[#C4A482]/60 shadow-xs font-bold"
-              : "text-[#A89F91] hover:text-[#F5F2EB] hover:bg-[#28221B]"
+              ? "bg-[#C4A482]/20 text-[#C4A482] border-[#C4A482]/60 shadow-xs font-bold"
+              : "text-[#A89F91] border-transparent hover:text-[#F5F2EB] hover:bg-[#28221B]"
           )}
         >
-          <Layers className="h-3 w-3 text-[#C4A482]" />
-          <span className="hidden sm:inline">CLOUDS</span>
+          <Layers className={cn("h-3.5 w-3.5 transition-colors", cloudsActive ? "text-[#C4A482]" : "text-[#A89F91]/70")} />
+          <span>CLOUDS</span>
         </button>
       </div>
 
       {/* 2. Map Navigation Controls (Zoom & Recenter) */}
-      <div className="flex flex-col gap-1 p-1 rounded-xl bg-[#16120F]/90 backdrop-blur-md border border-[#453A2E] shadow-2xl">
-        {onZoomIn && (
-          <button
-            type="button"
-            onClick={() => {
-              playTactileClick();
-              onZoomIn();
-            }}
-            title="Zoom In"
-            className="p-1.5 rounded-lg text-[#A89F91] hover:text-[#F5F2EB] hover:bg-[#28221B] transition-colors cursor-pointer"
-          >
-            <ZoomIn className="h-3.5 w-3.5" />
-          </button>
-        )}
+      {(onZoomIn || onZoomOut || onResetView) && (
+        <div className="flex flex-col gap-1 p-1 rounded-xl bg-[#16120F]/90 backdrop-blur-md border border-[#453A2E] shadow-2xl">
+          {onZoomIn && (
+            <button
+              type="button"
+              onClick={() => {
+                playTactileClick();
+                onZoomIn();
+              }}
+              title="Zoom In"
+              className="p-1.5 rounded-lg text-[#A89F91] hover:text-[#F5F2EB] hover:bg-[#28221B] transition-colors cursor-pointer"
+            >
+              <ZoomIn className="h-3.5 w-3.5" />
+            </button>
+          )}
 
-        {onZoomOut && (
-          <button
-            type="button"
-            onClick={() => {
-              playTactileClick();
-              onZoomOut();
-            }}
-            title="Zoom Out"
-            className="p-1.5 rounded-lg text-[#A89F91] hover:text-[#F5F2EB] hover:bg-[#28221B] transition-colors cursor-pointer"
-          >
-            <ZoomOut className="h-3.5 w-3.5" />
-          </button>
-        )}
+          {onZoomOut && (
+            <button
+              type="button"
+              onClick={() => {
+                playTactileClick();
+                onZoomOut();
+              }}
+              title="Zoom Out"
+              className="p-1.5 rounded-lg text-[#A89F91] hover:text-[#F5F2EB] hover:bg-[#28221B] transition-colors cursor-pointer"
+            >
+              <ZoomOut className="h-3.5 w-3.5" />
+            </button>
+          )}
 
-        {onResetView && (
-          <button
-            type="button"
-            onClick={() => {
-              playTactileClick();
-              onResetView();
-            }}
-            title="Recenter Map on Route"
-            className="p-1.5 rounded-lg text-[#A89F91] hover:text-[#E5A93C] hover:bg-[#28221B] transition-colors cursor-pointer border-t border-[#453A2E]"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-          </button>
-        )}
-      </div>
+          {onResetView && (
+            <button
+              type="button"
+              onClick={() => {
+                playTactileClick();
+                onResetView();
+              }}
+              title="Recenter Map on Route"
+              className="p-1.5 rounded-lg text-[#A89F91] hover:text-[#E5A93C] hover:bg-[#28221B] transition-colors cursor-pointer border-t border-[#453A2E]"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

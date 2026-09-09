@@ -66,6 +66,9 @@ export function RightStage({
               onBasemapChange={setBasemap}
               isVisible={isVisible}
               activeTab={activeTab}
+              radarActive={radarActive}
+              windVectorsActive={windVectorsActive}
+              cloudsActive={cloudsActive}
               className="w-full h-full border-none rounded-none"
             />
 
