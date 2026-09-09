@@ -36,7 +36,7 @@ describe('MapHUDControls Component', () => {
     // CLOUDS is inactive
     const cloudsBtn = screen.getByRole('button', { name: /clouds/i });
     expect(cloudsBtn).toBeInTheDocument();
-    expect(cloudsBtn).toHaveAttribute('title', 'Enable Cloud Cover Layer');
+    expect(cloudsBtn).toHaveAttribute('title', 'Enable Cloud Meters');
   });
 
   it('triggers onToggle callbacks and plays tactile audio on click', () => {

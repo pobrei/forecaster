@@ -36,7 +36,7 @@ export function RightStage({
   activeTab,
 }: RightStageProps) {
   const [basemap, setBasemap] = useState<BasemapMode>('satellite');
-  const [radarActive, setRadarActive] = useState(true);
+  const [radarActive, setRadarActive] = useState(false);
   const [windVectorsActive, setWindVectorsActive] = useState(true);
   const [cloudsActive, setCloudsActive] = useState(false);
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(null);

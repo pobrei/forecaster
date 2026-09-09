@@ -137,7 +137,6 @@ export function WeatherMap({
   const windVectorLayerRef = useRef<VectorLayer | null>(null);
   const radarTileLayerRef = useRef<TileLayer | null>(null);
   const radarVectorLayerRef = useRef<VectorLayer | null>(null);
-  const cloudTileLayerRef = useRef<TileLayer | null>(null);
   const cloudVectorLayerRef = useRef<VectorLayer | null>(null);
   const reticleLayerRef = useRef<VectorLayer | null>(null);
   const hoverReticleLayerRef = useRef<VectorLayer | null>(null);
@@ -704,15 +703,11 @@ export function WeatherMap({
     };
   }, [radarActive, forecasts, mapReady]);
 
-  // 6. Satellite Cloud Density & Route Atmospheric Cover Layer
+  // 6. Waypoint Cloud Density Meters (No full-map cloud raster overlay)
   useEffect(() => {
     if (!mapInstanceRef.current) return;
     const map = mapInstanceRef.current;
 
-    if (cloudTileLayerRef.current) {
-      map.removeLayer(cloudTileLayerRef.current);
-      cloudTileLayerRef.current = null;
-    }
     if (cloudVectorLayerRef.current) {
       map.removeLayer(cloudVectorLayerRef.current);
       cloudVectorLayerRef.current = null;
@@ -720,55 +715,52 @@ export function WeatherMap({
 
     if (!cloudsActive) return;
 
-    // Satellite Global Cloud Layer (NASA GIBS VIIRS TrueColor Cloud Reflectance)
-    const cloudTileLayer = new TileLayer({
-      source: new XYZ({
-        url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_SNPP_CorrectedReflectance_TrueColor/default/default/GoogleMapsCompatible_Level9/{z}/{x}/{y}.jpg',
-        maxZoom: 9,
-        crossOrigin: 'anonymous',
-        interpolate: true,
-      }),
-      opacity: 0.55,
-      zIndex: 4,
-      maxZoom: 20,
-    });
-    map.addLayer(cloudTileLayer);
-    cloudTileLayerRef.current = cloudTileLayer;
-
-    // Route Cloud Density Halos
+    // Route Waypoint Cloud Density Meters
     if (forecasts && forecasts.length > 0) {
       const cloudFeatures: Feature[] = [];
 
-      forecasts.forEach((f) => {
-        const cloudCover = f.weather.clouds ?? 0;
-        if (cloudCover >= 15) {
-          const coord = fromLonLat([f.routePoint.lon, f.routePoint.lat]);
-          const cloudFeature = new Feature({
-            geometry: new Point(coord),
-          });
+      forecasts.forEach((f, index) => {
+        const cloudCover = Math.round(f.weather.clouds ?? 0);
+        const coord = fromLonLat([f.routePoint.lon, f.routePoint.lat]);
+        const cloudFeature = new Feature({
+          geometry: new Point(coord),
+          forecast: f,
+          forecastIndex: index,
+        });
 
-          const opacity = Math.min(0.4, 0.12 + (cloudCover / 100) * 0.28);
-          const radius = Math.round(14 + (cloudCover / 100) * 14);
-
-          cloudFeature.setStyle([
-            new Style({
-              image: new Circle({
-                radius,
-                fill: new Fill({ color: `rgba(245, 242, 235, ${opacity})` }),
-                stroke: new Stroke({ color: `rgba(196, 164, 130, ${opacity + 0.2})`, width: 1.5, lineDash: [4, 4] }),
-              }),
-              text: new Text({
-                text: `☁ ${cloudCover}%`,
-                font: 'bold 9px monospace',
-                fill: new Fill({ color: '#C4A482' }),
-                stroke: new Stroke({ color: '#12100E', width: 3 }),
-                offsetY: -26,
-              }),
-            }),
-          ]);
-
-          cloudFeatures.push(cloudFeature);
+        let meterColor = '#82937D'; // clear / light clouds (<25%)
+        let statusLabel = 'CLR';
+        if (cloudCover >= 80) {
+          meterColor = '#9E978E'; // overcast
+          statusLabel = 'OVC';
+        } else if (cloudCover >= 50) {
+          meterColor = '#C4A482'; // broken
+          statusLabel = 'BKN';
+        } else if (cloudCover >= 25) {
+          meterColor = '#E5A93C'; // scattered
+          statusLabel = 'SCT';
         }
+
+        cloudFeature.setStyle([
+          new Style({
+            image: new Circle({
+              radius: 14 + Math.round((cloudCover / 100) * 8),
+              fill: new Fill({ color: 'rgba(22, 18, 15, 0.35)' }),
+              stroke: new Stroke({ color: meterColor, width: 1.5, lineDash: [3, 3] }),
+            }),
+            text: new Text({
+              text: `☁ ${cloudCover}% ${statusLabel}`,
+              font: 'bold 9px monospace',
+              fill: new Fill({ color: '#F5F2EB' }),
+              backgroundFill: new Fill({ color: 'rgba(22, 18, 15, 0.92)' }),
+              backgroundStroke: new Stroke({ color: meterColor, width: 1.2 }),
+              padding: [2, 5, 2, 5],
+              offsetY: -30,
+            }),
+          }),
+        ]);
+
+        cloudFeatures.push(cloudFeature);
       });
 
       if (cloudFeatures.length > 0) {
@@ -782,10 +774,6 @@ export function WeatherMap({
     }
 
     return () => {
-      if (cloudTileLayerRef.current) {
-        map.removeLayer(cloudTileLayerRef.current);
-        cloudTileLayerRef.current = null;
-      }
       if (cloudVectorLayerRef.current) {
         map.removeLayer(cloudVectorLayerRef.current);
         cloudVectorLayerRef.current = null;

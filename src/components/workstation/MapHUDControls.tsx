@@ -84,7 +84,7 @@ export function MapHUDControls({
             playTactileClick();
             onToggleClouds();
           }}
-          title={cloudsActive ? "Disable Cloud Cover Layer" : "Enable Cloud Cover Layer"}
+          title={cloudsActive ? "Disable Cloud Meters" : "Enable Cloud Meters"}
           className={cn(
             "px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-[10px] tracking-wider uppercase cursor-pointer border",
             cloudsActive
