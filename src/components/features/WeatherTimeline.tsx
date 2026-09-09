@@ -1,9 +1,7 @@
 "use client";
 
 import { useRef, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Clock, AlertTriangle, Wind, Droplets, Thermometer } from 'lucide-react';
+import { Clock, Wind, Droplets, Thermometer } from 'lucide-react';
 import { WeatherForecast, SelectedWeatherPoint } from '@/types';
 import { formatTemperature, formatWindSpeed, formatTime, formatDistance } from '@/lib/format';
 import { cn } from '@/lib/utils';

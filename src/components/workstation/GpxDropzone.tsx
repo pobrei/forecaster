@@ -8,12 +8,10 @@ import {
   Compass, 
   RotateCcw, 
   Sparkles, 
-  ChevronDown, 
-  Activity, 
-  FileText
+  ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Route, RoutePoint } from '@/types';
+import { Route } from '@/types';
 import { playTactileClick, playTelemetryChirp } from '@/lib/audio-fx';
 import { SAMPLE_EXPEDITIONS, createAlpine45KmSampleRoute } from '@/lib/sample-routes';
 import { toast } from 'sonner';

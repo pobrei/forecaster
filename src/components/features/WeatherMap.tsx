@@ -1,19 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { 
-  MapPin, 
   ZoomIn, 
   ZoomOut, 
-  RotateCcw, 
-  Layers, 
-  Compass, 
-  Mountain,
-  Navigation,
-  Wind
+  RotateCcw
 } from 'lucide-react';
 import { Route, WeatherForecast, SelectedWeatherPoint } from '@/types';
-import { formatTemperature, formatWindSpeed, formatCoordinates, formatDistance } from '@/lib/format';
+import { formatTemperature, formatWindSpeed } from '@/lib/format';
 import { MAP_CONFIG } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
@@ -127,6 +121,7 @@ export function WeatherMap({
   const [localSelectedPoint, setLocalSelectedPoint] = useState<WeatherForecast | null>(null);
 
   const currentBasemap = externalBasemap ?? internalBasemap;
+  const initialBasemapRef = useRef(currentBasemap);
 
   const handleSwitchBasemap = (mode: BasemapMode) => {
     if (onBasemapChange) {
@@ -141,8 +136,8 @@ export function WeatherMap({
     if (!mapRef.current) return;
 
     const baseSource = new XYZ({
-      url: BASEMAP_SOURCES[currentBasemap].url,
-      maxZoom: BASEMAP_SOURCES[currentBasemap].maxZoom,
+      url: BASEMAP_SOURCES[initialBasemapRef.current].url,
+      maxZoom: BASEMAP_SOURCES[initialBasemapRef.current].maxZoom,
       crossOrigin: 'anonymous',
     });
 

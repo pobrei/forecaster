@@ -4,25 +4,15 @@ import React, { useState, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { 
-  Compass, 
-  Layers, 
-  Activity, 
-  Eye, 
-  Sparkles, 
   Volume2, 
-  VolumeX, 
-  Maximize, 
-  Minimize,
-  Sliders,
-  ChevronLeft,
-  ChevronRight
+  VolumeX 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Route, WeatherForecast, SelectedWeatherPoint, AppSettings } from '@/types';
 import { WeatherSourcePreferences } from '@/types/weather-sources';
 import { DustAtmosphere } from './DustAtmosphere';
 import { FloatingWindowArray } from './FloatingWindowArray';
-import { isAudioMuted, setAudioMuted, playTactileClick } from '@/lib/audio-fx';
+import { setAudioMuted, playTactileClick } from '@/lib/audio-fx';
 
 type CameraTargetMode = 'overview' | 'left' | 'center' | 'right';
 

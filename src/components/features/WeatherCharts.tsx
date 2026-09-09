@@ -2,12 +2,10 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart3, TrendingUp, Wind, Droplets, Gauge } from 'lucide-react';
 import { WeatherForecast, SelectedWeatherPoint } from '@/types';
 import { formatTemperature, formatWindSpeed, formatPrecipitation, formatPressure, formatPercentage } from '@/lib/format';
-import { CHART_CONFIG } from '@/lib/constants';
 import {
   Chart as ChartJS,
   CategoryScale,

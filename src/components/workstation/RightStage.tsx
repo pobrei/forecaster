@@ -2,14 +2,8 @@
 
 import React, { useState, useCallback } from 'react';
 import { 
-  MapPin, 
-  Layers, 
   Compass, 
-  Mountain, 
-  Wind, 
-  Eye, 
-  Sparkles,
-  Activity
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Route, WeatherForecast, SelectedWeatherPoint } from '@/types';

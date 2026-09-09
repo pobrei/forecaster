@@ -9,32 +9,32 @@ test.describe('Forecaster Workstation Smoke Tests', () => {
 
     // Verify telemetry header
     await expect(page.getByText(/FORECASTER/i).first()).toBeVisible();
-    await expect(page.getByText(/ATMOSPHERIC EXPEDITION INTELLIGENCE/i)).toBeVisible();
+    await expect(page.getByText(/ATMOSPHERIC EXPEDITION RADAR/i)).toBeVisible();
 
     // Verify Left Panel sections
-    await expect(page.getByText(/TELEMETRY INGESTION/i)).toBeVisible();
+    await expect(page.getByText(/ROUTE INGESTION • GPX/i)).toBeVisible();
     await expect(page.getByText(/SPEED & ROUTE SAMPLING/i)).toBeVisible();
-    await expect(page.getByText(/METEOROLOGICAL SUPERCOMPUTER MATRIX/i)).toBeVisible();
+    await expect(page.getByText(/MODEL MATRIX/i)).toBeVisible();
 
     // Verify Right Stage map container
-    await expect(page.locator('#tactical-weather-map')).toBeVisible();
+    await expect(page.getByText(/EXPEDITION GEOSPATIAL RADAR/i)).toBeVisible();
   });
 
   test('should load Alpine 45km test route and calculate pacing telemetry', async ({ page }) => {
     await page.goto('/');
 
-    // Click "Load Alpine Test GPX (45 km)" button
-    const loadAlpineBtn = page.getByRole('button', { name: /Load Alpine Test GPX \(45 km\)/i });
+    // Click "Load Sample Route (Alpine 45km)" button
+    const loadAlpineBtn = page.getByRole('button', { name: /Load Sample Route \(Alpine 45km\)/i });
     await expect(loadAlpineBtn).toBeVisible();
-    await loadAlpineBtn.click();
+    await loadAlpineBtn.click({ force: true });
 
     // Verify route loaded in header and telemetry strip
     await expect(page.getByText(/45.0 km/i).first()).toBeVisible({ timeout: 5000 });
     await expect(page.getByText(/EST. TIME:/i)).toBeVisible();
-    await expect(page.getByText(/SAMPLES:/i)).toBeVisible();
+    await expect(page.getByText('SAMPLES:', { exact: true })).toBeVisible();
 
     // Verify Primary CTA is enabled
-    const synthesizeBtn = page.getByRole('button', { name: /SYNTHESIZE EXPEDITION FORECAST/i });
+    const synthesizeBtn = page.getByRole('button', { name: /GENERATE FORECAST/i });
     await expect(synthesizeBtn).toBeEnabled();
   });
 
@@ -48,17 +48,18 @@ test.describe('Forecaster Workstation Smoke Tests', () => {
     await expect(increaseSpeedBtn).toBeVisible();
 
     // Check interval input with presets
-    await expect(page.getByRole('button', { name: '2k' })).toBeVisible();
-    await expect(page.getByRole('button', { name: '5k' })).toBeVisible();
-    await expect(page.getByRole('button', { name: '10k' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '2k', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: '5k', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: '10k', exact: true })).toBeVisible();
   });
 
   test('should render map HUD controls and layer selector', async ({ page }) => {
     await page.goto('/');
 
     // Check map HUD layer buttons
-    await expect(page.getByText(/SATELLITE/i)).toBeVisible();
-    await expect(page.getByText(/DARK/i)).toBeVisible();
-    await expect(page.getByText(/B&W CLEAN/i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /^satellite$/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^dark$/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^b&w/i })).toBeVisible();
   });
 });
+

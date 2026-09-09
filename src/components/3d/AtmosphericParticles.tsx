@@ -38,34 +38,47 @@ const LEAF_COLORS = [
   '#06b6d4', // Glacier Cyan Frost
 ];
 
+function lcg(seed: number) {
+  let s = seed % 2147483647;
+  if (s <= 0) s += 2147483646;
+  return () => {
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
+
+function createInitialLeaves(): LeafPhysics[] {
+  const rand = lcg(1337);
+  const list: LeafPhysics[] = [];
+  for (let i = 0; i < LEAF_COUNT; i++) {
+    list.push({
+      x: (rand() - 0.5) * BOUNDS_X * 2,
+      y: rand() * (BOUNDS_Y_MAX - BOUNDS_Y_MIN) + BOUNDS_Y_MIN,
+      z: (rand() - 0.5) * BOUNDS_Z * 2,
+      vx: 0.6 + rand() * 0.9,
+      vy: -0.2 - rand() * 0.4,
+      vz: (rand() - 0.5) * 0.35,
+      rotX: rand() * Math.PI * 2,
+      rotY: rand() * Math.PI * 2,
+      rotZ: rand() * Math.PI * 2,
+      vRotX: (rand() - 0.5) * 2.2,
+      vRotY: (rand() - 0.5) * 2.5,
+      vRotZ: (rand() - 0.5) * 1.8,
+      scale: 0.65 + rand() * 0.6,
+      phase: rand() * Math.PI * 2,
+      flutterSpeed: 1.5 + rand() * 2.5,
+    });
+  }
+  return list;
+}
+
 export function AtmosphericParticles() {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
-
-  // Initialize individual leaf physics state
-  const leaves = useMemo<LeafPhysics[]>(() => {
-    const list: LeafPhysics[] = [];
-    for (let i = 0; i < LEAF_COUNT; i++) {
-      list.push({
-        x: (Math.random() - 0.5) * BOUNDS_X * 2,
-        y: Math.random() * (BOUNDS_Y_MAX - BOUNDS_Y_MIN) + BOUNDS_Y_MIN,
-        z: (Math.random() - 0.5) * BOUNDS_Z * 2,
-        vx: 0.6 + Math.random() * 0.9,
-        vy: -0.2 - Math.random() * 0.4,
-        vz: (Math.random() - 0.5) * 0.35,
-        rotX: Math.random() * Math.PI * 2,
-        rotY: Math.random() * Math.PI * 2,
-        rotZ: Math.random() * Math.PI * 2,
-        vRotX: (Math.random() - 0.5) * 2.2,
-        vRotY: (Math.random() - 0.5) * 2.5,
-        vRotZ: (Math.random() - 0.5) * 1.8,
-        scale: 0.65 + Math.random() * 0.6,
-        phase: Math.random() * Math.PI * 2,
-        flutterSpeed: 1.5 + Math.random() * 2.5,
-      });
-    }
-    return list;
-  }, []);
+  const leavesRef = useRef<LeafPhysics[] | null>(null);
+  if (leavesRef.current === null) {
+    leavesRef.current = createInitialLeaves();
+  }
 
   // Create curved leaf geometry with central fold
   const leafGeometry = useMemo(() => {
@@ -95,9 +108,10 @@ export function AtmosphericParticles() {
   }, []);
 
   useFrame((state, rawDelta) => {
-    if (!meshRef.current) return;
+    if (!meshRef.current || !leavesRef.current) return;
     const delta = Math.min(rawDelta, 0.05);
     const time = state.clock.getElapsedTime();
+    const leaves = leavesRef.current;
 
     for (let i = 0; i < LEAF_COUNT; i++) {
       const leaf = leaves[i];
@@ -117,13 +131,13 @@ export function AtmosphericParticles() {
 
       // Wrap boundaries seamlessly: when drifting past right or below floor, respawn upwind
       if (leaf.x > BOUNDS_X) {
-        leaf.x = -BOUNDS_X - Math.random() * 1.5;
-        leaf.y = Math.random() * 3 + 1.0;
-        leaf.z = (Math.random() - 0.5) * BOUNDS_Z * 1.8;
+        leaf.x = -BOUNDS_X - ((i * 0.17) % 1.5);
+        leaf.y = ((i * 0.31) % 3) + 1.0;
+        leaf.z = (((i * 0.23) % 1) - 0.5) * BOUNDS_Z * 1.8;
       }
       if (leaf.y < BOUNDS_Y_MIN) {
-        leaf.y = BOUNDS_Y_MAX + Math.random() * 1.0;
-        leaf.x = (Math.random() - 0.5) * BOUNDS_X * 1.5;
+        leaf.y = BOUNDS_Y_MAX + ((i * 0.19) % 1.0);
+        leaf.x = (((i * 0.29) % 1) - 0.5) * BOUNDS_X * 1.5;
       }
       if (Math.abs(leaf.z) > BOUNDS_Z) {
         leaf.z = -Math.sign(leaf.z) * (BOUNDS_Z - 0.5);

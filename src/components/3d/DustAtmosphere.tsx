@@ -41,37 +41,50 @@ const SAND_COLORS = [
   '#B89F7A', // Desert Loess
 ];
 
+function lcg(seed: number) {
+  let s = seed % 2147483647;
+  if (s <= 0) s += 2147483646;
+  return () => {
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
+
+function createInitialGrains(): SandGrainPhysics[] {
+  const rand = lcg(2024);
+  const list: SandGrainPhysics[] = [];
+  for (let i = 0; i < GRAIN_COUNT; i++) {
+    list.push({
+      x: (rand() - 0.5) * BOUNDS_X * 2,
+      y: rand() * (BOUNDS_Y_MAX - BOUNDS_Y_MIN) + BOUNDS_Y_MIN,
+      z: (rand() - 0.5) * BOUNDS_Z * 2,
+      vx: 0.8 + rand() * 1.2, // Consistent lateral desert wind
+      vy: -0.15 - rand() * 0.25, // Gentle gravity pull
+      vz: (rand() - 0.5) * 0.3,
+      rotX: rand() * Math.PI * 2,
+      rotY: rand() * Math.PI * 2,
+      rotZ: rand() * Math.PI * 2,
+      vRotX: (rand() - 0.5) * 3.0,
+      vRotY: (rand() - 0.5) * 3.5,
+      vRotZ: (rand() - 0.5) * 2.5,
+      scaleX: 0.04 + rand() * 0.05,
+      scaleY: 0.025 + rand() * 0.035,
+      scaleZ: 0.035 + rand() * 0.04,
+      phase: rand() * Math.PI * 2,
+      oscFreq: 1.8 + rand() * 2.2,
+      oscAmp: 0.18 + rand() * 0.22,
+    });
+  }
+  return list;
+}
+
 export function DustAtmosphere() {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
-
-  // Initialize individual coarse sand particle physics state
-  const grains = useMemo<SandGrainPhysics[]>(() => {
-    const list: SandGrainPhysics[] = [];
-    for (let i = 0; i < GRAIN_COUNT; i++) {
-      list.push({
-        x: (Math.random() - 0.5) * BOUNDS_X * 2,
-        y: Math.random() * (BOUNDS_Y_MAX - BOUNDS_Y_MIN) + BOUNDS_Y_MIN,
-        z: (Math.random() - 0.5) * BOUNDS_Z * 2,
-        vx: 0.8 + Math.random() * 1.2, // Consistent lateral desert wind
-        vy: -0.15 - Math.random() * 0.25, // Gentle gravity pull
-        vz: (Math.random() - 0.5) * 0.3,
-        rotX: Math.random() * Math.PI * 2,
-        rotY: Math.random() * Math.PI * 2,
-        rotZ: Math.random() * Math.PI * 2,
-        vRotX: (Math.random() - 0.5) * 3.0,
-        vRotY: (Math.random() - 0.5) * 3.5,
-        vRotZ: (Math.random() - 0.5) * 2.5,
-        scaleX: 0.04 + Math.random() * 0.05,
-        scaleY: 0.025 + Math.random() * 0.035,
-        scaleZ: 0.035 + Math.random() * 0.04,
-        phase: Math.random() * Math.PI * 2,
-        oscFreq: 1.8 + Math.random() * 2.2,
-        oscAmp: 0.18 + Math.random() * 0.22,
-      });
-    }
-    return list;
-  }, []);
+  const grainsRef = useRef<SandGrainPhysics[] | null>(null);
+  if (grainsRef.current === null) {
+    grainsRef.current = createInitialGrains();
+  }
 
   // Irregular multifaceted sand grain geometry (dodecahedron for natural crystalline faceting)
   const grainGeometry = useMemo(() => {
@@ -96,9 +109,10 @@ export function DustAtmosphere() {
 
   // Physics animation loop: lateral wind drift, sine-wave oscillation, tumbling, and clean respawn
   useFrame((state, rawDelta) => {
-    if (!meshRef.current) return;
+    if (!meshRef.current || !grainsRef.current) return;
     const delta = Math.min(rawDelta, 0.05);
     const time = state.clock.getElapsedTime();
+    const grains = grainsRef.current;
 
     for (let i = 0; i < GRAIN_COUNT; i++) {
       const g = grains[i];
@@ -116,13 +130,13 @@ export function DustAtmosphere() {
 
       // Boundary wrapping: respawn upwind when leaving the lateral frustum
       if (g.x > BOUNDS_X) {
-        g.x = -BOUNDS_X - Math.random() * 1.5;
-        g.y = Math.random() * (BOUNDS_Y_MAX - BOUNDS_Y_MIN) + BOUNDS_Y_MIN;
-        g.z = (Math.random() - 0.5) * BOUNDS_Z * 1.8;
+        g.x = -BOUNDS_X - ((i * 0.19) % 1.5);
+        g.y = ((i * 0.27) % (BOUNDS_Y_MAX - BOUNDS_Y_MIN)) + BOUNDS_Y_MIN;
+        g.z = (((i * 0.33) % 1) - 0.5) * BOUNDS_Z * 1.8;
       }
       if (g.y < BOUNDS_Y_MIN) {
-        g.y = BOUNDS_Y_MAX + Math.random() * 0.8;
-        g.x = (Math.random() - 0.5) * BOUNDS_X * 1.6;
+        g.y = BOUNDS_Y_MAX + ((i * 0.15) % 0.8);
+        g.x = (((i * 0.23) % 1) - 0.5) * BOUNDS_X * 1.6;
       }
       if (Math.abs(g.z) > BOUNDS_Z) {
         g.z = -Math.sign(g.z) * (BOUNDS_Z - 0.5);

@@ -71,9 +71,7 @@ export default function Home() {
   const {
     forecasts,
     isLoading: isGeneratingForecast,
-    progress,
     loadWeatherData,
-    setForecasts,
     reset: resetWeatherData,
   } = useProgressiveWeather({
     onError: (error) => {
@@ -84,7 +82,6 @@ export default function Home() {
 
   // Multi-source comparison hook
   const {
-    forecasts: multiSourceForecasts,
     isLoading: isLoadingMultiSource,
     loadMultiSourceWeather,
     reset: resetMultiSource,

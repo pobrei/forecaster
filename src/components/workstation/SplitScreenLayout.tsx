@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Compass, 
-  Layers, 
   Map as MapIcon, 
   BarChart3, 
   Sliders, 
@@ -13,10 +11,9 @@ import {
   VolumeX, 
   Database, 
   Activity, 
-  ShieldCheck,
-  ChevronDown,
-  ChevronUp,
-  Sparkles
+  ChevronDown, 
+  ChevronUp, 
+  Sparkles 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Route, WeatherForecast } from '@/types';
@@ -46,7 +43,7 @@ export function SplitScreenLayout({
   elevationDrawer,
   divergenceRibbon,
   route,
-  forecasts,
+  forecasts: _forecasts,
   onResetRoute,
   onSaveExpedition,
   isSavingExpedition = false,

@@ -1,8 +1,6 @@
 "use client";
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   Wind,
   Droplets,
@@ -106,15 +104,6 @@ function calculateWeatherStats(forecasts: WeatherForecast[]): WeatherSummaryStat
   };
 }
 
-function getSeverityColor(severity: string): string {
-  switch (severity) {
-    case 'extreme': return 'bg-red-500';
-    case 'high': return 'bg-orange-500';
-    case 'medium': return 'bg-yellow-500';
-    case 'low': return 'bg-blue-500';
-    default: return 'bg-gray-500';
-  }
-}
 
 export function WeatherSummary({ forecasts, units = 'metric', className }: WeatherSummaryProps) {
   if (!forecasts || forecasts.length === 0) {

@@ -2,13 +2,9 @@
 
 import React, { useState } from 'react';
 import { 
-  Layers, 
   ChevronDown, 
   ChevronUp, 
-  ShieldCheck, 
-  AlertTriangle, 
-  CheckCircle2, 
-  Sparkles 
+  CheckCircle2 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WeatherForecast } from '@/types';
@@ -22,7 +18,7 @@ interface ModelDivergenceRibbonProps {
 
 export function ModelDivergenceRibbon({
   forecasts,
-  multiSourceForecasts = [],
+  multiSourceForecasts: _multiSourceForecasts = [],
   className,
 }: ModelDivergenceRibbonProps) {
   const [isExpanded, setIsExpanded] = useState(false);

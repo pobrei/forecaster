@@ -1,18 +1,13 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   Layers, 
   CloudRain, 
   Wind, 
-  Eye, 
-  EyeOff, 
-  Compass, 
   ZoomIn, 
   ZoomOut, 
-  RotateCcw,
-  Sparkles,
-  Map as MapIcon
+  RotateCcw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { playTactileClick } from '@/lib/audio-fx';
@@ -42,7 +37,6 @@ export function MapHUDControls({
   onResetView,
   className,
 }: MapHUDControlsProps) {
-  const [showLegend, setShowLegend] = useState(false);
 
   return (
     <div className={cn("flex flex-col items-end gap-2 font-mono text-xs select-none", className)}>

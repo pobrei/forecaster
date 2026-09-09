@@ -6,21 +6,13 @@ import {
   Wind, 
   Thermometer, 
   CloudRain, 
-  Compass, 
-  ArrowUp, 
-  Gauge, 
-  ChevronUp, 
-  ChevronDown, 
   Maximize2, 
   Minimize2,
-  BarChart3,
-  Layers,
-  Activity,
-  Snowflake
+  Activity
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Route, WeatherForecast } from '@/types';
-import { formatTemperature, formatWindSpeed, formatElevation } from '@/lib/format';
+import { formatTemperature } from '@/lib/format';
 import { playTactileClick } from '@/lib/audio-fx';
 
 export type GraphMetricMode = 'elevation' | 'temperature' | 'rain' | 'wind' | 'multi';
@@ -72,7 +64,7 @@ export function ElevationWeatherSync({
   const activeIndex = externalHoveredIndex ?? internalHoverIndex ?? (forecasts.length > 0 ? 0 : null);
   const activeForecast = activeIndex !== null && forecasts[activeIndex] ? forecasts[activeIndex] : null;
 
-  const points = route?.points || [];
+  const points = useMemo(() => route?.points || [], [route?.points]);
   const totalDist = route?.totalDistance || (points.length > 0 ? points[points.length - 1].distance : 1);
 
   // SVG coordinate dimensions
@@ -376,6 +368,11 @@ export function ElevationWeatherSync({
               <span className="text-[#453A2E]">•</span>
               <span className="text-[#F5F2EB] font-semibold">
                 {Math.round(activeForecast.weather.wind_speed * 3.6)} km/h
+                {windAnalysis && (
+                  <span className="text-[#A89F91] text-[10px] ml-1 uppercase font-normal">
+                    ({windAnalysis.type})
+                  </span>
+                )}
               </span>
               <span className="text-[#453A2E]">•</span>
               <span className="text-[#82937D] font-semibold">

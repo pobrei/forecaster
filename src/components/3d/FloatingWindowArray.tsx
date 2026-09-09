@@ -4,15 +4,9 @@ import React, { useState } from 'react';
 import { Float, Html } from '@react-three/drei';
 import { 
   Compass, 
-  Layers, 
-  Activity, 
-  ShieldCheck, 
   Database, 
   Sparkles, 
-  Terminal,
-  Maximize2,
-  Minimize2,
-  RotateCcw
+  Maximize2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Route, WeatherForecast, SelectedWeatherPoint, AppSettings } from '@/types';

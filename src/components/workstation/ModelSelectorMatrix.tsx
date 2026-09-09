@@ -1,25 +1,15 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   Layers, 
-  Globe, 
-  Cloud, 
-  CloudSun, 
-  Sun, 
   Check, 
-  Star, 
-  Zap, 
-  Shield, 
-  Info,
-  SlidersHorizontal,
-  ChevronRight
+  Star 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { 
   WeatherProviderId, 
-  WeatherSourcePreferences, 
-  WEATHER_PROVIDERS 
+  WeatherSourcePreferences 
 } from '@/types/weather-sources';
 import { playTactileClick } from '@/lib/audio-fx';
 import { toast } from 'sonner';
@@ -107,10 +97,9 @@ const SUPPORTED_MODELS: Array<{
 export function ModelSelectorMatrix({
   preferences,
   onPreferencesChange,
-  isLoading = false,
+  isLoading: _isLoading = false,
   className,
 }: ModelSelectorMatrixProps) {
-  const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
 
   const handleToggleModel = (id: WeatherProviderId, e?: React.MouseEvent) => {
     e?.stopPropagation();
