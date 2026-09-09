@@ -574,11 +574,13 @@ export function WeatherMap({
       const cachedTileLayer = new TileLayer({
         source: new XYZ({
           url: cachedRainViewerUrl,
-          maxZoom: 18,
+          maxZoom: 7,
           crossOrigin: 'anonymous',
+          interpolate: true,
         }),
         opacity: 0.72,
         zIndex: 6,
+        maxZoom: 20,
       });
       map.addLayer(cachedTileLayer);
       radarTileLayerRef.current = cachedTileLayer;
@@ -602,19 +604,22 @@ export function WeatherMap({
             radarTileLayerRef.current.setSource(
               new XYZ({
                 url: freshTileUrl,
-                maxZoom: 18,
+                maxZoom: 7,
                 crossOrigin: 'anonymous',
+                interpolate: true,
               })
             );
           } else if (!isCancelled) {
             const radarTileLayer = new TileLayer({
               source: new XYZ({
                 url: freshTileUrl,
-                maxZoom: 18,
+                maxZoom: 7,
                 crossOrigin: 'anonymous',
+                interpolate: true,
               }),
               opacity: 0.72,
               zIndex: 6,
+              maxZoom: 20,
             });
             map.addLayer(radarTileLayer);
             radarTileLayerRef.current = radarTileLayer;
@@ -721,9 +726,11 @@ export function WeatherMap({
         url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_SNPP_CorrectedReflectance_TrueColor/default/default/GoogleMapsCompatible_Level9/{z}/{x}/{y}.jpg',
         maxZoom: 9,
         crossOrigin: 'anonymous',
+        interpolate: true,
       }),
       opacity: 0.55,
       zIndex: 4,
+      maxZoom: 20,
     });
     map.addLayer(cloudTileLayer);
     cloudTileLayerRef.current = cloudTileLayer;
