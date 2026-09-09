@@ -50,18 +50,18 @@ export function ModelDivergenceRibbon({
         onClick={() => setIsExpanded(!isExpanded)}
         className="px-3 py-2 bg-[#1c1814]/90 hover:bg-[#28221B] flex items-center justify-between cursor-pointer border-b border-[#453A2E] transition-colors"
       >
-        <div className="flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-[#82937D] shadow-[0_0_8px_rgba(130,147,125,0.7)]" />
-          <span className="font-bold tracking-wider uppercase text-[11px] text-[#F5F2EB]">
-            SYNOPTIC MODEL CONSENSUS
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+          <div className="h-2 w-2 rounded-full bg-[#82937D] shadow-[0_0_8px_rgba(130,147,125,0.7)] shrink-0" />
+          <span className="font-bold tracking-wider uppercase text-[10px] sm:text-[11px] text-[#F5F2EB] truncate">
+            <span className="hidden sm:inline">SYNOPTIC </span>MODEL CONSENSUS
           </span>
-          <span className="px-1.5 py-0.2 rounded bg-[#82937D]/20 text-[#82937D] text-[10px] border border-[#82937D]/40">
-            94% AGREEMENT
+          <span className="px-1.5 py-0.2 rounded bg-[#82937D]/20 text-[#82937D] text-[9px] sm:text-[10px] border border-[#82937D]/40 shrink-0 whitespace-nowrap">
+            94%<span className="hidden sm:inline"> AGREEMENT</span>
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 text-[#A89F91]">
-          <span className="text-[10px] uppercase">
+        <div className="flex items-center gap-1 sm:gap-1.5 text-[#A89F91] shrink-0 ml-2">
+          <span className="text-[9px] sm:text-[10px] uppercase whitespace-nowrap">
             {isExpanded ? "HIDE" : "4 MODELS"}
           </span>
           {isExpanded ? <ChevronUp className="h-3.5 w-3.5 text-[#E5A93C]" /> : <ChevronDown className="h-3.5 w-3.5 text-[#A89F91]" />}

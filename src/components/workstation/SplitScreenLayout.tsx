@@ -10,9 +10,6 @@ import {
   Volume2, 
   VolumeX, 
   Database, 
-  Activity, 
-  ChevronDown, 
-  ChevronUp, 
   Scale
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -28,8 +25,6 @@ interface SplitScreenLayoutProps {
   mapStage: React.ReactNode;
   comparisonStage?: React.ReactNode;
   exportStage?: React.ReactNode;
-  elevationDrawer?: React.ReactNode;
-  divergenceRibbon?: React.ReactNode;
   route: Route | null;
   forecasts: WeatherForecast[];
   onResetRoute?: () => void;
@@ -47,8 +42,6 @@ export function SplitScreenLayout({
   mapStage,
   comparisonStage,
   exportStage,
-  elevationDrawer,
-  divergenceRibbon: _divergenceRibbon,
   route,
   forecasts: _forecasts,
   onResetRoute,
@@ -63,7 +56,6 @@ export function SplitScreenLayout({
   const [internalStage, setInternalStage] = useState<WorkstationStage>('radar');
   const [internalTab, setInternalTab] = useState<MobileTab>('parameters');
   const [muted, setMuted] = useState(false);
-  const [isDrawerCollapsed, setIsDrawerCollapsed] = useState(false);
 
   const currentStage = externalStage ?? internalStage;
   const activeTab = externalTab ?? internalTab;
@@ -283,46 +275,6 @@ export function SplitScreenLayout({
             <div className="flex-1 min-h-0 relative w-full h-full overflow-hidden flex flex-col">
               {mapStage}
             </div>
-
-            {/* Optional Fallback Elevation Drawer if provided externally */}
-            {elevationDrawer && (
-              <div
-                className={cn(
-                  "shrink-0 border-t border-[#453A2E] bg-[#16120F]/95 backdrop-blur-md z-20 transition-all duration-300 flex flex-col",
-                  isDrawerCollapsed ? "h-8" : "h-[200px] sm:h-[215px]"
-                )}
-              >
-                <div 
-                  onClick={() => setIsDrawerCollapsed(!isDrawerCollapsed)}
-                  className="h-7 shrink-0 px-3 bg-[#1C1814] hover:bg-[#251F19] border-b border-[#453A2E]/70 flex items-center justify-between cursor-pointer text-[#F5F2EB] select-none transition-colors"
-                >
-                  <div className="flex items-center gap-2 font-mono text-[10px] tracking-wider uppercase text-[#A89F91]">
-                    <Activity className="h-3 w-3 text-[#E5A93C]" />
-                    <span className="font-semibold text-[#F5F2EB]">ELEVATION PROFILE & AERODYNAMIC WIND CROSS-SECTION</span>
-                    {route && (
-                      <span className="hidden sm:inline text-[#A89F91]/70">
-                        • {route.totalDistance.toFixed(1)} km
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono text-[#A89F91] uppercase">
-                      {isDrawerCollapsed ? "EXPAND" : "COLLAPSE"}
-                    </span>
-                    {isDrawerCollapsed ? (
-                      <ChevronUp className="h-3.5 w-3.5 text-[#A89F91]" />
-                    ) : (
-                      <ChevronDown className="h-3.5 w-3.5 text-[#A89F91]" />
-                    )}
-                  </div>
-                </div>
-
-                <div className={cn("flex-1 min-h-0 overflow-hidden", isDrawerCollapsed && "hidden")}>
-                  {elevationDrawer}
-                </div>
-              </div>
-            )}
           </main>
         </div>
       )}

@@ -320,6 +320,8 @@ export default function Home() {
               selectedPoint={selectedPoint}
               onPointSelect={handlePointSelection}
               units={settings.units}
+              isVisible={stage === 'radar'}
+              activeTab={mobileTab}
               onOpenComparison={() => setStage('comparison')}
               onLoadSampleAlpine={() => {
                 const sampleAlpine = createAlpine45KmSampleRoute();

@@ -6,3 +6,4 @@ export * from './switch';
 export * from './tabs';
 export * from './sonner';
 export * from './metric-card';
+export * from './label';

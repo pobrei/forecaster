@@ -70,8 +70,8 @@ export function ElevationWeatherSync({
   // SVG coordinate dimensions
   const svgWidth = 840;
   const svgHeight = isExpanded ? 240 : 120;
-  const padTop = 18;
-  const padBottom = 22;
+  const padTop = 14;
+  const padBottom = 16;
   const usableHeight = svgHeight - padTop - padBottom;
 
   // 1. Elevation Profile Calculations
@@ -308,13 +308,13 @@ export function ElevationWeatherSync({
     : null;
 
   return (
-    <div className={cn("h-full flex flex-col justify-between p-2.5 sm:p-3 select-none font-mono text-xs", className)}>
+    <div className={cn("h-full flex flex-col justify-between p-1.5 sm:p-2.5 pb-1 select-none font-mono text-xs", className)}>
       {/* ========================================================================= */}
       {/* 1. TOP CONTROL BAR: GRAPH METRIC TABS & EXPAND TOGGLE                     */}
       {/* ========================================================================= */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pb-1.5 border-b border-[#453A2E]">
+      <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 pb-1 sm:pb-1.5 border-b border-[#453A2E]">
         {/* Metric Mode Switcher Tabs */}
-        <div className="flex items-center gap-1 bg-[#16120F] p-0.5 rounded-lg border border-[#453A2E] text-[10px]">
+        <div className="flex items-center gap-0.5 sm:gap-1 bg-[#16120F] p-0.5 rounded-lg border border-[#453A2E] text-[9px] sm:text-[10px]">
           <button
             type="button"
             onClick={() => {
@@ -322,14 +322,15 @@ export function ElevationWeatherSync({
               setInternalMetric('elevation');
             }}
             className={cn(
-              "px-2 py-1 rounded flex items-center gap-1 transition-colors cursor-pointer",
+              "px-1.5 sm:px-2 py-0.5 sm:py-1 rounded flex items-center gap-1 transition-colors cursor-pointer",
               internalMetric === 'elevation'
                 ? "bg-[#E5A93C]/20 text-[#E5A93C] font-bold border border-[#E5A93C]/50 shadow-xs"
                 : "text-[#A89F91] hover:text-[#F5F2EB]"
             )}
           >
             <Mountain className="h-3 w-3" />
-            <span>ELEVATION</span>
+            <span className="hidden sm:inline">ELEVATION</span>
+            <span className="sm:hidden">ELEV</span>
           </button>
 
           <button
@@ -339,14 +340,15 @@ export function ElevationWeatherSync({
               setInternalMetric('temperature');
             }}
             className={cn(
-              "px-2 py-1 rounded flex items-center gap-1 transition-colors cursor-pointer",
+              "px-1.5 sm:px-2 py-0.5 sm:py-1 rounded flex items-center gap-1 transition-colors cursor-pointer",
               internalMetric === 'temperature'
                 ? "bg-[#E5A93C] text-[#12100E] font-bold shadow-xs"
                 : "text-[#A89F91] hover:text-[#F5F2EB]"
             )}
           >
             <Thermometer className="h-3 w-3" />
-            <span>TEMP vs KM</span>
+            <span className="hidden sm:inline">TEMP vs KM</span>
+            <span className="sm:hidden">TEMP</span>
           </button>
 
           <button
@@ -356,14 +358,15 @@ export function ElevationWeatherSync({
               setInternalMetric('rain');
             }}
             className={cn(
-              "px-2 py-1 rounded flex items-center gap-1 transition-colors cursor-pointer",
+              "px-1.5 sm:px-2 py-0.5 sm:py-1 rounded flex items-center gap-1 transition-colors cursor-pointer",
               internalMetric === 'rain'
                 ? "bg-[#82937D] text-[#12100E] font-bold shadow-xs"
                 : "text-[#A89F91] hover:text-[#F5F2EB]"
             )}
           >
             <CloudRain className="h-3 w-3" />
-            <span>RAIN vs KM</span>
+            <span className="hidden sm:inline">RAIN vs KM</span>
+            <span className="sm:hidden">RAIN</span>
           </button>
 
           <button
@@ -373,21 +376,22 @@ export function ElevationWeatherSync({
               setInternalMetric('wind');
             }}
             className={cn(
-              "px-2 py-1 rounded flex items-center gap-1 transition-colors cursor-pointer",
+              "px-1.5 sm:px-2 py-0.5 sm:py-1 rounded flex items-center gap-1 transition-colors cursor-pointer",
               internalMetric === 'wind'
                 ? "bg-[#C4A482] text-[#12100E] font-bold shadow-xs"
                 : "text-[#A89F91] hover:text-[#F5F2EB]"
             )}
           >
             <Wind className="h-3 w-3" />
-            <span>WIND & GUSTS</span>
+            <span className="hidden sm:inline">WIND & GUSTS</span>
+            <span className="sm:hidden">WIND</span>
           </button>
         </div>
 
         {/* Right: Active Telemetry Values & Drawer Height Toggle */}
-        <div className="flex items-center gap-2.5 text-[11px] tabular-nums">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 text-[10px] sm:text-[11px] tabular-nums">
           {activeForecast && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <span className="text-[#E5A93C] font-bold">{activeForecast.routePoint.distance.toFixed(1)} km</span>
               <span className="text-[#453A2E]">•</span>
               <span className="text-[#F5F2EB]">ALT: {Math.round(activeForecast.routePoint.elevation ?? 0)}m</span>
@@ -395,11 +399,11 @@ export function ElevationWeatherSync({
               <span className="text-[#E5A93C] font-bold">
                 {formatTemperature(activeForecast.weather.temp, units)}
               </span>
-              <span className="px-1.5 py-0.5 rounded bg-[#E5A93C]/15 border border-[#E5A93C]/40 text-[#E5A93C] font-bold text-[10px] uppercase">
+              <span className="px-1 sm:px-1.5 py-0.2 sm:py-0.5 rounded bg-[#E5A93C]/15 border border-[#E5A93C]/40 text-[#E5A93C] font-bold text-[9px] sm:text-[10px] uppercase">
                 FEELS {formatTemperature(activeForecast.weather.feels_like, units)}
               </span>
-              <span className="text-[#453A2E]">•</span>
-              <span className="text-[#F5F2EB] font-semibold">
+              <span className="hidden sm:inline text-[#453A2E]">•</span>
+              <span className="hidden sm:inline text-[#F5F2EB] font-semibold">
                 {Math.round(activeForecast.weather.wind_speed * 3.6)} km/h
                 {windAnalysis && (
                   <span className="text-[#A89F91] text-[10px] ml-1 uppercase font-normal">
@@ -407,8 +411,8 @@ export function ElevationWeatherSync({
                   </span>
                 )}
               </span>
-              <span className="text-[#453A2E]">•</span>
-              <span className="text-[#82937D] font-semibold">
+              <span className="hidden sm:inline text-[#453A2E]">•</span>
+              <span className="hidden sm:inline text-[#82937D] font-semibold">
                 {Math.round((activeForecast.weather.pop ?? 0) * 100)}% rain
               </span>
             </div>
@@ -431,7 +435,7 @@ export function ElevationWeatherSync({
       {/* ========================================================================= */}
       {/* 2. DYNAMIC GRAPH CANVAS (SWITCHABLE BY METRIC)                             */}
       {/* ========================================================================= */}
-      <div className="relative flex-1 min-h-[95px] w-full mt-1 overflow-hidden">
+      <div className="relative flex-1 min-h-[85px] w-full mt-0.5 overflow-hidden">
         <svg
           ref={svgRef}
           viewBox={`0 0 ${svgWidth} ${svgHeight}`}
@@ -484,7 +488,7 @@ export function ElevationWeatherSync({
               <text x={4} y={padTop + 10} fill="#A89F91" fontSize="9" fontFamily="monospace">
                 MAX: {Math.round(maxElev)}m
               </text>
-              <text x={4} y={svgHeight - padBottom - 4} fill="#A89F91" fontSize="9" fontFamily="monospace">
+              <text x={4} y={svgHeight - padBottom - 2} fill="#A89F91" fontSize="9" fontFamily="monospace">
                 MIN: {Math.round(minElev)}m
               </text>
             </>
@@ -528,7 +532,7 @@ export function ElevationWeatherSync({
               <text x={4} y={padTop + 10} fill="#E5A93C" fontSize="9" fontFamily="monospace">
                 HIGH: {maxTemp}°C
               </text>
-              <text x={4} y={svgHeight - padBottom - 4} fill="#82937D" fontSize="9" fontFamily="monospace">
+              <text x={4} y={svgHeight - padBottom - 2} fill="#82937D" fontSize="9" fontFamily="monospace">
                 LOW: {minTemp}°C
               </text>
 

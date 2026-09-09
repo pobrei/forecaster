@@ -20,6 +20,8 @@ interface RightStageProps {
   units?: 'metric' | 'imperial';
   onLoadSampleAlpine?: () => void;
   onOpenComparison?: () => void;
+  isVisible?: boolean;
+  activeTab?: string;
 }
 
 export function RightStage({
@@ -30,6 +32,8 @@ export function RightStage({
   units = 'metric',
   onLoadSampleAlpine,
   onOpenComparison,
+  isVisible,
+  activeTab,
 }: RightStageProps) {
   const [basemap, setBasemap] = useState<BasemapMode>('satellite');
   const [radarActive, setRadarActive] = useState(true);
@@ -60,11 +64,13 @@ export function RightStage({
               onPointSelect={onPointSelect}
               basemapMode={basemap}
               onBasemapChange={setBasemap}
+              isVisible={isVisible}
+              activeTab={activeTab}
               className="w-full h-full border-none rounded-none"
             />
 
             {/* Floating Top-Right Map HUD Controls & Model Divergence Ribbon */}
-            <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-30 pointer-events-auto flex flex-col items-end gap-1.5 sm:gap-2 max-w-[calc(100vw-24px)] sm:max-w-sm">
+            <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-30 pointer-events-auto flex flex-col items-end gap-1.5 sm:gap-2 max-w-[calc(100vw-20px)] sm:max-w-sm">
               <MapHUDControls
                 radarActive={radarActive}
                 onToggleRadar={() => setRadarActive(!radarActive)}
@@ -79,7 +85,7 @@ export function RightStage({
                 <ModelDivergenceRibbon 
                   forecasts={forecasts} 
                   onOpenComparison={onOpenComparison}
-                  className="w-full" 
+                  className="w-auto max-w-[calc(100vw-24px)] sm:max-w-sm" 
                 />
               )}
             </div>
@@ -138,8 +144,8 @@ export function RightStage({
             isDrawerCollapsed 
               ? "h-7 sm:h-8" 
               : isDrawerExpanded 
-                ? "h-[250px] sm:h-[300px]" 
-                : "h-[175px] sm:h-[200px]"
+                ? "h-[270px] sm:h-[310px]" 
+                : "h-[200px] sm:h-[215px]"
           )}
         >
           {/* Collapsible Header Strip */}
