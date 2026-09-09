@@ -1,4 +1,22 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
+import * as fs from 'fs';
+import * as path from 'path';
+
+const ARTIFACT_DIR = '/Users/filippsh/.gemini/antigravity-ide/brain/8bd520e2-e567-497f-a4d3-e3ab959c2643';
+
+// Safe screenshot helper that never throws ENOENT in CI or remote runner environments
+async function capturePreviewArtifact(page: Page, filename: string) {
+  if (!process.env.CI && fs.existsSync(ARTIFACT_DIR)) {
+    try {
+      await page.screenshot({
+        path: path.join(ARTIFACT_DIR, filename),
+        fullPage: false,
+      });
+    } catch {
+      // Ignored
+    }
+  }
+}
 
 test.describe('Forecaster Expedition Lifecycle & Forecast Synthesis', () => {
   test('should load Alpine 45km route, toggle pacing presets, and synthesize weather forecast', async ({ page }) => {
@@ -88,11 +106,8 @@ test.describe('Forecaster Expedition Lifecycle & Forecast Synthesis', () => {
     await expect(page.getByText(/POLYLINE ENSEMBLE CROSS-SECTION/i)).toBeVisible();
     await expect(page.getByText(/WAYPOINT & PASS DIVERGENCE BREAKDOWN/i)).toBeVisible();
 
-    // Capture visual preview artifact
-    await page.screenshot({ 
-      path: '/Users/filippsh/.gemini/antigravity-ide/brain/8bd520e2-e567-497f-a4d3-e3ab959c2643/model_comparison_preview.png',
-      fullPage: false 
-    });
+    // Capture visual preview artifact safely
+    await capturePreviewArtifact(page, 'model_comparison_preview.png');
 
     // Test metric toggles in comparison suite
     const windMetricBtn = page.getByRole('button', { name: 'Wind & Gusts' });
@@ -146,10 +161,7 @@ test.describe('Forecaster Expedition Lifecycle & Forecast Synthesis', () => {
     await expect(page.getByText(/ARCHIVE ACTIVE ROUTE/i)).toBeVisible();
     await expect(page.getByText(/saved_expeditions/i)).toBeVisible();
 
-    await page.screenshot({
-      path: '/Users/filippsh/.gemini/antigravity-ide/brain/8bd520e2-e567-497f-a4d3-e3ab959c2643/atlas_archive_preview.png',
-      fullPage: false,
-    });
+    await capturePreviewArtifact(page, 'atlas_archive_preview.png');
 
     // Close modal
     const closeBtn = page.locator('button').filter({ has: page.locator('svg.lucide-x') });
