@@ -19,6 +19,7 @@ interface RightStageProps {
   onPointSelect: (forecastIndex: number, source: 'timeline' | 'chart' | 'map') => void;
   units?: 'metric' | 'imperial';
   onLoadSampleAlpine?: () => void;
+  onOpenComparison?: () => void;
 }
 
 export function RightStage({
@@ -28,6 +29,7 @@ export function RightStage({
   onPointSelect,
   units = 'metric',
   onLoadSampleAlpine,
+  onOpenComparison,
 }: RightStageProps) {
   const [basemap, setBasemap] = useState<BasemapMode>('satellite');
   const [radarActive, setRadarActive] = useState(true);
@@ -35,6 +37,7 @@ export function RightStage({
   const [cloudsActive, setCloudsActive] = useState(false);
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(null);
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
+  const [isDrawerCollapsed, setIsDrawerCollapsed] = useState(false);
 
   const handleElevationHover = useCallback((_forecast: WeatherForecast | null, index: number | null) => {
     setHoveredPointIndex((prev) => (prev === index ? prev : index));
@@ -53,14 +56,15 @@ export function RightStage({
               forecasts={forecasts}
               units={units}
               selectedPoint={selectedPoint}
+              hoveredPointIndex={hoveredPointIndex}
               onPointSelect={onPointSelect}
               basemapMode={basemap}
               onBasemapChange={setBasemap}
               className="w-full h-full border-none rounded-none"
             />
 
-            {/* Floating Top-Right Map HUD Controls */}
-            <div className="absolute top-3 right-3 z-30 pointer-events-auto flex flex-col items-end gap-2 max-w-sm">
+            {/* Floating Top-Right Map HUD Controls & Model Divergence Ribbon */}
+            <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-30 pointer-events-auto flex flex-col items-end gap-1.5 sm:gap-2 max-w-[calc(100vw-24px)] sm:max-w-sm">
               <MapHUDControls
                 radarActive={radarActive}
                 onToggleRadar={() => setRadarActive(!radarActive)}
@@ -72,22 +76,26 @@ export function RightStage({
 
               {/* Multi-Model Synoptic Consensus Ribbon */}
               {forecasts.length > 0 && (
-                <ModelDivergenceRibbon forecasts={forecasts} className="w-full" />
+                <ModelDivergenceRibbon 
+                  forecasts={forecasts} 
+                  onOpenComparison={onOpenComparison}
+                  className="w-full" 
+                />
               )}
             </div>
 
             {/* Tactical Coordinate & Track Legend Stamp (Bottom-Left of Map) */}
-            <div className="absolute bottom-3 left-3 z-30 pointer-events-none font-mono text-[10px] text-[#A89F91] bg-[#16120F]/90 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-[#453A2E]/80 shadow-2xl flex items-center gap-3">
+            <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 z-30 pointer-events-none font-mono text-[9px] sm:text-[10px] text-[#A89F91] bg-[#16120F]/90 backdrop-blur-md px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-[#453A2E]/80 shadow-2xl flex items-center gap-2 sm:gap-3">
               <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-[#E5A93C]" />
-                <span className="text-[#F5F2EB] uppercase font-semibold">TRACK POLYLINE</span>
+                <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-[#E5A93C]" />
+                <span className="text-[#F5F2EB] uppercase font-semibold">TRACK</span>
               </div>
               <span className="text-[#453A2E]">•</span>
-              <span>{route.points.length} COORD NODES</span>
+              <span>{route.points.length} NODES</span>
               {forecasts.length > 0 && (
                 <>
                   <span className="text-[#453A2E]">•</span>
-                  <span className="text-[#82937D] font-bold">{forecasts.length} WEATHER FIXES</span>
+                  <span className="text-[#82937D] font-bold">{forecasts.length} FIXES</span>
                 </>
               )}
             </div>
@@ -126,20 +134,44 @@ export function RightStage({
       {route && (
         <div
           className={cn(
-            "shrink-0 border-t border-[#453A2E] bg-[#16120F]/95 backdrop-blur-md z-20 transition-all duration-300",
-            isDrawerExpanded ? "h-[290px] sm:h-[320px]" : "h-[195px] sm:h-[210px]"
+            "shrink-0 border-t border-[#453A2E] bg-[#16120F]/95 backdrop-blur-md z-20 transition-all duration-300 flex flex-col",
+            isDrawerCollapsed 
+              ? "h-7 sm:h-8" 
+              : isDrawerExpanded 
+                ? "h-[250px] sm:h-[300px]" 
+                : "h-[175px] sm:h-[200px]"
           )}
         >
-          <ElevationWeatherSync
-            route={route}
-            forecasts={forecasts}
-            units={units}
-            hoveredIndex={hoveredPointIndex}
-            onHoverPoint={handleElevationHover}
-            onSelectPoint={(f, idx) => onPointSelect(idx, 'chart')}
-            isExpanded={isDrawerExpanded}
-            onToggleExpand={() => setIsDrawerExpanded(!isDrawerExpanded)}
-          />
+          {/* Collapsible Header Strip */}
+          <div 
+            onClick={() => setIsDrawerCollapsed(!isDrawerCollapsed)}
+            className="h-7 shrink-0 px-3 bg-[#1C1814] hover:bg-[#251F19] border-b border-[#453A2E]/70 flex items-center justify-between cursor-pointer text-[#F5F2EB] select-none transition-colors"
+          >
+            <div className="flex items-center gap-2 font-mono text-[10px] tracking-wider uppercase text-[#A89F91]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#E5A93C]" />
+              <span className="font-semibold text-[#F5F2EB]">ELEVATION PROFILE & AERODYNAMIC WIND</span>
+              <span className="hidden sm:inline text-[#A89F91]/70">
+                • {route.totalDistance.toFixed(1)} km
+              </span>
+            </div>
+
+            <span className="text-[9px] font-mono text-[#E5A93C] uppercase font-bold tracking-wider">
+              {isDrawerCollapsed ? "▲ EXPAND GRAPH" : "▼ MINIMIZE"}
+            </span>
+          </div>
+
+          <div className={cn("flex-1 min-h-0 overflow-hidden", isDrawerCollapsed && "hidden")}>
+            <ElevationWeatherSync
+              route={route}
+              forecasts={forecasts}
+              units={units}
+              hoveredIndex={hoveredPointIndex}
+              onHoverPoint={handleElevationHover}
+              onSelectPoint={(f, idx) => onPointSelect(idx, 'chart')}
+              isExpanded={isDrawerExpanded}
+              onToggleExpand={() => setIsDrawerExpanded(!isDrawerExpanded)}
+            />
+          </div>
         </div>
       )}
     </div>

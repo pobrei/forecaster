@@ -33,6 +33,7 @@ interface WeatherMapProps {
   units?: 'metric' | 'imperial';
   className?: string;
   selectedPoint?: SelectedWeatherPoint | null;
+  hoveredPointIndex?: number | null;
   onPointSelect?: (forecastIndex: number, source: 'timeline' | 'chart' | 'map') => void;
   basemapMode?: BasemapMode;
   onBasemapChange?: (mode: BasemapMode) => void;
@@ -104,6 +105,7 @@ export function WeatherMap({
   units = 'metric',
   className,
   selectedPoint,
+  hoveredPointIndex,
   onPointSelect,
   basemapMode: externalBasemap,
   onBasemapChange,
@@ -114,6 +116,7 @@ export function WeatherMap({
   const routeLayerRef = useRef<VectorLayer | null>(null);
   const weatherLayerRef = useRef<VectorLayer | null>(null);
   const reticleLayerRef = useRef<VectorLayer | null>(null);
+  const hoverReticleLayerRef = useRef<VectorLayer | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<Overlay | null>(null);
 
@@ -500,16 +503,71 @@ export function WeatherMap({
     map.addLayer(reticleLayer);
     reticleLayerRef.current = reticleLayer;
 
-    // If selected from chart/timeline, pan to point smoothly
+    // If selected from chart/timeline, pan to point smoothly only if out of bounds
     if (selectedPoint.source !== 'map') {
-      map.getView().animate({
-        center: coord,
-        duration: 350,
-      });
+      const view = map.getView();
+      const size = map.getSize();
+      if (size) {
+        const extent = view.calculateExtent(size);
+        const isVisible = coord[0] >= extent[0] && coord[0] <= extent[2] && coord[1] >= extent[1] && coord[1] <= extent[3];
+        if (!isVisible) {
+          view.animate({
+            center: coord,
+            duration: 250,
+          });
+        }
+      }
       setLocalSelectedPoint(forecast);
       if (overlayRef.current) overlayRef.current.setPosition(coord);
     }
   }, [selectedPoint]);
+
+  // 4a. Synchronized Hover Beacon on Map during elevation scrubbing
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    const map = mapInstanceRef.current;
+
+    if (hoverReticleLayerRef.current) {
+      map.removeLayer(hoverReticleLayerRef.current);
+      hoverReticleLayerRef.current = null;
+    }
+
+    if (hoveredPointIndex === null || hoveredPointIndex === undefined || !forecasts || !forecasts[hoveredPointIndex]) {
+      return;
+    }
+
+    const forecast = forecasts[hoveredPointIndex];
+    const coord = fromLonLat([forecast.routePoint.lon, forecast.routePoint.lat]);
+
+    const hoverFeature = new Feature({
+      geometry: new Point(coord),
+    });
+
+    hoverFeature.setStyle([
+      new Style({
+        image: new Circle({
+          radius: 11,
+          fill: new Fill({ color: 'rgba(229, 169, 60, 0.3)' }),
+          stroke: new Stroke({ color: '#E5A93C', width: 2, lineDash: [3, 3] }),
+        }),
+      }),
+      new Style({
+        image: new Circle({
+          radius: 4,
+          fill: new Fill({ color: '#F5F2EB' }),
+          stroke: new Stroke({ color: '#E5A93C', width: 1.5 }),
+        }),
+      }),
+    ]);
+
+    const hoverSource = new VectorSource({ features: [hoverFeature] });
+    const hoverLayer = new VectorLayer({
+      source: hoverSource,
+      zIndex: 35,
+    });
+    map.addLayer(hoverLayer);
+    hoverReticleLayerRef.current = hoverLayer;
+  }, [hoveredPointIndex, forecasts]);
 
   const handleZoomIn = () => {
     if (!mapInstanceRef.current) return;

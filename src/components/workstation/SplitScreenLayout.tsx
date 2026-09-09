@@ -34,6 +34,7 @@ interface SplitScreenLayoutProps {
   forecasts: WeatherForecast[];
   onResetRoute?: () => void;
   onSaveExpedition?: () => void;
+  onOpenArchive?: () => void;
   isSavingExpedition?: boolean;
   activeStage?: WorkstationStage;
   onStageChange?: (stage: WorkstationStage) => void;
@@ -47,11 +48,12 @@ export function SplitScreenLayout({
   comparisonStage,
   exportStage,
   elevationDrawer,
-  divergenceRibbon,
+  divergenceRibbon: _divergenceRibbon,
   route,
   forecasts: _forecasts,
   onResetRoute,
   onSaveExpedition,
+  onOpenArchive,
   isSavingExpedition = false,
   activeStage: externalStage,
   onStageChange,
@@ -193,16 +195,29 @@ export function SplitScreenLayout({
 
         {/* Right: Actions & Sound Toggle */}
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {onOpenArchive && (
+            <button
+              type="button"
+              onClick={onOpenArchive}
+              aria-label="Atlas Archive"
+              title="Browse and restore saved expeditions from MongoDB Atlas"
+              className="px-2.5 py-1 rounded-md bg-[#82937D]/15 hover:bg-[#82937D]/25 border border-[#82937D]/40 text-[#82937D] font-mono text-[10px] tracking-wide uppercase flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Database className="h-3 w-3 text-[#82937D]" />
+              <span className="hidden sm:inline">Atlas Archive</span>
+            </button>
+          )}
+
           {route && onSaveExpedition && (
             <button
               type="button"
               onClick={onSaveExpedition}
               disabled={isSavingExpedition}
-              title="Archive expedition route and forecasts to MongoDB Atlas"
-              className="px-2.5 py-1 rounded-md bg-[#82937D]/15 hover:bg-[#82937D]/25 border border-[#82937D]/40 text-[#82937D] font-mono text-[10px] tracking-wide uppercase flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+              title="Archive current route and forecasts to MongoDB Atlas"
+              className="px-2.5 py-1 rounded-md bg-[#E5A93C]/15 hover:bg-[#E5A93C]/25 border border-[#E5A93C]/40 text-[#E5A93C] font-mono text-[10px] tracking-wide uppercase flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
             >
-              <Database className={cn("h-3 w-3 text-[#82937D]", isSavingExpedition && "animate-spin")} />
-              <span className="hidden sm:inline">{isSavingExpedition ? 'Saving...' : 'Atlas Archive'}</span>
+              <Database className={cn("h-3 w-3 text-[#E5A93C]", isSavingExpedition && "animate-spin")} />
+              <span className="hidden sm:inline">{isSavingExpedition ? 'Saving...' : 'Archive Route'}</span>
             </button>
           )}
 
@@ -265,17 +280,11 @@ export function SplitScreenLayout({
             )}
           >
             {/* Main Map Viewport Area */}
-            <div className="flex-1 min-h-0 relative w-full h-full overflow-hidden">
+            <div className="flex-1 min-h-0 relative w-full h-full overflow-hidden flex flex-col">
               {mapStage}
-
-              {divergenceRibbon && (
-                <div className="absolute top-3 right-3 z-20 max-w-sm pointer-events-auto">
-                  {divergenceRibbon}
-                </div>
-              )}
             </div>
 
-            {/* Synchronized Bottom Elevation & Wind Telemetry Drawer */}
+            {/* Optional Fallback Elevation Drawer if provided externally */}
             {elevationDrawer && (
               <div
                 className={cn(

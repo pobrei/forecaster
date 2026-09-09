@@ -9,3 +9,4 @@ export { ModelDivergenceRibbon } from './ModelDivergenceRibbon';
 export { MapHUDControls } from './MapHUDControls';
 export { ElevationWeatherSync } from './ElevationWeatherSync';
 export { ModelComparisonSuite } from './ModelComparisonSuite';
+export { AtlasArchiveModal } from './AtlasArchiveModal';

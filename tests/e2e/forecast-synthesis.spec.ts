@@ -128,4 +128,53 @@ test.describe('Forecaster Expedition Lifecycle & Forecast Synthesis', () => {
     await muteBtn.click({ force: true });
     await expect(page.getByTitle(/Mute audio/i)).toBeVisible();
   });
+
+  test('should open Atlas Archive modal, display cloud storage engine, and allow closing', async ({ page }) => {
+    await page.goto('/');
+
+    // Load sample route first
+    const loadAlpineBtn = page.getByRole('button', { name: /Load Sample Route \(Alpine 45km\)/i });
+    await loadAlpineBtn.click({ force: true });
+    await expect(page.getByText(/45.0 km/i).first()).toBeVisible();
+
+    const archiveBtn = page.getByRole('button', { name: /Atlas Archive/i });
+    await expect(archiveBtn).toBeVisible();
+    await archiveBtn.click();
+
+    // Verify modal header, active route action, and MongoDB collection indicator
+    await expect(page.getByText(/ATLAS EXPEDITION ARCHIVE/i)).toBeVisible();
+    await expect(page.getByText(/ARCHIVE ACTIVE ROUTE/i)).toBeVisible();
+    await expect(page.getByText(/saved_expeditions/i)).toBeVisible();
+
+    await page.screenshot({
+      path: '/Users/filippsh/.gemini/antigravity-ide/brain/8bd520e2-e567-497f-a4d3-e3ab959c2643/atlas_archive_preview.png',
+      fullPage: false,
+    });
+
+    // Close modal
+    const closeBtn = page.locator('button').filter({ has: page.locator('svg.lucide-x') });
+    await closeBtn.click();
+    await expect(page.getByText(/ATLAS EXPEDITION ARCHIVE/i)).not.toBeVisible();
+  });
+
+  test('should support collapsing and expanding elevation graph drawer on map view', async ({ page }) => {
+    await page.goto('/');
+
+    // Load sample route
+    const loadAlpineBtn = page.getByRole('button', { name: /Load Sample Route \(Alpine 45km\)/i });
+    await loadAlpineBtn.click({ force: true });
+    await expect(page.getByText(/45.0 km/i).first()).toBeVisible();
+
+    // Verify elevation drawer is present
+    const minimizeBtn = page.getByText(/▼ MINIMIZE/i);
+    await expect(minimizeBtn).toBeVisible();
+
+    // Click minimize
+    await minimizeBtn.click();
+    await expect(page.getByText(/▲ EXPAND GRAPH/i)).toBeVisible();
+
+    // Click expand
+    await page.getByText(/▲ EXPAND GRAPH/i).click();
+    await expect(page.getByText(/▼ MINIMIZE/i)).toBeVisible();
+  });
 });

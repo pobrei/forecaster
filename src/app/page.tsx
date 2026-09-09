@@ -14,7 +14,7 @@ import {
   LeftPanel, 
   RightStage,
   ModelComparisonSuite,
-  ModelDivergenceRibbon,
+  AtlasArchiveModal,
   ElevationWeatherSync
 } from '@/components/workstation';
 import { 
@@ -24,7 +24,7 @@ import {
   UnifiedExport 
 } from '@/components/features';
 import { MetricGrid } from '@/components/ui';
-import { Route, AppSettings, SelectedWeatherPoint } from '@/types';
+import { Route, AppSettings, SelectedWeatherPoint, WeatherForecast } from '@/types';
 import { ROUTE_CONFIG } from '@/lib/constants';
 import { createAlpine45KmSampleRoute } from '@/lib/sample-routes';
 import { useProgressiveWeather } from '@/hooks/useProgressiveWeather';
@@ -46,6 +46,7 @@ export default function Home() {
   }));
   const [selectedPoint, setSelectedPoint] = useState<SelectedWeatherPoint | null>(null);
   const [isSavingExpedition, setIsSavingExpedition] = useState(false);
+  const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<MobileTab>('parameters');
 
   // Weather source preferences from store
@@ -61,6 +62,7 @@ export default function Home() {
     forecasts,
     isLoading: isGeneratingForecast,
     loadWeatherData,
+    setForecasts,
     reset: resetWeatherData,
   } = useProgressiveWeather({
     onError: (error) => {
@@ -68,6 +70,24 @@ export default function Home() {
       toast.error('Failed to load weather data. Please check network connection.');
     },
   });
+
+  const handleLoadSavedExpedition = useCallback(({
+    route: savedRoute,
+    forecasts: savedForecasts,
+    settings: savedSettings,
+  }: {
+    route: Route;
+    forecasts: WeatherForecast[];
+    settings?: AppSettings;
+  }) => {
+    setRoute(savedRoute);
+    setForecasts(savedForecasts);
+    if (savedSettings) {
+      setSettings(savedSettings);
+    }
+    setSelectedPoint(null);
+    setStage('radar');
+  }, [setForecasts]);
 
   // Multi-source comparison hook
   const {
@@ -179,7 +199,7 @@ export default function Home() {
   const renderMobileSpecialContent = () => {
     if (mobileTab === 'telemetry') {
       return (
-        <div className="p-4 space-y-5 overflow-y-auto h-full bg-[#12100E] font-mono text-xs">
+        <div className="p-3 sm:p-4 space-y-4 overflow-y-auto h-full bg-[#12100E] font-mono text-xs custom-scrollbar">
           {forecasts.length === 0 ? (
             <div className="text-center py-16 text-[#A89F91]">
               <Activity className="h-10 w-10 mx-auto mb-3 opacity-50 text-[#E5A93C]" />
@@ -187,6 +207,20 @@ export default function Home() {
             </div>
           ) : (
             <>
+              {route && (
+                <div className="h-[230px] rounded-xl border border-[#453A2E] bg-[#16120F] overflow-hidden">
+                  <ElevationWeatherSync
+                    route={route}
+                    forecasts={forecasts}
+                    units={settings.units}
+                    hoveredIndex={selectedPoint?.forecastIndex ?? null}
+                    onHoverPoint={() => {}}
+                    onSelectPoint={(f, idx) => handlePointSelection(idx, 'chart')}
+                    isExpanded={true}
+                  />
+                </div>
+              )}
+
               <MetricGrid
                 metrics={[
                   {
@@ -249,93 +283,89 @@ export default function Home() {
   };
 
   return (
-    <SplitScreenLayout
-      route={route}
-      forecasts={forecasts}
-      onResetRoute={handleResetRoute}
-      onSaveExpedition={handleSaveExpeditionToAtlas}
-      isSavingExpedition={isSavingExpedition}
-      activeStage={stage}
-      onStageChange={setStage}
-      activeMobileTab={mobileTab}
-      onMobileTabChange={setMobileTab}
-      leftPanel={
-        <LeftPanel
-          route={route}
-          settings={settings}
-          preferences={weatherSourcePreferences}
-          onRouteLoaded={handleRouteLoaded}
-          onResetRoute={handleResetRoute}
-          onSettingsChange={setSettings}
-          onPreferencesChange={handleWeatherSourceChange}
-          onGenerateForecast={handleGenerateForecast}
-          isLoading={isGeneratingForecast || isLoadingMultiSource}
-          hasForecasts={forecasts.length > 0}
-          onOpenComparison={() => setStage('comparison')}
-        />
-      }
-      mapStage={
-        mobileTab === 'telemetry' || mobileTab === 'dispatch' ? (
-          renderMobileSpecialContent()
-        ) : (
-          <RightStage
+    <>
+      <SplitScreenLayout
+        route={route}
+        forecasts={forecasts}
+        onResetRoute={handleResetRoute}
+        onSaveExpedition={handleSaveExpeditionToAtlas}
+        onOpenArchive={() => setIsArchiveOpen(true)}
+        isSavingExpedition={isSavingExpedition}
+        activeStage={stage}
+        onStageChange={setStage}
+        activeMobileTab={mobileTab}
+        onMobileTabChange={setMobileTab}
+        leftPanel={
+          <LeftPanel
+            route={route}
+            settings={settings}
+            preferences={weatherSourcePreferences}
+            onRouteLoaded={handleRouteLoaded}
+            onResetRoute={handleResetRoute}
+            onSettingsChange={setSettings}
+            onPreferencesChange={handleWeatherSourceChange}
+            onGenerateForecast={handleGenerateForecast}
+            isLoading={isGeneratingForecast || isLoadingMultiSource}
+            hasForecasts={forecasts.length > 0}
+            onOpenComparison={() => setStage('comparison')}
+          />
+        }
+        mapStage={
+          mobileTab === 'telemetry' || mobileTab === 'dispatch' ? (
+            renderMobileSpecialContent()
+          ) : (
+            <RightStage
+              route={route}
+              forecasts={forecasts}
+              selectedPoint={selectedPoint}
+              onPointSelect={handlePointSelection}
+              units={settings.units}
+              onOpenComparison={() => setStage('comparison')}
+              onLoadSampleAlpine={() => {
+                const sampleAlpine = createAlpine45KmSampleRoute();
+                handleRouteLoaded(sampleAlpine);
+                toast.success('Loaded "Alpine 45km" Swiss Traverse');
+              }}
+            />
+          )
+        }
+        comparisonStage={
+          <ModelComparisonSuite
             route={route}
             forecasts={forecasts}
-            selectedPoint={selectedPoint}
-            onPointSelect={handlePointSelection}
+            multiSourceForecasts={multiSourceForecasts}
+            preferences={weatherSourcePreferences}
+            onPreferencesChange={handleWeatherSourceChange}
             units={settings.units}
-            onLoadSampleAlpine={() => {
-              const sampleAlpine = createAlpine45KmSampleRoute();
-              handleRouteLoaded(sampleAlpine);
-              toast.success('Loaded "Alpine 45km" Swiss Traverse');
-            }}
+            onSelectPoint={(idx) => handlePointSelection(idx, 'chart')}
+            onBackToRadar={() => setStage('radar')}
           />
-        )
-      }
-      comparisonStage={
-        <ModelComparisonSuite
-          route={route}
-          forecasts={forecasts}
-          multiSourceForecasts={multiSourceForecasts}
-          preferences={weatherSourcePreferences}
-          onPreferencesChange={handleWeatherSourceChange}
-          units={settings.units}
-          onSelectPoint={(idx) => handlePointSelection(idx, 'chart')}
-          onBackToRadar={() => setStage('radar')}
-        />
-      }
-      exportStage={
-        <div className="p-4 sm:p-6 space-y-6 overflow-y-auto h-full bg-[#12100E] max-w-7xl mx-auto w-full custom-scrollbar">
-          {!route || forecasts.length === 0 ? (
-            <div className="text-center py-24 text-[#A89F91] font-mono text-xs">
-              <ShieldCheck className="h-12 w-12 mx-auto mb-3 opacity-50 text-[#82937D]" />
-              <p className="uppercase tracking-wider">EXPEDITION DOSSIER DISPATCH READY ONCE ROUTE & FORECAST DATA ARE ARMED.</p>
-            </div>
-          ) : (
-            <>
-              <WeatherSummary forecasts={forecasts} units={settings.units} />
-              <UnifiedExport route={route} forecasts={forecasts} settings={settings} />
-            </>
-          )}
-        </div>
-      }
-      divergenceRibbon={
-        <ModelDivergenceRibbon
-          forecasts={forecasts}
-          multiSourceForecasts={multiSourceForecasts}
-          onOpenComparison={() => setStage('comparison')}
-        />
-      }
-      elevationDrawer={
-        <ElevationWeatherSync
-          route={route}
-          forecasts={forecasts}
-          units={settings.units}
-          hoveredIndex={selectedPoint?.forecastIndex ?? null}
-          onHoverPoint={() => {}}
-          onSelectPoint={(f, idx) => handlePointSelection(idx, 'chart')}
-        />
-      }
-    />
+        }
+        exportStage={
+          <div className="p-4 sm:p-6 space-y-6 overflow-y-auto h-full bg-[#12100E] max-w-7xl mx-auto w-full custom-scrollbar">
+            {!route || forecasts.length === 0 ? (
+              <div className="text-center py-24 text-[#A89F91] font-mono text-xs">
+                <ShieldCheck className="h-12 w-12 mx-auto mb-3 opacity-50 text-[#82937D]" />
+                <p className="uppercase tracking-wider">EXPEDITION DOSSIER DISPATCH READY ONCE ROUTE & FORECAST DATA ARE ARMED.</p>
+              </div>
+            ) : (
+              <>
+                <WeatherSummary forecasts={forecasts} units={settings.units} />
+                <UnifiedExport route={route} forecasts={forecasts} settings={settings} />
+              </>
+            )}
+          </div>
+        }
+      />
+
+      <AtlasArchiveModal
+        isOpen={isArchiveOpen}
+        onClose={() => setIsArchiveOpen(false)}
+        activeRoute={route}
+        onLoadExpedition={handleLoadSavedExpedition}
+        onSaveCurrentRoute={handleSaveExpeditionToAtlas}
+        isSavingCurrent={isSavingExpedition}
+      />
+    </>
   );
 }

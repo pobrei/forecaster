@@ -255,6 +255,39 @@ export function ElevationWeatherSync({
     if (onHoverPoint) onHoverPoint(null, null);
   }, [onHoverPoint]);
 
+  // Touch scrubbing on mobile phones with zero page-scroll conflict
+  const handleTouchScrub = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
+    if (!svgRef.current || forecasts.length === 0) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+
+    const rect = svgRef.current.getBoundingClientRect();
+    const clientX = touch.clientX - rect.left;
+    const ratio = Math.max(0, Math.min(1, clientX / (rect.width || 1)));
+    const targetDist = ratio * totalDist;
+
+    let closestIndex = 0;
+    let closestDiff = Infinity;
+    for (let i = 0; i < forecasts.length; i++) {
+      const diff = Math.abs(forecasts[i].routePoint.distance - targetDist);
+      if (diff < closestDiff) {
+        closestDiff = diff;
+        closestIndex = i;
+      }
+    }
+
+    if (closestIndex === lastHoveredIndexRef.current) return;
+    lastHoveredIndexRef.current = closestIndex;
+    setInternalHoverIndex(closestIndex);
+    if (onHoverPoint) onHoverPoint(forecasts[closestIndex], closestIndex);
+  }, [forecasts, totalDist, onHoverPoint]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (lastHoveredIndexRef.current !== null && forecasts[lastHoveredIndexRef.current] && onSelectPoint) {
+      onSelectPoint(forecasts[lastHoveredIndexRef.current], lastHoveredIndexRef.current);
+    }
+  }, [forecasts, onSelectPoint]);
+
   const handleClick = () => {
     if (activeIndex !== null && forecasts[activeIndex] && onSelectPoint) {
       onSelectPoint(forecasts[activeIndex], activeIndex);
@@ -405,8 +438,11 @@ export function ElevationWeatherSync({
           preserveAspectRatio="none"
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
+          onTouchStart={handleTouchScrub}
+          onTouchMove={handleTouchScrub}
+          onTouchEnd={handleTouchEnd}
           onClick={handleClick}
-          className="w-full h-full cursor-crosshair overflow-visible"
+          className="w-full h-full cursor-crosshair overflow-visible touch-none"
         >
           <defs>
             <linearGradient id="elevRamp" x1="0%" y1="0%" x2="0%" y2="100%">
