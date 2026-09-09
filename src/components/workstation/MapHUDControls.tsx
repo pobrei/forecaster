@@ -3,7 +3,6 @@
 import React from 'react';
 import { 
   Layers, 
-  CloudRain, 
   Wind, 
   ZoomIn, 
   ZoomOut, 
@@ -13,8 +12,6 @@ import { cn } from '@/lib/utils';
 import { playTactileClick } from '@/lib/audio-fx';
 
 interface MapHUDControlsProps {
-  radarActive: boolean;
-  onToggleRadar: () => void;
   windVectorsActive: boolean;
   onToggleWindVectors: () => void;
   cloudsActive: boolean;
@@ -26,8 +23,6 @@ interface MapHUDControlsProps {
 }
 
 export function MapHUDControls({
-  radarActive,
-  onToggleRadar,
   windVectorsActive,
   onToggleWindVectors,
   cloudsActive,
@@ -42,23 +37,6 @@ export function MapHUDControls({
     <div className={cn("flex flex-col items-end gap-2 font-mono text-xs select-none", className)}>
       {/* 1. Floating Tactical Layer Toggle Cluster */}
       <div className="flex items-center gap-1 p-1 rounded-xl bg-[#16120F]/90 backdrop-blur-md border border-[#453A2E] shadow-2xl">
-        <button
-          type="button"
-          onClick={() => {
-            playTactileClick();
-            onToggleRadar();
-          }}
-          title={radarActive ? "Disable Precipitation Radar" : "Enable Precipitation Radar"}
-          className={cn(
-            "px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-[10px] tracking-wider uppercase cursor-pointer border",
-            radarActive
-              ? "bg-[#E5A93C]/20 text-[#E5A93C] border-[#E5A93C]/60 shadow-xs font-bold"
-              : "text-[#A89F91] border-transparent hover:text-[#F5F2EB] hover:bg-[#28221B]"
-          )}
-        >
-          <CloudRain className={cn("h-3.5 w-3.5 transition-colors", radarActive ? "text-[#E5A93C]" : "text-[#A89F91]/70")} />
-          <span>RADAR</span>
-        </button>
 
         <button
           type="button"

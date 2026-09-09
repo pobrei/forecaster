@@ -7,26 +7,18 @@ jest.mock('@/lib/audio-fx', () => ({
 }));
 
 describe('MapHUDControls Component', () => {
-  it('renders RADAR, VECTORS, and CLOUDS buttons with correct active styling', () => {
-    const onToggleRadar = jest.fn();
+  it('renders VECTORS and CLOUDS buttons with correct active styling', () => {
     const onToggleWindVectors = jest.fn();
     const onToggleClouds = jest.fn();
 
     render(
       <MapHUDControls
-        radarActive={true}
-        onToggleRadar={onToggleRadar}
         windVectorsActive={true}
         onToggleWindVectors={onToggleWindVectors}
         cloudsActive={false}
         onToggleClouds={onToggleClouds}
       />
     );
-
-    // RADAR is active
-    const radarBtn = screen.getByRole('button', { name: /radar/i });
-    expect(radarBtn).toBeInTheDocument();
-    expect(radarBtn).toHaveAttribute('title', 'Disable Precipitation Radar');
 
     // VECTORS is active
     const vectorsBtn = screen.getByRole('button', { name: /vectors/i });
@@ -41,14 +33,11 @@ describe('MapHUDControls Component', () => {
 
   it('triggers onToggle callbacks and plays tactile audio on click', () => {
     const { playTactileClick } = require('@/lib/audio-fx');
-    const onToggleRadar = jest.fn();
     const onToggleWindVectors = jest.fn();
     const onToggleClouds = jest.fn();
 
     render(
       <MapHUDControls
-        radarActive={false}
-        onToggleRadar={onToggleRadar}
         windVectorsActive={false}
         onToggleWindVectors={onToggleWindVectors}
         cloudsActive={false}
@@ -56,14 +45,10 @@ describe('MapHUDControls Component', () => {
       />
     );
 
-    const radarBtn = screen.getByRole('button', { name: /radar/i });
-    fireEvent.click(radarBtn);
-    expect(onToggleRadar).toHaveBeenCalledTimes(1);
-    expect(playTactileClick).toHaveBeenCalled();
-
     const vectorsBtn = screen.getByRole('button', { name: /vectors/i });
     fireEvent.click(vectorsBtn);
     expect(onToggleWindVectors).toHaveBeenCalledTimes(1);
+    expect(playTactileClick).toHaveBeenCalled();
 
     const cloudsBtn = screen.getByRole('button', { name: /clouds/i });
     fireEvent.click(cloudsBtn);
@@ -73,8 +58,6 @@ describe('MapHUDControls Component', () => {
   it('does not render an empty container when zoom controls are omitted', () => {
     const { container } = render(
       <MapHUDControls
-        radarActive={true}
-        onToggleRadar={jest.fn()}
         windVectorsActive={true}
         onToggleWindVectors={jest.fn()}
         cloudsActive={false}
@@ -93,8 +76,6 @@ describe('MapHUDControls Component', () => {
 
     const { container } = render(
       <MapHUDControls
-        radarActive={true}
-        onToggleRadar={jest.fn()}
         windVectorsActive={true}
         onToggleWindVectors={jest.fn()}
         cloudsActive={false}

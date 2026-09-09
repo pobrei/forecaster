@@ -4,10 +4,22 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { 
   ZoomIn, 
   ZoomOut, 
-  RotateCcw
+  RotateCcw,
+  X,
+  Wind,
+  Droplets,
+  Gauge,
+  CloudRain
 } from 'lucide-react';
 import { Route, WeatherForecast, SelectedWeatherPoint } from '@/types';
-import { formatTemperature, formatWindSpeed } from '@/lib/format';
+import { 
+  formatTemperature, 
+  formatWindSpeed, 
+  formatPressure, 
+  formatPrecipitation, 
+  formatWindDirection, 
+  formatTime 
+} from '@/lib/format';
 import { MAP_CONFIG } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { playTactileClick } from '@/lib/audio-fx';
@@ -40,13 +52,9 @@ interface WeatherMapProps {
   onBasemapChange?: (mode: BasemapMode) => void;
   isVisible?: boolean;
   activeTab?: string;
-  radarActive?: boolean;
   windVectorsActive?: boolean;
   cloudsActive?: boolean;
 }
-
-// Shared memory cache for latest RainViewer radar tile URL
-let cachedRainViewerUrl: string | null = null;
 
 // 100% Free basemap providers (No API key, token, or auth required)
 const BASEMAP_SOURCES: Record<BasemapMode, { name: string; label: string; shortLabel: string; url: string; maxZoom: number; attribution: string }> = {
@@ -125,7 +133,6 @@ export function WeatherMap({
   onBasemapChange,
   isVisible = true,
   activeTab,
-  radarActive = false,
   windVectorsActive = true,
   cloudsActive = false,
 }: WeatherMapProps) {
@@ -135,8 +142,6 @@ export function WeatherMap({
   const routeLayerRef = useRef<VectorLayer | null>(null);
   const weatherLayerRef = useRef<VectorLayer | null>(null);
   const windVectorLayerRef = useRef<VectorLayer | null>(null);
-  const radarTileLayerRef = useRef<TileLayer | null>(null);
-  const radarVectorLayerRef = useRef<VectorLayer | null>(null);
   const cloudVectorLayerRef = useRef<VectorLayer | null>(null);
   const reticleLayerRef = useRef<VectorLayer | null>(null);
   const hoverReticleLayerRef = useRef<VectorLayer | null>(null);
@@ -523,15 +528,34 @@ export function WeatherMap({
       map.addLayer(windLayer);
       windVectorLayerRef.current = windLayer;
 
-      // Click on weather point
+      // Click on weather point: smooth center animation and full information popup
       map.on('click', (event) => {
-        const feature = map.forEachFeatureAtPixel(event.pixel, (f) => f);
-        if (feature && feature.get('forecast')) {
-          const f = feature.get('forecast') as WeatherForecast;
-          const idx = feature.get('forecastIndex') as number;
+        let foundForecast: WeatherForecast | null = null;
+        let foundIdx: number | null = null;
+
+        map.forEachFeatureAtPixel(
+          event.pixel,
+          (f) => {
+            if (f && f.get('forecast')) {
+              foundForecast = f.get('forecast') as WeatherForecast;
+              foundIdx = f.get('forecastIndex') as number;
+              return true; // Prioritize weather waypoint
+            }
+            return false;
+          },
+          { hitTolerance: 16 }
+        );
+
+        if (foundForecast && foundIdx !== null) {
+          const f = foundForecast as WeatherForecast;
+          const pointCoord = fromLonLat([f.routePoint.lon, f.routePoint.lat]);
           setLocalSelectedPoint(f);
-          if (overlayRef.current) overlayRef.current.setPosition(event.coordinate);
-          onPointSelect?.(idx, 'map');
+          if (overlayRef.current) overlayRef.current.setPosition(pointCoord);
+          map.getView().animate({
+            center: pointCoord,
+            duration: 400,
+          });
+          onPointSelect?.(foundIdx, 'map');
         } else {
           setLocalSelectedPoint(null);
           if (overlayRef.current) overlayRef.current.setPosition(undefined);
@@ -550,160 +574,7 @@ export function WeatherMap({
     }
   }, [windVectorsActive]);
 
-  // 5. Live Doppler Precipitation Radar & Route Rain Echo Layer
-  useEffect(() => {
-    if (!mapInstanceRef.current) return;
-    const map = mapInstanceRef.current;
-
-    if (radarTileLayerRef.current) {
-      map.removeLayer(radarTileLayerRef.current);
-      radarTileLayerRef.current = null;
-    }
-    if (radarVectorLayerRef.current) {
-      map.removeLayer(radarVectorLayerRef.current);
-      radarVectorLayerRef.current = null;
-    }
-
-    if (!radarActive) return;
-
-    let isCancelled = false;
-
-    // Apply cached radar layer immediately for zero-latency response
-    if (cachedRainViewerUrl) {
-      const cachedTileLayer = new TileLayer({
-        source: new XYZ({
-          url: cachedRainViewerUrl,
-          maxZoom: 7,
-          crossOrigin: 'anonymous',
-          interpolate: true,
-        }),
-        opacity: 0.72,
-        zIndex: 6,
-        maxZoom: 20,
-      });
-      map.addLayer(cachedTileLayer);
-      radarTileLayerRef.current = cachedTileLayer;
-    }
-
-    const loadRadarTiles = async () => {
-      try {
-        const response = await fetch('https://api.rainviewer.com/public/weather-maps.json');
-        if (!response.ok) throw new Error(`RainViewer HTTP ${response.status}`);
-        const data = await response.json();
-        const past = data?.radar?.past;
-        if (isCancelled) return;
-
-        if (past && past.length > 0) {
-          const latest = past[past.length - 1];
-          const host = data.host || 'https://tilecache.rainviewer.com';
-          const freshTileUrl = `${host}${latest.path}/256/{z}/{x}/{y}/2/1_1.png`;
-          cachedRainViewerUrl = freshTileUrl;
-
-          if (radarTileLayerRef.current) {
-            radarTileLayerRef.current.setSource(
-              new XYZ({
-                url: freshTileUrl,
-                maxZoom: 7,
-                crossOrigin: 'anonymous',
-                interpolate: true,
-              })
-            );
-          } else if (!isCancelled) {
-            const radarTileLayer = new TileLayer({
-              source: new XYZ({
-                url: freshTileUrl,
-                maxZoom: 7,
-                crossOrigin: 'anonymous',
-                interpolate: true,
-              }),
-              opacity: 0.72,
-              zIndex: 6,
-              maxZoom: 20,
-            });
-            map.addLayer(radarTileLayer);
-            radarTileLayerRef.current = radarTileLayer;
-          }
-        }
-      } catch (err) {
-        console.warn('RainViewer live fetch error:', err);
-      }
-    };
-
-    loadRadarTiles();
-
-    // Route Precipitation Halos
-    if (forecasts && forecasts.length > 0) {
-      const radarEchoFeatures: Feature[] = [];
-
-      forecasts.forEach((f) => {
-        const rainMm = f.weather.rain?.['1h'] || f.weather.snow?.['1h'] || 0;
-        const pop = f.weather.pop ?? 0;
-
-        if (rainMm > 0.05 || pop > 0.25) {
-          const coord = fromLonLat([f.routePoint.lon, f.routePoint.lat]);
-          const echoFeature = new Feature({
-            geometry: new Point(coord),
-          });
-
-          let echoFill = 'rgba(130, 147, 125, 0.4)';
-          let strokeColor = '#82937D';
-          let pulseRadius = 18;
-
-          if (rainMm >= 4 || pop > 0.75) {
-            echoFill = 'rgba(239, 68, 68, 0.45)';
-            strokeColor = '#EF4444';
-            pulseRadius = 26;
-          } else if (rainMm >= 1.5 || pop > 0.5) {
-            echoFill = 'rgba(229, 169, 60, 0.45)';
-            strokeColor = '#E5A93C';
-            pulseRadius = 22;
-          }
-
-          echoFeature.setStyle([
-            new Style({
-              image: new Circle({
-                radius: pulseRadius,
-                fill: new Fill({ color: echoFill }),
-                stroke: new Stroke({ color: strokeColor, width: 2, lineDash: [3, 3] }),
-              }),
-              text: new Text({
-                text: rainMm > 0 ? `🌧 ${rainMm.toFixed(1)}mm` : `🌧 ${Math.round(pop * 100)}%`,
-                font: 'bold 9px monospace',
-                fill: new Fill({ color: strokeColor }),
-                stroke: new Stroke({ color: '#12100E', width: 3 }),
-                offsetY: 18,
-              }),
-            }),
-          ]);
-
-          radarEchoFeatures.push(echoFeature);
-        }
-      });
-
-      if (radarEchoFeatures.length > 0) {
-        const radarVectorLayer = new VectorLayer({
-          source: new VectorSource({ features: radarEchoFeatures }),
-          zIndex: 18,
-        });
-        map.addLayer(radarVectorLayer);
-        radarVectorLayerRef.current = radarVectorLayer;
-      }
-    }
-
-    return () => {
-      isCancelled = true;
-      if (radarTileLayerRef.current) {
-        map.removeLayer(radarTileLayerRef.current);
-        radarTileLayerRef.current = null;
-      }
-      if (radarVectorLayerRef.current) {
-        map.removeLayer(radarVectorLayerRef.current);
-        radarVectorLayerRef.current = null;
-      }
-    };
-  }, [radarActive, forecasts, mapReady]);
-
-  // 6. Waypoint Cloud Density Meters (No full-map cloud raster overlay)
+  // 5. Waypoint Cloud Density Meters (No full-map cloud raster overlay)
   useEffect(() => {
     if (!mapInstanceRef.current) return;
     const map = mapInstanceRef.current;
@@ -827,22 +698,14 @@ export function WeatherMap({
     map.addLayer(reticleLayer);
     reticleLayerRef.current = reticleLayer;
 
-    // If selected from chart/timeline, pan to point smoothly only if out of bounds
+    // Synchronize local popup and view center on point selection
+    setLocalSelectedPoint(forecast);
+    if (overlayRef.current) overlayRef.current.setPosition(coord);
     if (selectedPoint.source !== 'map') {
-      const view = map.getView();
-      const size = map.getSize();
-      if (size) {
-        const extent = view.calculateExtent(size);
-        const isVisible = coord[0] >= extent[0] && coord[0] <= extent[2] && coord[1] >= extent[1] && coord[1] <= extent[3];
-        if (!isVisible) {
-          view.animate({
-            center: coord,
-            duration: 250,
-          });
-        }
-      }
-      setLocalSelectedPoint(forecast);
-      if (overlayRef.current) overlayRef.current.setPosition(coord);
+      map.getView().animate({
+        center: coord,
+        duration: 350,
+      });
     }
   }, [selectedPoint]);
 
@@ -967,73 +830,155 @@ export function WeatherMap({
         )}
       </div>
 
-      {/* Interactive Popup Overlay on Waypoint Click */}
+      {/* Interactive Comprehensive Tactical Dossier Overlay on Waypoint Click */}
       <div
         ref={popupRef}
         className={cn(
-          "rounded-xl border border-[#453A2E] bg-[#16120F]/95 backdrop-blur-md p-3 shadow-2xl font-mono text-xs text-[#F5F2EB] min-w-[200px] pointer-events-auto",
+          "rounded-2xl border border-[#453A2E] bg-[#16120F]/95 backdrop-blur-xl p-3.5 sm:p-4 shadow-2xl font-mono text-xs text-[#F5F2EB] w-[300px] sm:w-[340px] max-w-[calc(100vw-32px)] pointer-events-auto select-text",
           !localSelectedPoint && "hidden"
         )}
       >
         {localSelectedPoint && (
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between border-b border-[#453A2E]/80 pb-1 text-[11px]">
-              <span className="text-[#E5A93C] font-bold">
-                {localSelectedPoint.routePoint.distance.toFixed(1)} km
-              </span>
-              <span className="text-[#A89F91]">
-                ALT: {Math.round(localSelectedPoint.routePoint.elevation ?? 0)}m
-              </span>
+          <div className="space-y-2.5">
+            {/* Header: Distance, Elevation, Coordinates & Dismiss */}
+            <div className="flex items-start justify-between border-b border-[#453A2E]/80 pb-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-1.5 py-0.5 rounded bg-[#E5A93C]/20 border border-[#E5A93C]/40 text-[#E5A93C] font-bold text-[11px]">
+                    {localSelectedPoint.routePoint.distance.toFixed(1)} KM
+                  </span>
+                  <span className="text-[#F5F2EB] text-[11px] font-semibold">
+                    ALT {Math.round(localSelectedPoint.routePoint.elevation ?? 0)}m
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-1 text-[9px] text-[#A89F91]">
+                  <span>GPS: {localSelectedPoint.routePoint.lat.toFixed(4)}°, {localSelectedPoint.routePoint.lon.toFixed(4)}°</span>
+                  {localSelectedPoint.routePoint.estimatedTime && (
+                    <>
+                      <span>•</span>
+                      <span>ETA {formatTime(localSelectedPoint.routePoint.estimatedTime)}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setLocalSelectedPoint(null);
+                  if (overlayRef.current) overlayRef.current.setPosition(undefined);
+                }}
+                title="Close Waypoint Inspector"
+                className="p-1 rounded-lg text-[#A89F91] hover:text-[#F5F2EB] hover:bg-[#28221B] transition-colors cursor-pointer -mr-1 -mt-1"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 text-[10px] pt-0.5">
-              <div>
-                <span className="text-[#A89F91] block uppercase">AIR TEMP</span>
-                <span className="font-bold text-[#F5F2EB] text-xs">
+            {/* Condition Banner */}
+            <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-[#251F19]/60 border border-[#453A2E]/50 text-[11px]">
+              <span className="text-[#E5A93C] font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                <span>{localSelectedPoint.weather.weather?.[0]?.description || 'METEOROLOGICAL FIX'}</span>
+              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[#F5F2EB] font-bold text-sm">
                   {formatTemperature(localSelectedPoint.weather.temp, units)}
                 </span>
-              </div>
-              <div>
-                <span className="text-[#E5A93C]/80 block uppercase">FEELS LIKE</span>
-                <span className="font-bold text-[#E5A93C] text-xs">
-                  {formatTemperature(localSelectedPoint.weather.feels_like, units)}
-                </span>
-              </div>
-              <div>
-                <span className="text-[#A89F91] block uppercase">WIND</span>
-                <span className="font-bold text-[#82937D] text-xs">
-                  {formatWindSpeed(localSelectedPoint.weather.wind_speed, units)}
+                <span className="text-[#A89F91] text-[10px]">
+                  (FEELS {formatTemperature(localSelectedPoint.weather.feels_like, units)})
                 </span>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2 text-[10px] pt-1 border-t border-[#453A2E]/80">
-              <div>
-                <span className="text-[#A89F91] block uppercase">WIND DIR</span>
-                <span className="font-bold text-[#F5F2EB]">
-                  {Math.round(localSelectedPoint.weather.wind_deg)}°
-                </span>
+
+            {/* Tactical Weather Matrix (4-Card Primary Grid) */}
+            <div className="grid grid-cols-2 gap-2 text-[10px]">
+              {/* Wind & Gusts */}
+              <div className="p-2 rounded-xl bg-[#1C1713] border border-[#453A2E]/60 space-y-1">
+                <div className="flex items-center justify-between text-[#A89F91] text-[9px] uppercase">
+                  <span className="flex items-center gap-1"><Wind className="h-3 w-3 text-[#82937D]" /> WIND</span>
+                  <span className="text-[#82937D] font-bold">
+                    {formatWindDirection(localSelectedPoint.weather.wind_deg)} ({Math.round(localSelectedPoint.weather.wind_deg)}°)
+                  </span>
+                </div>
+                <div className="flex items-baseline justify-between">
+                  <span className="font-bold text-[#F5F2EB] text-xs">
+                    {formatWindSpeed(localSelectedPoint.weather.wind_speed, units)}
+                  </span>
+                  {localSelectedPoint.weather.wind_gust && (
+                    <span className="text-[#E5A93C] text-[9px]">
+                      GUST {formatWindSpeed(localSelectedPoint.weather.wind_gust, units)}
+                    </span>
+                  )}
+                </div>
               </div>
-              <div>
-                <span className="text-[#A89F91] block uppercase">PRECIP PROB</span>
-                <span className="font-bold text-[#82937D]">
-                  {Math.round((localSelectedPoint.weather.pop ?? 0) * 100)}%
-                </span>
+
+              {/* Precipitation */}
+              <div className="p-2 rounded-xl bg-[#1C1713] border border-[#453A2E]/60 space-y-1">
+                <div className="flex items-center justify-between text-[#A89F91] text-[9px] uppercase">
+                  <span className="flex items-center gap-1"><CloudRain className="h-3 w-3 text-[#E5A93C]" /> PRECIP</span>
+                  <span className="font-bold text-[#E5A93C]">
+                    {Math.round((localSelectedPoint.weather.pop ?? 0) * 100)}%
+                  </span>
+                </div>
+                <div className="flex items-baseline justify-between text-[10px]">
+                  <span className="text-[#F5F2EB]">
+                    {localSelectedPoint.weather.rain?.['1h'] 
+                      ? `${formatPrecipitation(localSelectedPoint.weather.rain['1h'], units)}/h` 
+                      : (localSelectedPoint.weather.snow?.['1h'] 
+                        ? `${formatPrecipitation(localSelectedPoint.weather.snow['1h'], units)}/h snow` 
+                        : '0.0 mm/h')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Cloud Density & Barometric Pressure */}
+              <div className="p-2 rounded-xl bg-[#1C1713] border border-[#453A2E]/60 space-y-1">
+                <div className="flex items-center justify-between text-[#A89F91] text-[9px] uppercase">
+                  <span className="flex items-center gap-1"><Gauge className="h-3 w-3 text-[#C4A482]" /> PRESSURE</span>
+                </div>
+                <div className="flex items-baseline justify-between text-[10px]">
+                  <span className="font-bold text-[#F5F2EB]">
+                    {formatPressure(localSelectedPoint.weather.pressure, units)}
+                  </span>
+                  <span className="text-[#C4A482] text-[9px]">
+                    ☁ {Math.round(localSelectedPoint.weather.clouds ?? 0)}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Humidity, Dew Point & UV */}
+              <div className="p-2 rounded-xl bg-[#1C1713] border border-[#453A2E]/60 space-y-1">
+                <div className="flex items-center justify-between text-[#A89F91] text-[9px] uppercase">
+                  <span className="flex items-center gap-1"><Droplets className="h-3 w-3 text-[#82937D]" /> HUMIDITY</span>
+                  <span className="font-bold text-[#F5F2EB]">{Math.round(localSelectedPoint.weather.humidity ?? 0)}%</span>
+                </div>
+                <div className="flex items-baseline justify-between text-[9px] text-[#A89F91]">
+                  <span>DEW: {formatTemperature(localSelectedPoint.weather.dew_point ?? localSelectedPoint.weather.temp, units)}</span>
+                  {localSelectedPoint.weather.uvi !== undefined && (
+                    <span className="text-[#E5A93C]">UV {Math.round(localSelectedPoint.weather.uvi)}</span>
+                  )}
+                </div>
               </div>
             </div>
+
+            {/* Alerts if present */}
+            {localSelectedPoint.alerts && localSelectedPoint.alerts.length > 0 && (
+              <div className="p-2 rounded-xl bg-[#EF4444]/10 border border-[#EF4444]/40 text-[10px] space-y-0.5">
+                <span className="text-[#EF4444] font-bold block uppercase">
+                  ⚠ {localSelectedPoint.alerts[0].title}
+                </span>
+                <span className="text-[#F5F2EB]/90 block text-[9px]">
+                  {localSelectedPoint.alerts[0].description}
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>
 
       {/* Tactical Active Overlay Status Indicator (Bottom-Right) */}
-      {(radarActive || cloudsActive || !windVectorsActive) && (
+      {(cloudsActive || !windVectorsActive) && (
         <div className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 z-30 pointer-events-none flex items-center gap-1.5 font-mono text-[9px] sm:text-[10px] bg-[#16120F]/90 backdrop-blur-md px-2.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-[#453A2E]/80 shadow-2xl">
-          {radarActive && (
-            <span className="flex items-center gap-1.5 text-[#E5A93C] font-bold">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#E5A93C] animate-pulse" />
-              <span>RADAR ON</span>
-            </span>
-          )}
-          {radarActive && (cloudsActive || !windVectorsActive) && <span className="text-[#453A2E]">•</span>}
           {cloudsActive && (
             <span className="flex items-center gap-1.5 text-[#C4A482] font-bold">
               <span className="h-1.5 w-1.5 rounded-full bg-[#C4A482]" />

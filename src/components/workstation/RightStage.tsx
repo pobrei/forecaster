@@ -36,7 +36,6 @@ export function RightStage({
   activeTab,
 }: RightStageProps) {
   const [basemap, setBasemap] = useState<BasemapMode>('satellite');
-  const [radarActive, setRadarActive] = useState(false);
   const [windVectorsActive, setWindVectorsActive] = useState(true);
   const [cloudsActive, setCloudsActive] = useState(false);
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(null);
@@ -66,7 +65,6 @@ export function RightStage({
               onBasemapChange={setBasemap}
               isVisible={isVisible}
               activeTab={activeTab}
-              radarActive={radarActive}
               windVectorsActive={windVectorsActive}
               cloudsActive={cloudsActive}
               className="w-full h-full border-none rounded-none"
@@ -75,8 +73,6 @@ export function RightStage({
             {/* Floating Top-Right Map HUD Controls & Model Divergence Ribbon */}
             <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-30 pointer-events-auto flex flex-col items-end gap-1.5 sm:gap-2 max-w-[calc(100vw-20px)] sm:max-w-sm">
               <MapHUDControls
-                radarActive={radarActive}
-                onToggleRadar={() => setRadarActive(!radarActive)}
                 windVectorsActive={windVectorsActive}
                 onToggleWindVectors={() => setWindVectorsActive(!windVectorsActive)}
                 cloudsActive={cloudsActive}
