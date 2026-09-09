@@ -9,7 +9,7 @@ test.describe('Forecaster Workstation Smoke Tests', () => {
 
     // Verify telemetry header
     await expect(page.getByText(/FORECASTER/i).first()).toBeVisible();
-    await expect(page.getByText(/ATMOSPHERIC EXPEDITION RADAR/i)).toBeVisible();
+    await expect(page.getByText(/EXPEDITION METEOROLOGY/i)).toBeVisible();
 
     // Verify Left Panel sections
     await expect(page.getByText(/ROUTE INGESTION • GPX/i)).toBeVisible();
@@ -56,10 +56,19 @@ test.describe('Forecaster Workstation Smoke Tests', () => {
   test('should render map HUD controls and layer selector', async ({ page }) => {
     await page.goto('/');
 
-    // Check map HUD layer buttons
-    await expect(page.getByRole('button', { name: /^satellite$/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /^dark$/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /^b&w/i })).toBeVisible();
+    // Load sample route to activate interactive map
+    const loadAlpineBtn = page.getByRole('button', { name: /Load Sample Route \(Alpine 45km\)/i });
+    await loadAlpineBtn.click({ force: true });
+    await expect(page.getByText(/45.0 km/i).first()).toBeVisible({ timeout: 5000 });
+
+    // Check map HUD layer buttons in WeatherMap
+    await expect(page.getByRole('button', { name: /SATELLITE/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /DARK/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /B&W CLEAN/i })).toBeVisible();
+
+    // Check Map HUD toggle controls
+    await expect(page.getByRole('button', { name: 'RADAR', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'VECTORS', exact: true })).toBeVisible();
   });
 });
 

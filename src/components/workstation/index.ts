@@ -1,5 +1,5 @@
 export { SplitScreenLayout } from './SplitScreenLayout';
-export type { MobileTab } from './SplitScreenLayout';
+export type { WorkstationStage, MobileTab } from './SplitScreenLayout';
 export { LeftPanel } from './LeftPanel';
 export { RightStage } from './RightStage';
 export { GpxDropzone } from './GpxDropzone';
@@ -8,3 +8,4 @@ export { ModelSelectorMatrix } from './ModelSelectorMatrix';
 export { ModelDivergenceRibbon } from './ModelDivergenceRibbon';
 export { MapHUDControls } from './MapHUDControls';
 export { ElevationWeatherSync } from './ElevationWeatherSync';
+export { ModelComparisonSuite } from './ModelComparisonSuite';

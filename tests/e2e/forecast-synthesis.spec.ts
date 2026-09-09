@@ -69,7 +69,7 @@ test.describe('Forecaster Expedition Lifecycle & Forecast Synthesis', () => {
     ).toBeVisible({ timeout: 25000 });
   });
 
-  test('should support switching to 2D Dock View and navigating tabs', async ({ page }) => {
+  test('should support navigating to dedicated Model Comparison Suite and Dossier Export', async ({ page }) => {
     await page.goto('/');
 
     // Load sample route first
@@ -77,23 +77,40 @@ test.describe('Forecaster Expedition Lifecycle & Forecast Synthesis', () => {
     await loadAlpineBtn.click({ force: true });
     await expect(page.getByText(/45.0 km/i).first()).toBeVisible({ timeout: 5000 });
 
-    // Click "2D Dock View" button in header dock
-    const dockViewBtn = page.getByRole('button', { name: /2D Dock View/i });
-    await expect(dockViewBtn).toBeVisible();
-    await dockViewBtn.click({ force: true });
+    // Click "MODEL COMPARISON" button in header
+    const comparisonStageBtn = page.getByRole('button', { name: /MODEL COMPARISON/i }).first();
+    await expect(comparisonStageBtn).toBeVisible();
+    await comparisonStageBtn.click({ force: true });
 
-    // Verify 2D SplitScreenLayout is rendered
-    await expect(page.getByText(/EXPEDITION METEOROLOGY/i)).toBeVisible();
-    await expect(page.getByText(/ROUTE ARMED/i)).toBeVisible();
+    // Verify dedicated comparison suite is rendered
+    await expect(page.getByText(/METEOROLOGICAL SUPERCOMPUTER MATRIX/i).first()).toBeVisible();
+    await expect(page.getByText(/SYNOPTIC AGREEMENT/i).first()).toBeVisible();
+    await expect(page.getByText(/POLYLINE ENSEMBLE CROSS-SECTION/i)).toBeVisible();
+    await expect(page.getByText(/WAYPOINT & PASS DIVERGENCE BREAKDOWN/i)).toBeVisible();
 
-    // Check that we can switch back to 3D Spatial Workspace
-    const spatialViewBtn = page.getByRole('button', { name: /3D Spatial/i }).or(
-      page.getByTitle(/Switch to 3D Spatial Workspace/i)
-    );
-    if (await spatialViewBtn.isVisible()) {
-      await spatialViewBtn.click({ force: true });
-      await expect(page.getByText(/ATMOSPHERIC EXPEDITION RADAR/i)).toBeVisible();
-    }
+    // Capture visual preview artifact
+    await page.screenshot({ 
+      path: '/Users/filippsh/.gemini/antigravity-ide/brain/8bd520e2-e567-497f-a4d3-e3ab959c2643/model_comparison_preview.png',
+      fullPage: false 
+    });
+
+    // Test metric toggles in comparison suite
+    const windMetricBtn = page.getByRole('button', { name: 'Wind & Gusts' });
+    await windMetricBtn.click({ force: true });
+
+    const rainMetricBtn = page.getByRole('button', { name: 'Precipitation' });
+    await rainMetricBtn.click({ force: true });
+
+    // Switch to "DOSSIER EXPORT" stage
+    const exportStageBtn = page.getByRole('button', { name: /DOSSIER EXPORT/i });
+    await exportStageBtn.click({ force: true });
+    await expect(page.getByText(/EXPEDITION DOSSIER/i).first()).toBeVisible();
+
+    // Switch back to "RADAR & ROUTE" stage
+    const radarStageBtn = page.getByRole('button', { name: /RADAR & ROUTE/i });
+    await radarStageBtn.click({ force: true });
+    await expect(page.getByRole('button', { name: 'SATELLITE' })).toBeVisible();
+    await expect(page.getByText(/ROUTE INGESTION • GPX/i)).toBeVisible();
   });
 
   test('should toggle audio feedback settings cleanly', async ({ page }) => {

@@ -10,10 +10,13 @@ import {
 import { 
   SplitScreenLayout, 
   MobileTab, 
+  WorkstationStage,
   LeftPanel, 
-  RightStage 
+  RightStage,
+  ModelComparisonSuite,
+  ModelDivergenceRibbon,
+  ElevationWeatherSync
 } from '@/components/workstation';
-import { AtmosphericCanvas3D } from '@/components/canvas/AtmosphericCanvas3D';
 import { 
   WeatherCharts, 
   WeatherTimeline, 
@@ -21,7 +24,6 @@ import {
   UnifiedExport 
 } from '@/components/features';
 import { MetricGrid } from '@/components/ui';
-import dynamic from 'next/dynamic';
 import { Route, AppSettings, SelectedWeatherPoint } from '@/types';
 import { ROUTE_CONFIG } from '@/lib/constants';
 import { createAlpine45KmSampleRoute } from '@/lib/sample-routes';
@@ -32,21 +34,8 @@ import { WeatherSourcePreferences } from '@/types/weather-sources';
 import { playTelemetryChirp } from '@/lib/audio-fx';
 import { toast } from 'sonner';
 
-const SpatialWorkspace = dynamic(
-  () => import('@/components/3d').then((mod) => mod.SpatialWorkspace),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="w-screen h-screen flex flex-col items-center justify-center bg-[#12100E] text-[#E5A93C] font-mono text-xs select-none">
-        <div className="h-10 w-10 border-2 border-[#E5A93C] border-t-transparent rounded-full animate-spin mb-3 shadow-[0_0_20px_rgba(229,169,60,0.35)]" />
-        <span className="tracking-widest uppercase text-[#F5F2EB]">INITIALIZING 3D SPATIAL WORKSPACE...</span>
-      </div>
-    ),
-  }
-);
-
 export default function Home() {
-  const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
+  const [stage, setStage] = useState<WorkstationStage>('radar');
   const [route, setRoute] = useState<Route | null>(null);
   const [settings, setSettings] = useState<AppSettings>(() => ({
     startTime: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
@@ -82,6 +71,7 @@ export default function Home() {
 
   // Multi-source comparison hook
   const {
+    forecasts: multiSourceForecasts,
     isLoading: isLoadingMultiSource,
     loadMultiSourceWeather,
     reset: resetMultiSource,
@@ -99,6 +89,7 @@ export default function Home() {
     resetWeatherData();
     resetMultiSource();
     setSelectedPoint(null);
+    setStage('radar');
     toast.info('Expedition ejected. Recon standby.');
   };
 
@@ -127,30 +118,27 @@ export default function Home() {
     }
 
     try {
-      if (weatherSourcePreferences.comparisonMode === 'comparison') {
-        toast.loading(`Querying ${weatherSourcePreferences.enabledSources.length} meteorological models...`, {
-          id: 'multi-source',
-        });
-        await Promise.all([
-          loadWeatherData(route, settings),
-          loadMultiSourceWeather(
-            route,
-            settings,
-            weatherSourcePreferences.enabledSources,
-            weatherSourcePreferences.customApiKeys
-          ),
-        ]);
-        toast.dismiss('multi-source');
-        toast.success(
-          `Consensus generated across ${weatherSourcePreferences.enabledSources.length} supercomputers!`
-        );
-      } else {
-        await loadWeatherData(route, settings);
-        toast.success(`Weather forecast generated for ${route.name}!`);
-      }
+      toast.loading(`Querying meteorological ensemble models...`, {
+        id: 'forecast-gen',
+      });
+
+      // Always load base weather and multi-source consensus in parallel
+      await Promise.allSettled([
+        loadWeatherData(route, settings),
+        loadMultiSourceWeather(
+          route,
+          settings,
+          weatherSourcePreferences.enabledSources,
+          weatherSourcePreferences.customApiKeys
+        ),
+      ]);
+
+      toast.dismiss('forecast-gen');
+      toast.success(`Weather forecast synthesized for ${route.name}!`);
     } catch (error) {
-      toast.dismiss('multi-source');
+      toast.dismiss('forecast-gen');
       console.error('Forecast generation error:', error);
+      toast.error('Error synthesizing forecast data.');
     }
   };
 
@@ -260,76 +248,94 @@ export default function Home() {
     return null;
   };
 
-  if (viewMode === '3d') {
-    return (
-      <SpatialWorkspace
-        route={route}
-        forecasts={forecasts}
-        settings={settings}
-        preferences={weatherSourcePreferences}
-        selectedPoint={selectedPoint}
-        isLoading={isGeneratingForecast || isLoadingMultiSource}
-        onRouteLoaded={handleRouteLoaded}
-        onResetRoute={handleResetRoute}
-        onSettingsChange={setSettings}
-        onPreferencesChange={handleWeatherSourceChange}
-        onGenerateForecast={handleGenerateForecast}
-        onPointSelect={handlePointSelection}
-        onToggleViewMode={() => setViewMode('2d')}
-        onSaveExpedition={handleSaveExpeditionToAtlas}
-        isSavingExpedition={isSavingExpedition}
-      />
-    );
-  }
-
   return (
-    <>
-      {/* Photorealistic Ambient Atmospheric Canvas */}
-      <AtmosphericCanvas3D />
-
-      {/* Modern High-Density Split-Screen Workstation Layout */}
-      <SplitScreenLayout
-        route={route}
-        forecasts={forecasts}
-        onResetRoute={handleResetRoute}
-        onSaveExpedition={handleSaveExpeditionToAtlas}
-        isSavingExpedition={isSavingExpedition}
-        activeMobileTab={mobileTab}
-        onMobileTabChange={setMobileTab}
-        onToggleViewMode={() => setViewMode('3d')}
-        leftPanel={
-          <LeftPanel
+    <SplitScreenLayout
+      route={route}
+      forecasts={forecasts}
+      onResetRoute={handleResetRoute}
+      onSaveExpedition={handleSaveExpeditionToAtlas}
+      isSavingExpedition={isSavingExpedition}
+      activeStage={stage}
+      onStageChange={setStage}
+      activeMobileTab={mobileTab}
+      onMobileTabChange={setMobileTab}
+      leftPanel={
+        <LeftPanel
+          route={route}
+          settings={settings}
+          preferences={weatherSourcePreferences}
+          onRouteLoaded={handleRouteLoaded}
+          onResetRoute={handleResetRoute}
+          onSettingsChange={setSettings}
+          onPreferencesChange={handleWeatherSourceChange}
+          onGenerateForecast={handleGenerateForecast}
+          isLoading={isGeneratingForecast || isLoadingMultiSource}
+          hasForecasts={forecasts.length > 0}
+          onOpenComparison={() => setStage('comparison')}
+        />
+      }
+      mapStage={
+        mobileTab === 'telemetry' || mobileTab === 'dispatch' ? (
+          renderMobileSpecialContent()
+        ) : (
+          <RightStage
             route={route}
-            settings={settings}
-            preferences={weatherSourcePreferences}
-            onRouteLoaded={handleRouteLoaded}
-            onResetRoute={handleResetRoute}
-            onSettingsChange={setSettings}
-            onPreferencesChange={handleWeatherSourceChange}
-            onGenerateForecast={handleGenerateForecast}
-            isLoading={isGeneratingForecast || isLoadingMultiSource}
-            hasForecasts={forecasts.length > 0}
+            forecasts={forecasts}
+            selectedPoint={selectedPoint}
+            onPointSelect={handlePointSelection}
+            units={settings.units}
+            onLoadSampleAlpine={() => {
+              const sampleAlpine = createAlpine45KmSampleRoute();
+              handleRouteLoaded(sampleAlpine);
+              toast.success('Loaded "Alpine 45km" Swiss Traverse');
+            }}
           />
-        }
-        mapStage={
-          mobileTab === 'telemetry' || mobileTab === 'dispatch' ? (
-            renderMobileSpecialContent()
+        )
+      }
+      comparisonStage={
+        <ModelComparisonSuite
+          route={route}
+          forecasts={forecasts}
+          multiSourceForecasts={multiSourceForecasts}
+          preferences={weatherSourcePreferences}
+          onPreferencesChange={handleWeatherSourceChange}
+          units={settings.units}
+          onSelectPoint={(idx) => handlePointSelection(idx, 'chart')}
+          onBackToRadar={() => setStage('radar')}
+        />
+      }
+      exportStage={
+        <div className="p-4 sm:p-6 space-y-6 overflow-y-auto h-full bg-[#12100E] max-w-7xl mx-auto w-full custom-scrollbar">
+          {!route || forecasts.length === 0 ? (
+            <div className="text-center py-24 text-[#A89F91] font-mono text-xs">
+              <ShieldCheck className="h-12 w-12 mx-auto mb-3 opacity-50 text-[#82937D]" />
+              <p className="uppercase tracking-wider">EXPEDITION DOSSIER DISPATCH READY ONCE ROUTE & FORECAST DATA ARE ARMED.</p>
+            </div>
           ) : (
-            <RightStage
-              route={route}
-              forecasts={forecasts}
-              selectedPoint={selectedPoint}
-              onPointSelect={handlePointSelection}
-              units={settings.units}
-              onLoadSampleAlpine={() => {
-                const sampleAlpine = createAlpine45KmSampleRoute();
-                handleRouteLoaded(sampleAlpine);
-                toast.success('Loaded "Alpine 45km" Swiss Traverse');
-              }}
-            />
-          )
-        }
-      />
-    </>
+            <>
+              <WeatherSummary forecasts={forecasts} units={settings.units} />
+              <UnifiedExport route={route} forecasts={forecasts} settings={settings} />
+            </>
+          )}
+        </div>
+      }
+      divergenceRibbon={
+        <ModelDivergenceRibbon
+          forecasts={forecasts}
+          multiSourceForecasts={multiSourceForecasts}
+          onOpenComparison={() => setStage('comparison')}
+        />
+      }
+      elevationDrawer={
+        <ElevationWeatherSync
+          route={route}
+          forecasts={forecasts}
+          units={settings.units}
+          hoveredIndex={selectedPoint?.forecastIndex ?? null}
+          onHoverPoint={() => {}}
+          onSelectPoint={(f, idx) => handlePointSelection(idx, 'chart')}
+        />
+      }
+    />
   );
 }

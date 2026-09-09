@@ -13,12 +13,14 @@ import { MultiSourceWeatherForecast } from '@/types/weather-sources';
 interface ModelDivergenceRibbonProps {
   forecasts: WeatherForecast[];
   multiSourceForecasts?: MultiSourceWeatherForecast[];
+  onOpenComparison?: () => void;
   className?: string;
 }
 
 export function ModelDivergenceRibbon({
   forecasts,
   multiSourceForecasts: _multiSourceForecasts = [],
+  onOpenComparison,
   className,
 }: ModelDivergenceRibbonProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -97,6 +99,20 @@ export function ModelDivergenceRibbon({
             </span>
             <span>NOAA • ECMWF • DWD Sync</span>
           </div>
+
+          {onOpenComparison && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenComparison();
+              }}
+              className="w-full mt-2 py-1.5 px-3 rounded-lg bg-[#E5A93C]/15 hover:bg-[#E5A93C]/25 border border-[#E5A93C]/40 text-[#E5A93C] font-mono text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <span>OPEN COMPARISON STUDIO</span>
+              <span>➔</span>
+            </button>
+          )}
         </div>
       )}
     </div>

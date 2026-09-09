@@ -28,10 +28,7 @@
     "@radix-ui/react-tabs": "^1.1.12",
     "@radix-ui/react-toast": "^1.2.14",
     "@radix-ui/react-tooltip": "^1.2.7",
-    "@react-three/drei": "^10.7.8",
-    "@react-three/fiber": "^9.7.0",
     "@sentry/nextjs": "^10.30.0",
-    "@types/three": "^0.185.4",
     "@use-gesture/react": "^10.3.1",
     "@vercel/analytics": "^1.4.1",
     "@xmldom/xmldom": "^0.9.8",
@@ -54,7 +51,6 @@
     "sonner": "^2.0.4",
     "tailwind-merge": "^3.3.0",
     "tailwindcss-animate": "^1.0.7",
-    "three": "^0.185.1",
     "winston": "^3.17.0",
     "zod": "^4.2.1",
     "zustand": "^5.0.2"

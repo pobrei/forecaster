@@ -24,6 +24,7 @@ interface LeftPanelProps {
   onGenerateForecast: () => void;
   isLoading: boolean;
   hasForecasts: boolean;
+  onOpenComparison?: () => void;
 }
 
 export function LeftPanel({
@@ -37,6 +38,7 @@ export function LeftPanel({
   onGenerateForecast,
   isLoading,
   hasForecasts,
+  onOpenComparison,
 }: LeftPanelProps) {
   const handleCtaClick = () => {
     playTelemetryChirp();
@@ -102,6 +104,17 @@ export function LeftPanel({
             </>
           )}
         </button>
+
+        {hasForecasts && onOpenComparison && (
+          <button
+            type="button"
+            onClick={onOpenComparison}
+            className="w-full mt-2 py-2 px-3 rounded-xl bg-[#1C1814] hover:bg-[#251F19] border border-[#453A2E] hover:border-[#E5A93C]/60 text-[#E5A93C] font-mono text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs active:scale-[0.98]"
+          >
+            <span>OPEN MODEL COMPARISON SUITE</span>
+            <span>➔</span>
+          </button>
+        )}
 
         {!route && (
           <p className="text-center font-mono text-[10px] text-[#A89F91] mt-1.5">
