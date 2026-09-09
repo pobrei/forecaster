@@ -171,6 +171,7 @@ async function fetchOpenMeteoModels(
         wind_speed: windSpeed,
         wind_deg: windDeg,
         weather: [weatherCondition],
+        pop: precipitation > 0 ? Math.min(1, Math.max(0.2, 0.4 + precipitation * 0.2)) : 0,
         rain: precipitation > 0 ? { '1h': precipitation } : undefined,
         source: providerId,
         sourceName: config?.name || providerId,

@@ -157,7 +157,9 @@ export class OpenMeteoService implements WeatherService {
       wind_deg: current.wind_direction_10m,
       wind_gust: current.wind_gusts_10m,
       weather: [this.mapWeatherCode(current.weather_code)],
-      pop: undefined,
+      pop: current.precipitation !== undefined
+        ? (current.precipitation > 0 ? Math.min(1, Math.max(0.2, 0.4 + current.precipitation * 0.2)) : 0)
+        : 0,
       rain: current.precipitation !== undefined && current.precipitation > 0 ? { '1h': current.precipitation } : undefined,
       snow: undefined // Open-Meteo doesn't separate rain/snow in current weather
     };

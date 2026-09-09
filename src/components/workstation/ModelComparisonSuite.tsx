@@ -126,7 +126,7 @@ const MODEL_SPECS: ModelSpec[] = [
 export function ModelComparisonSuite({
   route,
   forecasts,
-  multiSourceForecasts: _multiSourceForecasts = [],
+  multiSourceForecasts = [],
   preferences,
   onPreferencesChange,
   units = 'metric',
@@ -155,7 +155,7 @@ export function ModelComparisonSuite({
             lon: pt.lon,
             temp: 16 - (pt.elevation ? (pt.elevation - 1000) * 0.0065 : idx * 0.4),
             wind_speed: 6.5,
-            pop: 0.15,
+            pop: 0,
             dt: (pt.estimatedTime ? Math.floor(pt.estimatedTime.getTime() / 1000) : 1717200000) + idx * 3600,
             feels_like: 15,
             pressure: 1013,
@@ -166,7 +166,7 @@ export function ModelComparisonSuite({
             visibility: 10000,
             wind_deg: 220,
             weather: [{ id: 800, main: 'Clear', description: 'Clear', icon: '01d' }],
-            rain: { '1h': 0 },
+            rain: undefined,
           } as WeatherData
         }));
 
@@ -174,33 +174,73 @@ export function ModelComparisonSuite({
       const distKm = f.routePoint?.distance !== undefined 
         ? f.routePoint.distance 
         : (route?.totalDistance ? (fIdx / (sourcePoints.length - 1)) * route.totalDistance : fIdx * 5);
-      const baseTemp = f.weather.temp;
-      const baseWindKmh = f.weather.wind_speed * 3.6;
-      const baseRainProb = f.weather.pop !== undefined 
-        ? Math.round(f.weather.pop * 100) 
-        : ((f.weather.rain?.['1h'] || 0) > 0 ? 80 : 15);
       const elevationM = f.routePoint?.elevation || 1200;
 
+      // Check if real multi-source data is available for this waypoint
+      const matchingMultiSource = multiSourceForecasts.length > 0
+        ? (multiSourceForecasts[fIdx] || 
+           multiSourceForecasts.find((ms) => Math.abs(ms.routePoint.distance - distKm) < 1.0) ||
+           null)
+        : null;
+
+      const baseTemp = f.weather.temp;
+      const baseWindKmh = f.weather.wind_speed * 3.6;
+      const baseRainMm = Number((f.weather.rain?.['1h'] || f.weather.snow?.['1h'] || 0).toFixed(1));
+      const baseRainProb = f.weather.pop !== undefined
+        ? Math.round(f.weather.pop * 100)
+        : (baseRainMm > 0 ? Math.min(100, Math.round(50 + baseRainMm * 20)) : 0);
+
       // Calculate model values for each model
-      const modelValues: Record<string, { temp: number; wind: number; rainProb: number; freezingLevel: number }> = {};
+      const modelValues: Record<
+        string,
+        { temp: number; wind: number; rainMm: number; rainProb: number; freezingLevel: number }
+      > = {};
 
       activeModels.forEach((m) => {
-        // Apply physics-based bias plus realistic distance/elevation fluctuation
-        const elevationFactor = (elevationM - 1000) / 1000;
-        const temp = Number((baseTemp + m.tempBias + Math.sin(fIdx * 0.8 + m.tempBias) * 0.4).toFixed(1));
-        const wind = Math.max(0, Math.round(baseWindKmh * m.windBias + (elevationFactor * 3.5)));
-        const rainProb = Math.min(100, Math.max(0, Math.round(baseRainProb + m.rainBias + Math.cos(fIdx * 1.2) * 4)));
-        // Freezing level estimate: 0°C isotherm = elevation + (temp / 6.5°C per 1000m)
-        const freezingLevel = Math.max(0, Math.round(elevationM + (temp / 0.0065)));
+        const realSource = matchingMultiSource?.multiSourceData?.sources?.find(
+          (s) => s.source === m.id
+        );
 
-        modelValues[m.id] = { temp, wind, rainProb, freezingLevel };
+        if (realSource) {
+          const temp = Number(realSource.temp.toFixed(1));
+          const wind = Math.max(0, Math.round(realSource.wind_speed * 3.6));
+          const rainMm = Number((realSource.rain?.['1h'] || realSource.snow?.['1h'] || 0).toFixed(1));
+          const rainProb = realSource.pop !== undefined
+            ? Math.round(realSource.pop * 100)
+            : (rainMm > 0 ? Math.min(100, Math.round(40 + rainMm * 20)) : 0);
+          const freezingLevel = Math.max(0, Math.round(elevationM + (temp / 0.0065)));
+
+          modelValues[m.id] = { temp, wind, rainMm, rainProb, freezingLevel };
+        } else {
+          // Physics-based fallback
+          const elevationFactor = (elevationM - 1000) / 1000;
+          const temp = Number((baseTemp + m.tempBias + Math.sin(fIdx * 0.8 + m.tempBias) * 0.4).toFixed(1));
+          const wind = Math.max(0, Math.round(baseWindKmh * m.windBias + (elevationFactor * 3.5)));
+
+          // When dry, precipitation is strictly 0.0 mm and 0% risk for all models
+          const isDry = baseRainMm === 0 && baseRainProb === 0;
+          const rainMm = isDry
+            ? 0
+            : Number(Math.max(0, baseRainMm + (m.rainBias * 0.08)).toFixed(1));
+          const rainProb = isDry
+            ? 0
+            : Math.min(100, Math.max(0, Math.round(baseRainProb + m.rainBias + Math.cos(fIdx * 1.2) * 3)));
+          const freezingLevel = Math.max(0, Math.round(elevationM + (temp / 0.0065)));
+
+          modelValues[m.id] = { temp, wind, rainMm, rainProb, freezingLevel };
+        }
       });
 
-      // Calculate consensus spread
+      // Calculate consensus spreads
       const temps = Object.values(modelValues).map((v) => v.temp);
       const winds = Object.values(modelValues).map((v) => v.wind);
+      const rains = Object.values(modelValues).map((v) => v.rainMm);
+      const freezings = Object.values(modelValues).map((v) => v.freezingLevel);
+
       const tempSpread = Number((Math.max(...temps) - Math.min(...temps)).toFixed(1));
       const windSpread = Math.max(...winds) - Math.min(...winds);
+      const precipSpread = Number((Math.max(...rains) - Math.min(...rains)).toFixed(1));
+      const freezingSpread = Math.max(...freezings) - Math.min(...freezings);
 
       return {
         index: fIdx,
@@ -210,9 +250,11 @@ export function ModelComparisonSuite({
         modelValues,
         tempSpread,
         windSpread,
+        precipSpread,
+        freezingSpread,
       };
     });
-  }, [forecasts, activeModels, route]);
+  }, [forecasts, multiSourceForecasts, activeModels, route]);
 
   // Overall Consensus Summary Statistics
   const consensusStats = useMemo(() => {
@@ -221,6 +263,8 @@ export function ModelComparisonSuite({
         agreementScore: 92,
         maxTempSpread: 1.6,
         maxWindSpread: 7,
+        maxPrecipSpread: 0,
+        maxRouteRain: 0,
         outlierModel: 'NOAA GFS',
         outlierReason: 'Predicts warmer valley temperature (+1.8°C)',
         divergenceLevel: 'LOW' as const,
@@ -229,14 +273,23 @@ export function ModelComparisonSuite({
 
     const maxTSpread = Math.max(...comparisonSeries.map((s) => s.tempSpread));
     const maxWSpread = Math.max(...comparisonSeries.map((s) => s.windSpread));
+    const maxPSpread = Math.max(...comparisonSeries.map((s) => s.precipSpread));
+    const maxRouteRain = Math.max(
+      ...comparisonSeries.flatMap((s) => Object.values(s.modelValues).map((v) => v.rainMm))
+    );
     
-    // Agreement score inverse to spread
-    const agreement = Math.max(65, Math.min(98, Math.round(100 - (maxTSpread * 6.5) - (maxWSpread * 0.8))));
+    // Agreement score inverse to spreads
+    const agreement = Math.max(
+      65,
+      Math.min(98, Math.round(100 - (maxTSpread * 5.5) - (maxWSpread * 0.7) - (maxPSpread * 10)))
+    );
 
     return {
       agreementScore: agreement,
       maxTempSpread: maxTSpread,
       maxWindSpread: maxWSpread,
+      maxPrecipSpread: maxPSpread,
+      maxRouteRain,
       outlierModel: 'NOAA GFS',
       outlierReason: 'Predicts warmer valley temperature (+1.8°C)',
       divergenceLevel: agreement > 85 ? ('LOW' as const) : agreement > 70 ? ('MODERATE' as const) : ('HIGH' as const),
@@ -555,13 +608,13 @@ export function ModelComparisonSuite({
                     activeModels.map((mod) => {
                       if (activeMetric === 'temp') return s.modelValues[mod.id]?.temp ?? 15;
                       if (activeMetric === 'wind') return s.modelValues[mod.id]?.wind ?? 20;
-                      if (activeMetric === 'rain') return s.modelValues[mod.id]?.rainProb ?? 0;
+                      if (activeMetric === 'rain') return s.modelValues[mod.id]?.rainMm ?? 0;
                       return s.modelValues[mod.id]?.freezingLevel ?? 2500;
                     })
                   );
 
                   const minVal = Math.min(...allValues);
-                  const maxVal = Math.max(...allValues) || 1;
+                  const maxVal = Math.max(...allValues);
                   const range = maxVal - minVal || 1;
 
                   const polylinePoints = comparisonSeries.map((s, idx) => {
@@ -571,7 +624,7 @@ export function ModelComparisonSuite({
                       : activeMetric === 'wind' 
                       ? (s.modelValues[m.id]?.wind ?? 20) 
                       : activeMetric === 'rain' 
-                      ? (s.modelValues[m.id]?.rainProb ?? 0) 
+                      ? (s.modelValues[m.id]?.rainMm ?? 0) 
                       : (s.modelValues[m.id]?.freezingLevel ?? 2500);
                     const y = 200 - ((val - minVal) / range) * 160;
                     return `${x},${y}`;
@@ -591,6 +644,16 @@ export function ModelComparisonSuite({
                     />
                   );
                 })}
+
+                {/* Dry route indicator when rain is 0 mm across all models */}
+                {activeMetric === 'rain' && consensusStats.maxRouteRain === 0 && (
+                  <g>
+                    <rect x="230" y="85" width="340" height="34" rx="8" fill="#1C1814" stroke="#453A2E" strokeWidth="1" />
+                    <text x="400" y="106" textAnchor="middle" fill="#82937D" fontSize="10.5" fontFamily="monospace" fontWeight="bold">
+                      0.0 mm/h • 100% DRY CONSENSUS ACROSS ALL MODELS
+                    </text>
+                  </g>
+                )}
 
                 {/* Vertical Scrubber Line on Hover */}
                 {hoveredIndex !== null && (
@@ -635,7 +698,13 @@ export function ModelComparisonSuite({
                 </span>
                 <span className="text-[#453A2E]">|</span>
                 <span className="text-[#A89F91]">
-                  Divergence: <strong className="text-[#E5A93C]">±{currentHoveredPoint.tempSpread}°C</strong>
+                  Divergence:{' '}
+                  <strong className="text-[#E5A93C]">
+                    {activeMetric === 'rain' && `±${currentHoveredPoint.precipSpread.toFixed(1)} mm/h`}
+                    {activeMetric === 'wind' && `±${currentHoveredPoint.windSpread} km/h`}
+                    {activeMetric === 'freezing' && `±${currentHoveredPoint.freezingSpread}m`}
+                    {activeMetric === 'temp' && `±${currentHoveredPoint.tempSpread}°C`}
+                  </strong>
                 </span>
               </div>
 
@@ -651,7 +720,12 @@ export function ModelComparisonSuite({
                       <span className="font-bold text-[#F5F2EB]">
                         {activeMetric === 'temp' && `${val.temp}°C`}
                         {activeMetric === 'wind' && `${val.wind} km/h`}
-                        {activeMetric === 'rain' && `${val.rainProb}%`}
+                        {activeMetric === 'rain' && (
+                          <span>
+                            {val.rainMm.toFixed(1)} mm/h{' '}
+                            <span className="text-[10px] text-[#A89F91] font-normal">({val.rainProb}%)</span>
+                          </span>
+                        )}
                         {activeMetric === 'freezing' && `${val.freezingLevel}m`}
                       </span>
                     </div>
@@ -715,8 +789,27 @@ export function ModelComparisonSuite({
                         <td key={m.id} className="py-3 px-3 text-right tabular-nums">
                           {mv ? (
                             <div>
-                              <span className="font-bold text-[#F5F2EB]">{mv.temp}°C</span>
-                              <span className="block text-[10px] text-[#A89F91]">{mv.wind} km/h</span>
+                              {activeMetric === 'rain' ? (
+                                <>
+                                  <span className="font-bold text-[#F5F2EB]">{mv.rainMm.toFixed(1)} mm/h</span>
+                                  <span className="block text-[10px] text-[#A89F91]">{mv.rainProb}% risk</span>
+                                </>
+                              ) : activeMetric === 'wind' ? (
+                                <>
+                                  <span className="font-bold text-[#F5F2EB]">{mv.wind} km/h</span>
+                                  <span className="block text-[10px] text-[#A89F91]">{mv.temp}°C</span>
+                                </>
+                              ) : activeMetric === 'freezing' ? (
+                                <>
+                                  <span className="font-bold text-[#F5F2EB]">{mv.freezingLevel}m</span>
+                                  <span className="block text-[10px] text-[#A89F91]">{mv.temp}°C</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="font-bold text-[#F5F2EB]">{mv.temp}°C</span>
+                                  <span className="block text-[10px] text-[#A89F91]">{mv.wind} km/h</span>
+                                </>
+                              )}
                             </div>
                           ) : '—'}
                         </td>
@@ -725,11 +818,14 @@ export function ModelComparisonSuite({
                     <td className="py-3 px-3 text-right">
                       <span className={cn(
                         "px-1.5 py-0.5 rounded text-[10px] font-bold",
-                        wp.tempSpread <= 1.5 
+                        (activeMetric === 'rain' ? wp.precipSpread <= 0.2 : wp.tempSpread <= 1.5)
                           ? "bg-[#82937D]/20 text-[#82937D] border border-[#82937D]/30" 
                           : "bg-[#E5A93C]/20 text-[#E5A93C] border border-[#E5A93C]/30"
                       )}>
-                        ±{wp.tempSpread}°C
+                        {activeMetric === 'rain' && `±${wp.precipSpread.toFixed(1)} mm`}
+                        {activeMetric === 'wind' && `±${wp.windSpread} km/h`}
+                        {activeMetric === 'freezing' && `±${wp.freezingSpread}m`}
+                        {activeMetric === 'temp' && `±${wp.tempSpread}°C`}
                       </span>
                     </td>
                   </tr>
@@ -766,11 +862,15 @@ export function ModelComparisonSuite({
               <span>PRECIPITATION CONSENSUS</span>
             </div>
             <p className="text-xs text-[#A89F91] leading-relaxed font-sans">
-              All 4 active supercomputers agree on dry, stable alpine air through the first 35 kilometers. Isolated convective shower probabilities rise after 15:30 CET, with Météo-France showing low rain risk (&lt;20%) on valley descent.
+              {consensusStats.maxRouteRain === 0
+                ? "All active supercomputers agree on dry, stable conditions across the entire route (0.0 mm/h, 0% rain risk). No precipitation protection gear required."
+                : `Ensemble models forecast localized precipitation up to ${consensusStats.maxRouteRain.toFixed(1)} mm/h along route segments. Maximum model divergence is ±${consensusStats.maxPrecipSpread.toFixed(1)} mm/h.`}
             </p>
             <div className="flex items-center gap-2 pt-1 font-mono text-[10px] text-[#A89F91]">
               <span className="h-1.5 w-1.5 rounded-full bg-[#82937D]" />
-              <span>Route-wide agreement: 94%</span>
+              <span>
+                {consensusStats.maxRouteRain === 0 ? "Route-wide agreement: 100% Dry" : `Agreement score: ${consensusStats.agreementScore}%`}
+              </span>
             </div>
           </div>
         </div>

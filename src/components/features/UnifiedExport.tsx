@@ -217,7 +217,7 @@ export function UnifiedExport({ route, forecasts, settings, className }: Unified
           const tempCanvas = document.createElement('canvas');
           tempCanvas.width = maxW;
           tempCanvas.height = maxH;
-          const tempCtx = tempCanvas.getContext('2d');
+          const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
           if (tempCtx) {
             validCanvases.forEach((c) => {
               try {
@@ -341,7 +341,7 @@ export function UnifiedExport({ route, forecasts, settings, className }: Unified
       canvas.width = width;
       canvas.height = totalHeight;
 
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
       if (!ctx) throw new Error('Canvas context not available');
 
       setExportProgress(50);

@@ -19,7 +19,7 @@ interface ModelDivergenceRibbonProps {
 
 export function ModelDivergenceRibbon({
   forecasts,
-  multiSourceForecasts: _multiSourceForecasts = [],
+  multiSourceForecasts = [],
   onOpenComparison,
   className,
 }: ModelDivergenceRibbonProps) {
@@ -34,13 +34,59 @@ export function ModelDivergenceRibbon({
   const maxWindKmh = Math.round(
     Math.max(...forecasts.map((f) => f.weather.wind_speed * 3.6))
   );
-  const totalRainPts = forecasts.filter((f) => (f.weather.rain?.['1h'] || 0) > 0.2).length;
+  const totalRainPts = forecasts.filter((f) => (f.weather.rain?.['1h'] || 0) > 0.1).length;
+
+  const hasMultiSource = multiSourceForecasts && multiSourceForecasts.length > 0;
+
+  const getModelStats = (
+    id: string,
+    fallbackBias: { temp: number; wind: number; rain: number }
+  ) => {
+    if (hasMultiSource) {
+      const modelPts = multiSourceForecasts
+        .map((mf) => mf.multiSourceData.sources.find((s) => s.source === id))
+        .filter(Boolean);
+
+      if (modelPts.length > 0) {
+        const mAvgTemp = Math.round(
+          modelPts.reduce((acc, s) => acc + s!.temp, 0) / modelPts.length
+        );
+        const mMaxWind = Math.round(
+          Math.max(...modelPts.map((s) => s!.wind_speed * 3.6))
+        );
+        const mRainPts = modelPts.filter(
+          (s) => (s!.rain?.['1h'] || s!.snow?.['1h'] || 0) > 0.1
+        ).length;
+        const mRainProb = Math.round((mRainPts / modelPts.length) * 100);
+        return { temp: mAvgTemp, wind: mMaxWind, rainProb: mRainProb };
+      }
+    }
+
+    // Fallback: when dry (totalRainPts === 0), rainProb is strictly 0%
+    const baseRainProb =
+      totalRainPts === 0 ? 0 : Math.round((totalRainPts / forecasts.length) * 100);
+    const rainProb =
+      totalRainPts === 0
+        ? 0
+        : Math.min(100, Math.max(0, baseRainProb + fallbackBias.rain));
+
+    return {
+      temp: avgTemp + fallbackBias.temp,
+      wind: Math.round(maxWindKmh * fallbackBias.wind),
+      rainProb,
+    };
+  };
+
+  const ecmwfStats = getModelStats('ecmwf', { temp: 0, wind: 1.0, rain: 0 });
+  const gfsStats = getModelStats('gfs', { temp: 1, wind: 1.05, rain: 5 });
+  const iconStats = getModelStats('icon', { temp: -0.5, wind: 0.95, rain: 0 });
+  const meteoFranceStats = getModelStats('meteofrance', { temp: 0, wind: 1.0, rain: -3 });
 
   const models = [
-    { name: 'ECMWF IFS', origin: 'EU 🇪🇺', temp: avgTemp, wind: maxWindKmh, rainProb: Math.round((totalRainPts / forecasts.length) * 100), color: '#3b82f6' },
-    { name: 'NOAA GFS', origin: 'US 🇺🇸', temp: avgTemp + 1, wind: Math.round(maxWindKmh * 1.05), rainProb: Math.min(Math.round((totalRainPts / forecasts.length) * 100) + 5, 100), color: '#f59e0b' },
-    { name: 'DWD ICON', origin: 'DE 🇩🇪', temp: avgTemp - 0.5, wind: Math.round(maxWindKmh * 0.95), rainProb: Math.round((totalRainPts / forecasts.length) * 100), color: '#8b5cf6' },
-    { name: 'Météo-France', origin: 'FR 🇫🇷', temp: avgTemp, wind: maxWindKmh, rainProb: Math.max(Math.round((totalRainPts / forecasts.length) * 100) - 3, 0), color: '#ec4899' },
+    { name: 'ECMWF IFS', origin: 'EU 🇪🇺', temp: ecmwfStats.temp, wind: ecmwfStats.wind, rainProb: ecmwfStats.rainProb, color: '#3b82f6' },
+    { name: 'NOAA GFS', origin: 'US 🇺🇸', temp: gfsStats.temp, wind: gfsStats.wind, rainProb: gfsStats.rainProb, color: '#f59e0b' },
+    { name: 'DWD ICON', origin: 'DE 🇩🇪', temp: iconStats.temp, wind: iconStats.wind, rainProb: iconStats.rainProb, color: '#8b5cf6' },
+    { name: 'Météo-France', origin: 'FR 🇫🇷', temp: meteoFranceStats.temp, wind: meteoFranceStats.wind, rainProb: meteoFranceStats.rainProb, color: '#ec4899' },
   ];
 
   return (
