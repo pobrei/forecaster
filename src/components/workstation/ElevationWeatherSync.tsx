@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Route, WeatherForecast } from '@/types';
-import { formatTemperature } from '@/lib/format';
+import { formatTemperature, calculateBearing, getRelativeWind } from '@/lib/format';
 import { playTactileClick } from '@/lib/audio-fx';
 
 export type GraphMetricMode = 'elevation' | 'temperature' | 'rain' | 'wind' | 'multi';
@@ -27,19 +27,6 @@ interface ElevationWeatherSyncProps {
   isExpanded?: boolean;
   onToggleExpand?: () => void;
   className?: string;
-}
-
-function calculateBearing(p1: { lat: number; lon: number }, p2: { lat: number; lon: number }): number {
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const toDeg = (rad: number) => (rad * 180) / Math.PI;
-
-  const lat1 = toRad(p1.lat);
-  const lat2 = toRad(p2.lat);
-  const dLon = toRad(p2.lon - p1.lon);
-
-  const y = Math.sin(dLon) * Math.cos(lat2);
-  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
-  return Math.round(((toDeg(Math.atan2(y, x)) + 360) % 360));
 }
 
 export function ElevationWeatherSync({
@@ -195,25 +182,11 @@ export function ElevationWeatherSync({
     const prevIdx = Math.max(closestIdx - 1, 0);
 
     const heading = calculateBearing(points[prevIdx], points[nextIdx]);
-    const windSpeed = activeForecast.weather.wind_speed;
-    const windDeg = activeForecast.weather.wind_deg;
-    const relAngle = ((windDeg - heading + 360) % 360);
-    const relAngleRad = (relAngle * Math.PI) / 180;
-
-    const parallelSpeed = -Math.round(windSpeed * Math.cos(relAngleRad) * 10) / 10;
-    const crosswindSpeed = Math.round(Math.abs(windSpeed * Math.sin(relAngleRad)) * 10) / 10;
-    const isHeadwind = parallelSpeed > 0;
-
-    return {
+    return getRelativeWind(
       heading,
-      windSpeed,
-      windDeg,
-      relAngle,
-      parallelSpeed: Math.abs(parallelSpeed),
-      crosswindSpeed,
-      isHeadwind,
-      type: Math.abs(parallelSpeed) < 1 ? 'Crosswind' : isHeadwind ? 'Headwind' : 'Tailwind',
-    };
+      activeForecast.weather.wind_speed,
+      activeForecast.weather.wind_deg
+    );
   }, [activeForecast, points]);
 
   const lastHoveredIndexRef = useRef<number | null>(null);
@@ -402,15 +375,22 @@ export function ElevationWeatherSync({
               <span className="px-1 sm:px-1.5 py-0.2 sm:py-0.5 rounded bg-[#E5A93C]/15 border border-[#E5A93C]/40 text-[#E5A93C] font-bold text-[9px] sm:text-[10px] uppercase">
                 FEELS {formatTemperature(activeForecast.weather.feels_like, units)}
               </span>
-              <span className="hidden sm:inline text-[#453A2E]">•</span>
-              <span className="hidden sm:inline text-[#F5F2EB] font-semibold">
-                {Math.round(activeForecast.weather.wind_speed * 3.6)} km/h
+              <span className="text-[#453A2E]">•</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[#F5F2EB] font-semibold text-[10px] sm:text-xs">
+                  {Math.round(activeForecast.weather.wind_speed * 3.6)} km/h
+                </span>
                 {windAnalysis && (
-                  <span className="text-[#A89F91] text-[10px] ml-1 uppercase font-normal">
-                    ({windAnalysis.type})
+                  <span className={cn(
+                    "px-1 sm:px-1.5 py-0.2 rounded font-bold uppercase text-[8px] sm:text-[9px] tracking-wider",
+                    windAnalysis.type === 'Headwind' ? "bg-rose-500/20 text-rose-300 border border-rose-500/40" :
+                    windAnalysis.type === 'Tailwind' ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40" :
+                    "bg-[#E5A93C]/20 text-[#E5A93C] border border-[#E5A93C]/40"
+                  )}>
+                    {windAnalysis.type}
                   </span>
                 )}
-              </span>
+              </div>
               <span className="hidden sm:inline text-[#453A2E]">•</span>
               <span className="hidden sm:inline text-[#82937D] font-semibold">
                 {Math.round((activeForecast.weather.pop ?? 0) * 100)}% rain
@@ -623,6 +603,34 @@ export function ElevationWeatherSync({
               <text x={4} y={svgHeight - padBottom - 4} fill="#C4A482" fontSize="9" fontFamily="monospace">
                 SUSTAINED (km/h)
               </text>
+
+              {/* Live Cursor Wind Speed & Aerodynamic Vector Tag */}
+              {activeCursorX !== null && activeForecast && (
+                <g>
+                  <rect
+                    x={Math.max(10, Math.min(activeCursorX - 75, svgWidth - 160))}
+                    y={4}
+                    width="150"
+                    height="18"
+                    rx="4"
+                    fill="#16120F"
+                    stroke="#E5A93C"
+                    strokeWidth="1"
+                    opacity="0.95"
+                  />
+                  <text
+                    x={Math.max(10, Math.min(activeCursorX - 75, svgWidth - 160)) + 75}
+                    y={16}
+                    fill="#F5F2EB"
+                    fontSize="9"
+                    fontWeight="bold"
+                    fontFamily="monospace"
+                    textAnchor="middle"
+                  >
+                    WIND: {Math.round(activeForecast.weather.wind_speed * 3.6)} km/h {windAnalysis ? `| ${windAnalysis.type.toUpperCase()}` : ''}
+                  </text>
+                </g>
+              )}
             </>
           )}
 

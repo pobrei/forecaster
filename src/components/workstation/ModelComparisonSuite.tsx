@@ -330,6 +330,63 @@ export function ModelComparisonSuite({
     return Array.from(new Set(waypoints.map((w) => w.index))).map((idx) => waypoints.find((w) => w.index === idx)!);
   }, [comparisonSeries]);
 
+  // Dynamic Summit / Ridge Analysis for Gust Discordance
+  const summitAnalysis = useMemo(() => {
+    if (comparisonSeries.length === 0 || activeModels.length === 0) return null;
+
+    // Find highest elevation point across comparison series
+    let summit = comparisonSeries[0];
+    for (const pt of comparisonSeries) {
+      if (pt.elevationM > summit.elevationM) {
+        summit = pt;
+      }
+    }
+
+    // Find models with max and min wind at this summit point
+    let maxModel = activeModels[0];
+    let minModel = activeModels[0];
+    let maxWind = -Infinity;
+    let minWind = Infinity;
+
+    for (const m of activeModels) {
+      const w = summit.modelValues[m.id]?.wind ?? 0;
+      if (w > maxWind) {
+        maxWind = w;
+        maxModel = m;
+      }
+      if (w < minWind) {
+        minWind = w;
+        minModel = m;
+      }
+    }
+
+    const summitWindSpread = Math.max(0, maxWind - minWind);
+    const summitForecast = forecasts && forecasts[summit.index];
+    const rawGust = summitForecast?.weather?.wind_gust ? summitForecast.weather.wind_gust * 3.6 : 0;
+    const peakGustKmh = Math.max(
+      Math.round(rawGust),
+      Math.round(maxWind * 1.3)
+    );
+
+    // Route title / location
+    const routeTitle = route?.name ? route.name.replace(/\s*\(\d+.*?\)$/, '').trim() : '';
+    const elevationStr = `${summit.elevationM}m`;
+    const summitName = routeTitle
+      ? `${routeTitle} summit (${elevationStr})`
+      : `route summit (${elevationStr} at km ${summit.distanceKm.toFixed(1)})`;
+
+    return {
+      summit,
+      summitName,
+      maxModel,
+      minModel,
+      maxWind,
+      minWind,
+      summitWindSpread,
+      peakGustKmh,
+    };
+  }, [comparisonSeries, activeModels, forecasts, route]);
+
   const handleSetPrimary = (id: WeatherProviderId) => {
     playTactileClick();
     onPreferencesChange({
@@ -844,16 +901,32 @@ export function ModelComparisonSuite({
               <AlertTriangle className="h-4 w-4" />
               <span>SUMMIT GUST DISCORDANCE</span>
             </div>
-            <p className="text-xs text-[#A89F91] leading-relaxed font-sans">
-              DWD ICON models high-velocity ridge compression at the Klausen Pass summit ({waypointBreakdown[2]?.elevationM || 1850}m), forecasting wind gusts up to <strong className="text-[#F5F2EB]">44 km/h</strong>. ECMWF IFS dampens ridge turbulence to 29 km/h. Recommend packing windbreak shell gear for summit transit.
-            </p>
-            <div className="flex items-center gap-2 pt-1 font-mono text-[10px] text-[#A89F91]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#8B5CF6]" />
-              <span>DWD ICON 7km</span>
-              <span>•</span>
-              <span className="h-1.5 w-1.5 rounded-full bg-[#3B82F6]" />
-              <span>ECMWF 9km</span>
-            </div>
+            {summitAnalysis ? (
+              <>
+                <p className="text-xs text-[#A89F91] leading-relaxed font-sans">
+                  {summitAnalysis.summitWindSpread >= 6 ? (
+                    <>
+                      <strong className="text-[#F5F2EB]">{summitAnalysis.maxModel.name}</strong> models high-velocity ridge compression at the {summitAnalysis.summitName}, forecasting wind gusts up to <strong className="text-[#F5F2EB]">{summitAnalysis.peakGustKmh} km/h</strong> ({summitAnalysis.maxWind} km/h sustained). In contrast, {summitAnalysis.minModel.name} dampens ridge turbulence to {summitAnalysis.minWind} km/h (±{Math.round(summitAnalysis.summitWindSpread / 2)} km/h spread). {summitAnalysis.peakGustKmh >= 35 ? 'Recommend packing windbreak shell gear for summit transit.' : 'Moderate ridge exposure expected.'}
+                    </>
+                  ) : (
+                    <>
+                      High model consensus at the {summitAnalysis.summitName}: all active supercomputers forecast consistent ridge winds between {summitAnalysis.minWind} and {summitAnalysis.maxWind} km/h (gusts up to <strong className="text-[#F5F2EB]">{summitAnalysis.peakGustKmh} km/h</strong>). Divergence is minimal (±{Math.round(summitAnalysis.summitWindSpread / 2)} km/h).
+                    </>
+                  )}
+                </p>
+                <div className="flex items-center gap-2 pt-1 font-mono text-[10px] text-[#A89F91]">
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: summitAnalysis.maxModel.color }} />
+                  <span>{summitAnalysis.maxModel.name} {summitAnalysis.maxModel.resolution}</span>
+                  <span>•</span>
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: summitAnalysis.minModel.color }} />
+                  <span>{summitAnalysis.minModel.name} {summitAnalysis.minModel.resolution}</span>
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-[#A89F91] leading-relaxed font-sans">
+                Awaiting route telemetry to compute multi-model ridge discordance.
+              </p>
+            )}
           </div>
 
           <div className="rounded-xl border border-[#453A2E] bg-[#16120F]/90 p-4 space-y-3">

@@ -3,7 +3,14 @@
 import { useRef, useEffect } from 'react';
 import { Clock, Wind, Droplets, Thermometer } from 'lucide-react';
 import { WeatherForecast, SelectedWeatherPoint } from '@/types';
-import { formatTemperature, formatWindSpeed, formatTime, formatDistance } from '@/lib/format';
+import { 
+  formatTemperature, 
+  formatWindSpeed, 
+  formatTime, 
+  formatDistance,
+  calculateBearing,
+  getRelativeWind,
+} from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 interface WeatherTimelineProps {
@@ -103,6 +110,11 @@ export function WeatherTimeline({
           const hasAlerts = forecast.alerts && forecast.alerts.length > 0;
           const isSelected = selectedPoint?.forecastIndex === index;
 
+          const prevPt = forecasts[Math.max(0, index - 1)].routePoint;
+          const nextPt = forecasts[Math.min(forecasts.length - 1, index + 1)].routePoint;
+          const heading = calculateBearing(prevPt, nextPt);
+          const relWind = getRelativeWind(heading, forecast.weather.wind_speed, forecast.weather.wind_deg);
+
           return (
             <div
               key={index}
@@ -152,10 +164,20 @@ export function WeatherTimeline({
               </div>
 
               {/* Wind */}
-              <div className="flex items-center gap-1.5 mb-1.5 text-xs">
-                <Wind className="h-3.5 w-3.5 text-[#82937D]" />
-                <span className="text-[#82937D] font-bold">
-                  {formatWindSpeed(forecast.weather.wind_speed, units)}
+              <div className="flex items-center justify-between mb-1.5 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <Wind className="h-3.5 w-3.5 text-[#82937D]" />
+                  <span className="text-[#82937D] font-bold">
+                    {formatWindSpeed(forecast.weather.wind_speed, units)}
+                  </span>
+                </div>
+                <span className={cn(
+                  "px-1.5 py-0.2 rounded text-[9px] font-bold uppercase",
+                  relWind.type === 'Headwind' ? "bg-rose-500/20 text-rose-300 border border-rose-500/30" :
+                  relWind.type === 'Tailwind' ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" :
+                  "bg-[#E5A93C]/20 text-[#E5A93C] border border-[#E5A93C]/30"
+                )}>
+                  {relWind.type}
                 </span>
               </div>
 

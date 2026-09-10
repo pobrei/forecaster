@@ -17,7 +17,9 @@ import {
   formatPrecipitation, 
   formatPressure,
   formatPercentage,
-  formatDistance
+  formatDistance,
+  calculateBearing,
+  getRelativeWind,
 } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -106,6 +108,32 @@ function calculateWeatherStats(forecasts: WeatherForecast[]): WeatherSummaryStat
 
 
 export function WeatherSummary({ forecasts, units = 'metric', className }: WeatherSummaryProps) {
+  const windProfile = React.useMemo(() => {
+    if (!forecasts || forecasts.length < 2) return null;
+    let headwindCount = 0;
+    let tailwindCount = 0;
+
+    forecasts.forEach((f, idx) => {
+      const prev = forecasts[Math.max(0, idx - 1)].routePoint;
+      const next = forecasts[Math.min(forecasts.length - 1, idx + 1)].routePoint;
+      const heading = calculateBearing(prev, next);
+      const rel = getRelativeWind(heading, f.weather.wind_speed, f.weather.wind_deg);
+      if (rel.type === 'Headwind') headwindCount++;
+      else if (rel.type === 'Tailwind') tailwindCount++;
+    });
+
+    const total = forecasts.length;
+    const headwindPct = Math.round((headwindCount / total) * 100);
+    const tailwindPct = Math.round((tailwindCount / total) * 100);
+    const crosswindPct = Math.max(0, 100 - headwindPct - tailwindPct);
+
+    return {
+      headwindPct,
+      tailwindPct,
+      crosswindPct,
+    };
+  }, [forecasts]);
+
   if (!forecasts || forecasts.length === 0) {
     return (
       <div className={cn("rounded-2xl border border-[#453A2E] bg-[#16120F]/90 p-6 font-mono text-xs text-[#F5F2EB] shadow-2xl", className)}>
@@ -197,6 +225,16 @@ export function WeatherSummary({ forecasts, units = 'metric', className }: Weath
                 <span className="text-[10px] text-[#A89F91]">Max Gust:</span>
                 <span className="font-bold text-[#E5A93C]">
                   {formatWindSpeed(stats.wind.maxGust, units)}
+                </span>
+              </div>
+            )}
+            {windProfile && (
+              <div className="flex items-center justify-between pt-1 border-t border-[#453A2E]/50 text-[10px]">
+                <span className="text-[#A89F91]">Regime:</span>
+                <span className="font-semibold text-[#F5F2EB] flex items-center gap-1.5">
+                  <span className="text-rose-400">{windProfile.headwindPct}% Head</span>
+                  <span className="text-[#453A2E]">•</span>
+                  <span className="text-emerald-400">{windProfile.tailwindPct}% Tail</span>
                 </span>
               </div>
             )}

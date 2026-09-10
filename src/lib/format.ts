@@ -246,3 +246,129 @@ export function formatCoordinates(lat: number, lon: number): string {
   
   return `${Math.abs(lat).toFixed(4)}°${latDir}, ${Math.abs(lon).toFixed(4)}°${lonDir}`;
 }
+
+/**
+ * Aerodynamic relative wind type
+ */
+export type RelativeWindType = 'Headwind' | 'Tailwind' | 'Crosswind';
+
+export interface RelativeWindAnalysis {
+  heading: number;           // Course heading in degrees (0-360)
+  windSpeed: number;         // Wind speed in m/s (or input units)
+  windDeg: number;           // Direction wind is coming FROM (0-360)
+  relAngle: number;          // Angular difference between wind origin and heading (0-180)
+  parallelSpeed: number;     // Effective headwind/tailwind component magnitude
+  crosswindSpeed: number;    // Effective perpendicular crosswind component
+  isHeadwind: boolean;       // True if wind opposes forward motion
+  isTailwind: boolean;       // True if wind aids forward motion
+  isCrosswind: boolean;      // True if wind is primarily lateral
+  type: RelativeWindType;    // 'Headwind' | 'Tailwind' | 'Crosswind'
+  description: string;       // Human-readable summary description
+}
+
+/**
+ * Calculate compass bearing between two coordinates in degrees (0-360)
+ */
+export function calculateBearing(
+  p1: { lat: number; lon: number },
+  p2: { lat: number; lon: number }
+): number {
+  const lat1 = (p1.lat * Math.PI) / 180;
+  const lat2 = (p2.lat * Math.PI) / 180;
+  const dLon = ((p2.lon - p1.lon) * Math.PI) / 180;
+
+  const y = Math.sin(dLon) * Math.cos(lat2);
+  const x =
+    Math.cos(lat1) * Math.sin(lat2) -
+    Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+  const brng = (Math.atan2(y, x) * 180) / Math.PI;
+
+  return (brng + 360) % 360;
+}
+
+/**
+ * Compute aerodynamic relative wind vector relative to route heading.
+ * In meteorology, windDeg is where the wind blows FROM.
+ * Heading is where the traveler is MOVING TOWARDS.
+ * When windDeg == heading, wind is blowing directly in face => HEADWIND.
+ * When windDeg == (heading + 180), wind is blowing from behind => TAILWIND.
+ */
+export function getRelativeWind(
+  heading: number,
+  windSpeed: number,
+  windDeg: number
+): RelativeWindAnalysis {
+  // Angular difference between wind origin and heading: 0° = direct face, 180° = direct back
+  const rawDiff = Math.abs(((windDeg - heading + 180) % 360 + 360) % 360 - 180);
+  const diffRad = (rawDiff * Math.PI) / 180;
+
+  // Headwind component: positive when opposing motion, negative when aiding
+  const parallelComponent = windSpeed * Math.cos(diffRad);
+  const parallelSpeed = Math.round(Math.abs(parallelComponent) * 10) / 10;
+  const crosswindSpeed = Math.round(Math.abs(windSpeed * Math.sin(diffRad)) * 10) / 10;
+
+  let type: RelativeWindType = 'Crosswind';
+  if (windSpeed >= 0.5) {
+    if (rawDiff <= 65) {
+      type = 'Headwind';
+    } else if (rawDiff >= 115) {
+      type = 'Tailwind';
+    } else {
+      type = 'Crosswind';
+    }
+  }
+
+  const isHeadwind = type === 'Headwind';
+  const isTailwind = type === 'Tailwind';
+  const isCrosswind = type === 'Crosswind';
+
+  const description =
+    type === 'Headwind'
+      ? `Headwind (${parallelSpeed})`
+      : type === 'Tailwind'
+      ? `Tailwind (+${parallelSpeed})`
+      : `Crosswind (${crosswindSpeed})`;
+
+  return {
+    heading: Math.round(heading),
+    windSpeed,
+    windDeg: Math.round(windDeg),
+    relAngle: Math.round(rawDiff),
+    parallelSpeed,
+    crosswindSpeed,
+    isHeadwind,
+    isTailwind,
+    isCrosswind,
+    type,
+    description,
+  };
+}
+
+/**
+ * Find route course bearing at a specific distance along route points
+ */
+export function getRouteBearingAtDistance(
+  points: { lat: number; lon: number; distance: number }[],
+  distance: number
+): number {
+  if (!points || points.length < 2) return 0;
+
+  let closestIdx = 0;
+  let minDiff = Infinity;
+  for (let i = 0; i < points.length; i++) {
+    const d = Math.abs(points[i].distance - distance);
+    if (d < minDiff) {
+      minDiff = d;
+      closestIdx = i;
+    }
+  }
+
+  const prevIdx = Math.max(0, closestIdx - 1);
+  const nextIdx = Math.min(points.length - 1, closestIdx + 1);
+
+  if (prevIdx === nextIdx) {
+    return 0;
+  }
+
+  return calculateBearing(points[prevIdx], points[nextIdx]);
+}

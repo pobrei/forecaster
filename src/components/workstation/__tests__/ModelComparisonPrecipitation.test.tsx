@@ -206,4 +206,35 @@ describe('Model Comparison Suite & Ribbon Precipitation Accuracy', () => {
     const zeros = screen.getAllByText('0%');
     expect(zeros.length).toBeGreaterThanOrEqual(4);
   });
+
+  it('renders dynamic summit gust discordance using route elevation and does NOT contain hardcoded Klausen Pass', () => {
+    const customRoute: Route = {
+      id: 'custom-pyrenees',
+      name: 'Pyrenees High Ridge Trail',
+      totalDistance: 30.0,
+      totalElevationGain: 1500,
+      points: [
+        { lat: 42.5, lon: 0.5, elevation: 1100, distance: 0 },
+        { lat: 42.6, lon: 0.6, elevation: 2877, distance: 15.0 },
+        { lat: 42.7, lon: 0.7, elevation: 1200, distance: 30.0 },
+      ],
+    };
+
+    render(
+      <ModelComparisonSuite
+        route={customRoute}
+        forecasts={mockDryForecasts}
+        preferences={defaultPrefs}
+        onPreferencesChange={jest.fn()}
+      />
+    );
+
+    // Verify header exists
+    expect(screen.getByText(/SUMMIT GUST DISCORDANCE/i)).toBeInTheDocument();
+
+    // Verify it does NOT mention Klausen Pass and dynamically mentions the route summit
+    expect(screen.queryByText(/Klausen Pass/i)).toBeNull();
+    expect(screen.getByText(/Pyrenees High Ridge Trail summit/i)).toBeInTheDocument();
+  });
 });
+

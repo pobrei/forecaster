@@ -1,4 +1,11 @@
-import { formatWindDirection, getWindDirectionArrow, getWindDirectionRotation, formatWindInfo } from '../format';
+import { 
+  formatWindDirection, 
+  getWindDirectionArrow, 
+  getWindDirectionRotation, 
+  formatWindInfo,
+  calculateBearing,
+  getRelativeWind,
+} from '../format';
 
 describe('Wind Direction Functions', () => {
   describe('formatWindDirection', () => {
@@ -77,4 +84,41 @@ describe('Wind Direction Functions', () => {
       expect(result).toContain('S');
     });
   });
+
+  describe('calculateBearing and getRelativeWind', () => {
+    it('should calculate correct bearing between coordinates', () => {
+      // Going North: lat increases, lon constant
+      const northBearing = calculateBearing({ lat: 46.0, lon: 8.0 }, { lat: 47.0, lon: 8.0 });
+      expect(Math.round(northBearing)).toBe(0);
+
+      // Going East: lat constant, lon increases
+      const eastBearing = calculateBearing({ lat: 0.0, lon: 10.0 }, { lat: 0.0, lon: 20.0 });
+      expect(Math.round(eastBearing)).toBe(90);
+    });
+
+    it('should detect headwind when wind blows from travel direction', () => {
+      // Heading North (0°), Wind blowing FROM North (0°)
+      const result = getRelativeWind(0, 20, 0);
+      expect(result.type).toBe('Headwind');
+      expect(result.isHeadwind).toBe(true);
+      expect(result.parallelSpeed).toBe(20);
+    });
+
+    it('should detect tailwind when wind blows from behind', () => {
+      // Heading North (0°), Wind blowing FROM South (180°)
+      const result = getRelativeWind(0, 20, 180);
+      expect(result.type).toBe('Tailwind');
+      expect(result.isTailwind).toBe(true);
+      expect(result.parallelSpeed).toBe(20);
+    });
+
+    it('should detect crosswind when wind blows from the side', () => {
+      // Heading North (0°), Wind blowing FROM East (90°)
+      const result = getRelativeWind(0, 20, 90);
+      expect(result.type).toBe('Crosswind');
+      expect(result.isCrosswind).toBe(true);
+      expect(result.crosswindSpeed).toBe(20);
+    });
+  });
 });
+

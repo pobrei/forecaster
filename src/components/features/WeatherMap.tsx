@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { 
   ZoomIn, 
   ZoomOut, 
@@ -18,7 +18,10 @@ import {
   formatPressure, 
   formatPrecipitation, 
   formatWindDirection, 
-  formatTime 
+  formatTime,
+  calculateBearing,
+  getRelativeWind,
+  getRouteBearingAtDistance,
 } from '@/lib/format';
 import { MAP_CONFIG } from '@/lib/constants';
 import { cn } from '@/lib/utils';
@@ -150,6 +153,28 @@ export function WeatherMap({
 
   const [internalBasemap, setInternalBasemap] = useState<BasemapMode>('satellite');
   const [localSelectedPoint, setLocalSelectedPoint] = useState<WeatherForecast | null>(null);
+
+  // Aerodynamic Relative Wind Analysis (Headwind / Tailwind / Crosswind)
+  const localWindAnalysis = useMemo(() => {
+    if (!localSelectedPoint) return null;
+    const distance = localSelectedPoint.routePoint.distance;
+    let heading = 0;
+    if (route?.points && route.points.length >= 2) {
+      heading = getRouteBearingAtDistance(route.points, distance);
+    } else if (forecasts && forecasts.length >= 2) {
+      const idx = forecasts.findIndex(f => f.routePoint.distance === distance);
+      if (idx !== -1) {
+        const prev = forecasts[Math.max(0, idx - 1)].routePoint;
+        const next = forecasts[Math.min(forecasts.length - 1, idx + 1)].routePoint;
+        heading = calculateBearing(prev, next);
+      }
+    }
+    return getRelativeWind(
+      heading,
+      localSelectedPoint.weather.wind_speed,
+      localSelectedPoint.weather.wind_deg
+    );
+  }, [localSelectedPoint, route, forecasts]);
   const [mapReady, setMapReady] = useState(false);
   const windVectorsActiveRef = useRef(windVectorsActive);
   useEffect(() => {
@@ -893,7 +918,7 @@ export function WeatherMap({
             {/* Tactical Weather Matrix (4-Card Primary Grid) */}
             <div className="grid grid-cols-2 gap-2 text-[10px]">
               {/* Wind & Gusts */}
-              <div className="p-2 rounded-xl bg-[#1C1713] border border-[#453A2E]/60 space-y-1">
+              <div className="p-2 rounded-xl bg-[#1C1713] border border-[#453A2E]/60 space-y-1.5">
                 <div className="flex items-center justify-between text-[#A89F91] text-[9px] uppercase">
                   <span className="flex items-center gap-1"><Wind className="h-3 w-3 text-[#82937D]" /> WIND</span>
                   <span className="text-[#82937D] font-bold">
@@ -910,6 +935,23 @@ export function WeatherMap({
                     </span>
                   )}
                 </div>
+                {localWindAnalysis && (
+                  <div className="flex items-center justify-between pt-1 border-t border-[#453A2E]/50 text-[9px]">
+                    <span className={cn(
+                      "px-1.5 py-0.5 rounded font-bold uppercase tracking-wider flex items-center gap-1",
+                      localWindAnalysis.type === 'Headwind' ? "bg-rose-500/20 text-rose-300 border border-rose-500/40" :
+                      localWindAnalysis.type === 'Tailwind' ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40" :
+                      "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                    )}>
+                      {localWindAnalysis.type === 'Headwind' ? '⚠️ HEADWIND' : localWindAnalysis.type === 'Tailwind' ? '⚡ TAILWIND' : '↔ CROSSWIND'}
+                    </span>
+                    <span className="text-[#A89F91] font-mono">
+                      {localWindAnalysis.type === 'Headwind' ? `-${formatWindSpeed(localWindAnalysis.parallelSpeed, units)}` :
+                       localWindAnalysis.type === 'Tailwind' ? `+${formatWindSpeed(localWindAnalysis.parallelSpeed, units)}` :
+                       `${formatWindSpeed(localWindAnalysis.crosswindSpeed, units)} cross`}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Precipitation */}
